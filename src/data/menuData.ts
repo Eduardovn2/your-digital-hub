@@ -1,0 +1,80 @@
+import { MenuItem, Category } from "@/types/menu";
+
+export const categories: Category[] = [
+  { id: "all", name: "Todos", icon: "🍽️" },
+  { id: "burgers", name: "Hambúrgueres", icon: "🍔" },
+  { id: "pizzas", name: "Pizzas", icon: "🍕" },
+  { id: "drinks", name: "Bebidas", icon: "🥤" },
+  { id: "desserts", name: "Sobremesas", icon: "🍰" },
+];
+
+export const menuItems: MenuItem[] = [
+  {
+    id: "1",
+    name: "Burger Clássico",
+    description: "Pão artesanal, 180g de carne angus, queijo cheddar, alface, tomate e molho especial",
+    price: 32.90,
+    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop",
+    category: "burgers",
+    popular: true,
+  },
+  {
+    id: "2",
+    name: "Burger Bacon Supreme",
+    description: "Duplo bacon crocante, queijo cheddar derretido, cebola caramelizada e molho barbecue",
+    price: 39.90,
+    image: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=400&h=300&fit=crop",
+    category: "burgers",
+    popular: true,
+  },
+  {
+    id: "3",
+    name: "Pizza Margherita",
+    description: "Molho de tomate italiano, mussarela de búfala, manjericão fresco e azeite extra virgem",
+    price: 49.90,
+    image: "https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=400&h=300&fit=crop",
+    category: "pizzas",
+  },
+  {
+    id: "4",
+    name: "Pizza Pepperoni",
+    description: "Molho de tomate, mussarela especial, pepperoni importado e orégano",
+    price: 54.90,
+    image: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&h=300&fit=crop",
+    category: "pizzas",
+    popular: true,
+  },
+  {
+    id: "5",
+    name: "Refrigerante 350ml",
+    description: "Coca-Cola, Guaraná Antarctica, Sprite ou Fanta Laranja",
+    price: 7.90,
+    image: "https://images.unsplash.com/photo-1581636625402-29b2a704ef13?w=400&h=300&fit=crop",
+    category: "drinks",
+  },
+  {
+    id: "6",
+    name: "Suco Natural 500ml",
+    description: "Laranja, limão, maracujá ou abacaxi com hortelã",
+    price: 12.90,
+    image: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&h=300&fit=crop",
+    category: "drinks",
+  },
+  {
+    id: "7",
+    name: "Brownie com Sorvete",
+    description: "Brownie de chocolate belga quentinho com sorvete de baunilha e calda de chocolate",
+    price: 24.90,
+    image: "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?w=400&h=300&fit=crop",
+    category: "desserts",
+    popular: true,
+  },
+  {
+    id: "8",
+    name: "Petit Gateau",
+    description: "Bolo de chocolate com recheio cremoso, servido com sorvete de creme",
+    price: 28.90,
+    image: "https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=400&h=300&fit=crop",
+    category: "desserts",
+  },
+];

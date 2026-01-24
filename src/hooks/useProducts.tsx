@@ -11,6 +11,7 @@ export interface Product {
   image_url: string | null;
   category: string;
   popular: boolean | null;
+  store_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,14 +32,20 @@ export function productToMenuItem(product: Product): MenuItem {
   };
 }
 
-export function useProducts() {
+export function useProducts(storeId?: string) {
   return useQuery({
-    queryKey: ["products"],
+    queryKey: ["products", storeId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("products")
         .select("*")
         .order("created_at", { ascending: false });
+
+      if (storeId) {
+        query = query.eq("store_id", storeId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as Product[];

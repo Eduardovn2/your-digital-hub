@@ -1,80 +1,73 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyStore } from "@/hooks/useStores";
 import { LoginForm } from "@/components/admin/LoginForm";
-import { ProductList } from "@/components/admin/ProductList";
+import { StoreSetupForm } from "@/components/dashboard/StoreSetupForm";
+import { StoreSettings } from "@/components/dashboard/StoreSettings";
+import { StoreProducts } from "@/components/dashboard/StoreProducts";
+import { OrdersList } from "@/components/dashboard/OrdersList";
 import { Button } from "@/components/ui/button";
-import { LogOut, ArrowLeft, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LogOut, Settings, Package, ShoppingBag, Loader2, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Admin() {
-  const { user, isAdmin, isLoading, signOut } = useAuth();
+  const { user, isLoading: authLoading, signOut } = useAuth();
+  const { data: store, isLoading: storeLoading, refetch } = useMyStore(user?.id);
+  const [activeTab, setActiveTab] = useState("products");
 
-  if (isLoading) {
+  // Loading state
+  if (authLoading || (user && storeLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-food-orange" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
+  // Not logged in
   if (!user) {
     return <LoginForm />;
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">🔒</div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">
-            Acesso Restrito
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            Sua conta ainda não tem permissão de administrador. 
-            Entre em contato com o proprietário do sistema.
-          </p>
-          <div className="flex gap-2 justify-center">
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
-            <Link to="/">
-              <Button className="bg-food-orange hover:bg-food-red">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar ao Menu
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+  // No store yet - show setup
+  if (!store) {
+    return <StoreSetupForm onSuccess={() => refetch()} />;
   }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Ver Cardápio
-                </Button>
-              </Link>
-              <div className="border-l border-border pl-4">
-                <h1 className="text-xl font-bold text-food-orange">
-                  🍽️ Painel Admin
-                </h1>
+            <div className="flex items-center gap-3">
+              {store.logo_url ? (
+                <img src={store.logo_url} alt={store.name} className="h-8 w-8 rounded-lg object-cover" />
+              ) : (
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  🏪
+                </div>
+              )}
+              <div>
+                <h1 className="font-semibold text-foreground">{store.name}</h1>
+                <Link 
+                  to={`/${store.slug}`} 
+                  target="_blank" 
+                  className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+                >
+                  /{store.slug}
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground hidden sm:block">
-                {user.email}
+
+            <div className="flex items-center gap-2">
+              <span className={`text-xs px-2 py-1 rounded-full ${store.is_open ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {store.is_open ? '🟢 Aberto' : '🔴 Fechado'}
               </span>
               <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -82,8 +75,35 @@ export default function Admin() {
       </header>
 
       {/* Content */}
-      <main className="container mx-auto px-4 py-8">
-        <ProductList />
+      <main className="container mx-auto px-4 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="products" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              <span className="hidden sm:inline">Produtos</span>
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              <span className="hidden sm:inline">Pedidos</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Configurações</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="products">
+            <StoreProducts storeId={store.id} />
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <OrdersList storeId={store.id} />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <StoreSettings store={store} />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

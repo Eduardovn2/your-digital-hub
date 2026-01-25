@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      delivery_zones: {
+        Row: {
+          cep_prefix: string | null
+          created_at: string
+          fee: number
+          id: string
+          is_active: boolean
+          name: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          cep_prefix?: string | null
+          created_at?: string
+          fee?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          cep_prefix?: string | null
+          created_at?: string
+          fee?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_zones_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -118,6 +159,47 @@ export type Database = {
           },
         ]
       }
+      printer_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          paper_width: number
+          printer_ip: string
+          printer_port: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          paper_width?: number
+          printer_ip: string
+          printer_port?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          paper_width?: number
+          printer_ip?: string
+          printer_port?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printer_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string
@@ -160,6 +242,47 @@ export type Database = {
             foreignKeyName: "products_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_hours: {
+        Row: {
+          closing_time: string
+          created_at: string
+          days_open: number[]
+          id: string
+          is_auto_control: boolean
+          opening_time: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          closing_time?: string
+          created_at?: string
+          days_open?: number[]
+          id?: string
+          is_auto_control?: boolean
+          opening_time?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          closing_time?: string
+          created_at?: string
+          days_open?: number[]
+          id?: string
+          is_auto_control?: boolean
+          opening_time?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_hours_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },

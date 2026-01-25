@@ -5,10 +5,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUpdateStore, useUploadStoreAsset } from "@/hooks/useStores";
 import { Store } from "@/types/store";
-import { Loader2, Upload, Eye } from "lucide-react";
+import { Loader2, Upload, Eye, Palette, MapPin, Clock, Printer } from "lucide-react";
 import { Link } from "react-router-dom";
+import { DeliveryZonesSettings } from "./DeliveryZonesSettings";
+import { StoreHoursSettings } from "./StoreHoursSettings";
+import { PrinterSettings as PrinterSettingsComponent } from "./PrinterSettings";
 
 interface StoreSettingsProps {
   store: Store;
@@ -86,7 +90,28 @@ export function StoreSettings({ store }: StoreSettingsProps) {
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsTrigger value="general" className="flex items-center gap-1">
+            <Palette className="h-4 w-4" />
+            <span className="hidden sm:inline">Geral</span>
+          </TabsTrigger>
+          <TabsTrigger value="delivery" className="flex items-center gap-1">
+            <MapPin className="h-4 w-4" />
+            <span className="hidden sm:inline">Entrega</span>
+          </TabsTrigger>
+          <TabsTrigger value="hours" className="flex items-center gap-1">
+            <Clock className="h-4 w-4" />
+            <span className="hidden sm:inline">Horário</span>
+          </TabsTrigger>
+          <TabsTrigger value="printer" className="flex items-center gap-1">
+            <Printer className="h-4 w-4" />
+            <span className="hidden sm:inline">Impressão</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general">
+          <form onSubmit={handleSubmit} className="space-y-8">
         {/* Informações Básicas */}
         <div className="bg-card border rounded-xl p-6 space-y-4">
           <h3 className="font-medium text-lg">Informações Básicas</h3>
@@ -323,8 +348,28 @@ export function StoreSettings({ store }: StoreSettingsProps) {
           ) : (
             "Salvar Alterações"
           )}
-        </Button>
-      </form>
+            </Button>
+          </form>
+        </TabsContent>
+
+        <TabsContent value="delivery">
+          <div className="bg-card border rounded-xl p-6">
+            <DeliveryZonesSettings storeId={store.id} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="hours">
+          <div className="bg-card border rounded-xl p-6">
+            <StoreHoursSettings storeId={store.id} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="printer">
+          <div className="bg-card border rounded-xl p-6">
+            <PrinterSettingsComponent storeId={store.id} />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Order, OrderItem, OrderInsert, OrderItemInsert, OrderStatus } from "@/types/store";
 import { toast } from "sonner";
+import { printOrder } from "@/services/printService";
 
 export function useStoreOrders(storeId: string | undefined) {
   return useQuery({
@@ -55,6 +56,13 @@ export function useCreateOrder() {
         .insert(orderItems);
 
       if (itemsError) throw itemsError;
+
+      // Try to print the order (non-blocking)
+      printOrder(orderData.id, order.store_id).then(result => {
+        if (result.printed) {
+          console.log('Order printed successfully');
+        }
+      });
 
       return orderData as Order;
     },

@@ -77,3 +77,58 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   delivered: 'bg-gray-100 text-gray-800',
   cancelled: 'bg-red-100 text-red-800'
 };
+
+// Delivery Zones
+export interface DeliveryZone {
+  id: string;
+  store_id: string;
+  name: string;
+  cep_prefix: string | null;
+  fee: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DeliveryZoneInsert = Omit<DeliveryZone, "id" | "created_at" | "updated_at">;
+export type DeliveryZoneUpdate = Partial<Omit<DeliveryZoneInsert, "store_id">>;
+
+// Store Hours
+export interface StoreHours {
+  id: string;
+  store_id: string;
+  opening_time: string;
+  closing_time: string;
+  days_open: number[];
+  is_auto_control: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type StoreHoursInsert = Omit<StoreHours, "id" | "created_at" | "updated_at">;
+export type StoreHoursUpdate = Partial<Omit<StoreHoursInsert, "store_id">>;
+
+// Printer Settings
+export interface PrinterSettings {
+  id: string;
+  store_id: string;
+  printer_ip: string;
+  printer_port: number;
+  is_enabled: boolean;
+  paper_width: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PrinterSettingsInsert = Omit<PrinterSettings, "id" | "created_at" | "updated_at">;
+export type PrinterSettingsUpdate = Partial<Omit<PrinterSettingsInsert, "store_id">>;
+
+export const DAYS_OF_WEEK = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Segunda' },
+  { value: 2, label: 'Terça' },
+  { value: 3, label: 'Quarta' },
+  { value: 4, label: 'Quinta' },
+  { value: 5, label: 'Sexta' },
+  { value: 6, label: 'Sábado' },
+];

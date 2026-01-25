@@ -2,21 +2,27 @@ import { useState, useMemo, CSSProperties } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useStoreBySlug } from "@/hooks/useStores";
 import { useProducts, productToMenuItem } from "@/hooks/useProducts";
+import { useStoreHours, isStoreCurrentlyOpen } from "@/hooks/useStoreHours";
 import { Store } from "@/types/store";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 import { MenuItemCard } from "@/components/MenuItemCard";
 import { CheckoutDrawer } from "@/components/store/CheckoutDrawer";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShoppingCart, Phone, MapPin, ArrowLeft } from "lucide-react";
+import { Loader2, ShoppingCart, Phone, MapPin, ArrowLeft, Clock } from "lucide-react";
 import { categories } from "@/data/menuData";
 
 function StoreContent() {
   const { slug } = useParams<{ slug: string }>();
   const { data: store, isLoading: storeLoading, error: storeError } = useStoreBySlug(slug);
   const { data: products, isLoading: productsLoading } = useProducts(store?.id);
+  const { data: storeHours } = useStoreHours(store?.id);
   const { items, totalItems: itemCount, totalPrice: total } = useCart();
   const [activeCategory, setActiveCategory] = useState("all");
   const [showCheckout, setShowCheckout] = useState(false);
+
+  // Check if store is open based on hours configuration
+  const isOpenByHours = isStoreCurrentlyOpen(storeHours ?? null);
+  const isActuallyOpen = store?.is_open && isOpenByHours;
 
   const menuItems = useMemo(() => {
     if (!products) return [];
@@ -64,14 +70,24 @@ function StoreContent() {
     );
   }
 
-  // Store closed
-  if (!store.is_open) {
+  // Store closed (manual or by hours)
+  if (!isActuallyOpen) {
+    const formatTime = (time: string) => time?.slice(0, 5) || '';
+    
     return (
       <StoreLayout store={store}>
         <div className="text-center py-12">
           <div className="text-6xl mb-4">😴</div>
           <h2 className="text-xl font-bold mb-2">Estamos fechados</h2>
-          <p className="text-muted-foreground">
+          {storeHours && storeHours.is_auto_control && (
+            <div className="text-muted-foreground space-y-1">
+              <p className="flex items-center justify-center gap-2">
+                <Clock className="h-4 w-4" />
+                Horário: {formatTime(storeHours.opening_time)} - {formatTime(storeHours.closing_time)}
+              </p>
+            </div>
+          )}
+          <p className="text-muted-foreground mt-2">
             Volte mais tarde!
           </p>
         </div>

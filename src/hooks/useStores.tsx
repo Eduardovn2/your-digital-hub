@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Store, StoreInsert, StoreUpdate } from "@/types/store";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/imageUtils";
 
 export function useStores() {
   return useQuery({
@@ -114,12 +115,24 @@ export function useUpdateStore() {
 export function useUploadStoreAsset() {
   return useMutation({
     mutationFn: async ({ file, type }: { file: File; type: 'logo' | 'banner' }) => {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${type}-${crypto.randomUUID()}.${fileExt}`;
+      // Different compression settings for logo vs banner
+      const maxSize = type === 'logo' ? 400 : 1920;
+      
+      const compressedFile = await compressImage(file, {
+        maxWidth: maxSize,
+        maxHeight: type === 'logo' ? 400 : 600,
+        quality: type === 'logo' ? 0.9 : 0.8,
+        format: 'webp'
+      });
+
+      const fileName = `${type}-${crypto.randomUUID()}.webp`;
 
       const { error: uploadError } = await supabase.storage
         .from("store-assets")
-        .upload(fileName, file);
+        .upload(fileName, compressedFile, {
+          contentType: 'image/webp',
+          cacheControl: '31536000' // 1 year cache
+        });
 
       if (uploadError) throw uploadError;
 

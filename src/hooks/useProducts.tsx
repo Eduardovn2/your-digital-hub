@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MenuItem } from "@/types/menu";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/imageUtils";
 
 export interface Product {
   id: string;
@@ -123,19 +124,28 @@ export function useDeleteProduct() {
 export function useUploadProductImage() {
   return useMutation({
     mutationFn: async (file: File) => {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // Compress image before upload for better performance
+      const compressedFile = await compressImage(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.85,
+        format: 'webp'
+      });
+
+      const fileName = `${crypto.randomUUID()}.webp`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
-        .upload(filePath, file);
+        .upload(fileName, compressedFile, {
+          contentType: 'image/webp',
+          cacheControl: '31536000' // 1 year cache
+        });
 
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
         .from("product-images")
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
       return data.publicUrl;
     },

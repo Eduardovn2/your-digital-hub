@@ -98,6 +98,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_decrypted"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -386,9 +393,104 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      orders_decrypted: {
+        Row: {
+          created_at: string | null
+          customer_address: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivery_fee: number | null
+          id: string | null
+          notes: string | null
+          status: Database["public"]["Enums"]["order_status"] | null
+          store_id: string | null
+          subtotal: number | null
+          total: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_address?: never
+          customer_name?: string | null
+          customer_phone?: never
+          delivery_fee?: number | null
+          id?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          store_id?: string | null
+          subtotal?: number | null
+          total?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_address?: never
+          customer_name?: string | null
+          customer_phone?: never
+          delivery_fee?: number | null
+          id?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+          store_id?: string | null
+          subtotal?: number | null
+          total?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      printer_settings_decrypted: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_enabled: boolean | null
+          paper_width: number | null
+          printer_ip: string | null
+          printer_port: number | null
+          store_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_enabled?: boolean | null
+          paper_width?: number | null
+          printer_ip?: never
+          printer_port?: number | null
+          store_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_enabled?: boolean | null
+          paper_width?: number | null
+          printer_ip?: never
+          printer_port?: number | null
+          store_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printer_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      decrypt_sensitive: { Args: { encrypted_text: string }; Returns: string }
+      encrypt_sensitive: { Args: { plain_text: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

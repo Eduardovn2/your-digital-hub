@@ -6,15 +6,26 @@ import { StoreSetupForm } from "@/components/dashboard/StoreSetupForm";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { StoreProducts } from "@/components/dashboard/StoreProducts";
 import { OrdersList } from "@/components/dashboard/OrdersList";
+import { DashboardStats } from "@/components/dashboard/DashboardStats"; // <--- NOVO IMPORT
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Settings, Package, ShoppingBag, Loader2, ExternalLink } from "lucide-react";
+import { 
+  LogOut, 
+  Settings, 
+  Package, 
+  ShoppingBag, 
+  Loader2, 
+  ExternalLink, 
+  LayoutDashboard // <--- NOVO ICONE
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Admin() {
   const { user, isLoading: authLoading, signOut } = useAuth();
   const { data: store, isLoading: storeLoading, refetch } = useMyStore(user?.id);
-  const [activeTab, setActiveTab] = useState("products");
+  
+  // Mudei o padrão para iniciar já vendo os gráficos
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   // Loading state
   if (authLoading || (user && storeLoading)) {
@@ -77,30 +88,46 @@ export default function Admin() {
       {/* Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          
+          {/* Mudei aqui para grid-cols-4 para caber as 4 abas */}
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            
+            {/* NOVA ABA: Visão Geral */}
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Visão Geral</span>
+            </TabsTrigger>
+
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Produtos</span>
             </TabsTrigger>
+            
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Pedidos</span>
             </TabsTrigger>
+            
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Configurações</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="products">
+          {/* CONTEÚDO DA NOVA ABA */}
+          <TabsContent value="dashboard" className="animate-in fade-in-50 duration-500">
+            <DashboardStats storeId={store.id} />
+          </TabsContent>
+
+          <TabsContent value="products" className="animate-in fade-in-50 duration-500">
             <StoreProducts storeId={store.id} />
           </TabsContent>
 
-          <TabsContent value="orders">
+          <TabsContent value="orders" className="animate-in fade-in-50 duration-500">
             <OrdersList storeId={store.id} />
           </TabsContent>
 
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="animate-in fade-in-50 duration-500">
             <StoreSettings store={store} />
           </TabsContent>
         </Tabs>

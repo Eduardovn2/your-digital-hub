@@ -25,6 +25,7 @@ export interface Store {
 }
 
 export type StoreInsert = Omit<Store, "id" | "created_at" | "updated_at">;
+
 export type StoreUpdate = Partial<Omit<StoreInsert, "owner_id">>;
 
 export interface Order {
@@ -43,7 +44,8 @@ export interface Order {
   items?: OrderItem[];
 }
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+// AQUI ESTÁ O SEGREDO: Adicionamos 'delivering'
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
 
 export interface OrderItem {
   id: string;
@@ -65,7 +67,8 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   confirmed: 'Confirmado',
   preparing: 'Preparando',
   ready: 'Pronto',
-  delivered: 'Entregue',
+  delivering: 'Em entrega', // Novo status
+  delivered: 'Concluído',
   cancelled: 'Cancelado'
 };
 
@@ -74,6 +77,7 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   confirmed: 'bg-blue-100 text-blue-800',
   preparing: 'bg-orange-100 text-orange-800',
   ready: 'bg-green-100 text-green-800',
+  delivering: 'bg-indigo-100 text-indigo-800', // Cor nova
   delivered: 'bg-gray-100 text-gray-800',
   cancelled: 'bg-red-100 text-red-800'
 };

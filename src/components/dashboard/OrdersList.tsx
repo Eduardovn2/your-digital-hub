@@ -7,12 +7,17 @@ import { OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/types/s
 import { Loader2, Package, Clock, Phone, MapPin, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 
 interface OrdersListProps {
   storeId: string;
 }
 
 export function OrdersList({ storeId }: OrdersListProps) {
+  // 2. CHAMAR O HOOK AQUI (logo no início)
+  useRealtimeOrders(storeId);
+
+  // O resto do teu código continua igual:
   const [page, setPage] = useState<number>(0);
   const { data: orders, isLoading } = useStoreOrders(storeId, page);
   const updateStatus = useUpdateOrderStatus();

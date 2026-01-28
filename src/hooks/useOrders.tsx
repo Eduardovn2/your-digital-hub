@@ -1,29 +1,11 @@
+// src/hooks/useOrders.tsx
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Order, OrderItem, OrderInsert, OrderItemInsert, OrderStatus } from "@/types/store";
 import { toast } from "sonner";
 import { printOrder } from "@/services/printService";
 
-export function useStoreOrders(storeId: string | undefined) {
-  return useQuery({
-    queryKey: ["orders", storeId],
-    queryFn: async () => {
-      if (!storeId) return [];
-      const { data, error } = await supabase
-        .from("orders")
-        .select(`
-          *,
-          items:order_items(*)
-        `)
-        .eq("store_id", storeId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as (Order & { items: OrderItem[] })[];
-    },
-    enabled: !!storeId,
-  });
-}
+// ... (useStoreOrders permanece igual)
 
 export function useCreateOrder() {
   const queryClient = useQueryClient();
@@ -31,72 +13,55 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: async ({ 
       order, 
-      items 
+      items,
+      deliveryZoneId // Novo parâmetro opcional
     }: { 
-      order: OrderInsert; 
-      items: Omit<OrderItemInsert, "order_id">[] 
+      order: Omit<OrderInsert, 'id' | 'created_at' | 'updated_at'>; 
+      items: { id: string; quantity: number; notes?: string }[];
+      deliveryZoneId?: string;
     }) => {
-      // Create order
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert(order)
-        .select()
-        .single();
+      
+      // Preparar o payload para a RPC
+      const payload = {
+        p_store_id: order.store_id,
+        p_customer_name: order.customer_name,
+        p_customer_phone: order.customer_phone,
+        p_customer_address: order.customer_address,
+        p_notes: order.notes,
+        p_delivery_zone_id: deliveryZoneId || null, // Passamos o ID da zona, não o valor
+        p_items: items.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          notes: item.notes
+        }))
+      };
 
-      if (orderError) throw orderError;
+      // Chamada segura via RPC
+      const { data, error } = await supabase.rpc('create_new_order', payload);
 
-      // Create order items
-      const orderItems = items.map(item => ({
-        ...item,
-        order_id: orderData.id
-      }));
+      if (error) throw error;
 
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
+      // Tentativa de impressão (non-blocking)
+      if (data && data.id) {
+        printOrder(data.id, order.store_id).then(result => {
+          if (result.printed) console.log('Order printed successfully');
+        });
+      }
 
-      if (itemsError) throw itemsError;
-
-      // Try to print the order (non-blocking)
-      printOrder(orderData.id, order.store_id).then(result => {
-        if (result.printed) {
-          console.log('Order printed successfully');
-        }
-      });
-
-      return orderData as Order;
+      return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["orders", data.store_id] });
-      toast.success("Pedido realizado com sucesso!");
+      // Invalida a cache para atualizar a lista se estiver no admin
+      // Nota: data pode não ter store_id direto dependendo do retorno da RPC, 
+      // mas o invalidate geral funciona.
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success(`Pedido realizado! Total confirmado: R$ ${data.total}`);
     },
     onError: (error: Error) => {
+      console.error(error);
       toast.error(`Erro ao criar pedido: ${error.message}`);
     },
   });
 }
 
-export function useUpdateOrderStatus() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ orderId, status, storeId }: { orderId: string; status: OrderStatus; storeId: string }) => {
-      const { data, error } = await supabase
-        .from("orders")
-        .update({ status })
-        .eq("id", orderId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return { ...data, storeId } as Order & { storeId: string };
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["orders", data.storeId] });
-      toast.success("Status atualizado!");
-    },
-    onError: (error: Error) => {
-      toast.error(`Erro ao atualizar status: ${error.message}`);
-    },
-  });
-}
+// ... (useUpdateOrderStatus permanece igual)

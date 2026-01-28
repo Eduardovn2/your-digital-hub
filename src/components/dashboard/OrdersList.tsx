@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStoreOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
-import { Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/types/store";
+import { OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/types/store";
 import { Loader2, Package, Clock, Phone, MapPin, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -13,12 +13,8 @@ interface OrdersListProps {
 }
 
 export function OrdersList({ storeId }: OrdersListProps) {
-  // 1. Criamos um estado para controlar a página atual (começa na 0)
-  const [page, setPage] = useState(0);
-  
-  // 2. Passamos a página para o hook (que agora aceita esse parâmetro)
+  const [page, setPage] = useState<number>(0);
   const { data: orders, isLoading } = useStoreOrders(storeId, page);
-  
   const updateStatus = useUpdateOrderStatus();
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
@@ -34,7 +30,6 @@ export function OrdersList({ storeId }: OrdersListProps) {
     );
   }
 
-  // Se não houver pedidos e estivermos na primeira página
   if ((!orders || orders.length === 0) && page === 0) {
     return (
       <div className="text-center py-12 bg-card border rounded-xl">
@@ -57,7 +52,6 @@ export function OrdersList({ storeId }: OrdersListProps) {
       <div className="space-y-3">
         {orders?.map((order) => (
           <div key={order.id} className="bg-card border rounded-xl overflow-hidden">
-            {/* Header do pedido */}
             <div
               className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
@@ -94,7 +88,6 @@ export function OrdersList({ storeId }: OrdersListProps) {
               </div>
             </div>
 
-            {/* Detalhes expandidos */}
             {expandedOrder === order.id && (
               <div className="border-t p-4 bg-muted/30 space-y-4">
                 {order.customer_address && (
@@ -111,7 +104,6 @@ export function OrdersList({ storeId }: OrdersListProps) {
                   </div>
                 )}
 
-                {/* Itens do pedido */}
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm">Itens do Pedido:</h4>
                   <div className="bg-background rounded-lg p-3 space-y-2">
@@ -135,7 +127,6 @@ export function OrdersList({ storeId }: OrdersListProps) {
                   </div>
                 </div>
 
-                {/* Alterar status */}
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-medium">Alterar Status:</span>
                   <Select
@@ -160,7 +151,6 @@ export function OrdersList({ storeId }: OrdersListProps) {
         ))}
       </div>
 
-      {/* 3. Botões de Paginação (NOVO) */}
       <div className="flex items-center justify-between pt-4 border-t mt-4">
         <Button
           variant="outline"
@@ -178,4 +168,14 @@ export function OrdersList({ storeId }: OrdersListProps) {
 
         <Button
           variant="outline"
-          onClick={() => setPage((p) => p +
+          onClick={() => setPage((p) => p + 1)}
+          disabled={!orders || orders.length < 20 || isLoading}
+          className="w-[100px]"
+        >
+          Próximo
+          <ChevronRight className="h-4 w-4 ml-2" />
+        </Button>
+      </div>
+    </div>
+  );
+}

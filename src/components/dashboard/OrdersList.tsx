@@ -14,10 +14,9 @@ interface OrdersListProps {
 }
 
 export function OrdersList({ storeId }: OrdersListProps) {
-  // 2. CHAMAR O HOOK AQUI (logo no início)
-  useRealtimeOrders(storeId);
+  // 1. Extrai a função de tocar som do hook
+  const { playSound } = useRealtimeOrders(storeId);
 
-  // O resto do teu código continua igual:
   const [page, setPage] = useState<number>(0);
   const { data: orders, isLoading } = useStoreOrders(storeId, page);
   const updateStatus = useUpdateOrderStatus();
@@ -27,6 +26,7 @@ export function OrdersList({ storeId }: OrdersListProps) {
     updateStatus.mutate({ orderId, status, storeId });
   };
 
+  // 2. Bloco de carregamento LIMPO (apenas o spinner)
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -35,6 +35,7 @@ export function OrdersList({ storeId }: OrdersListProps) {
     );
   }
 
+  // 3. Estado vazio (sem pedidos)
   if ((!orders || orders.length === 0) && page === 0) {
     return (
       <div className="text-center py-12 bg-card border rounded-xl">
@@ -47,10 +48,22 @@ export function OrdersList({ storeId }: OrdersListProps) {
     );
   }
 
+  // 4. Retorno Principal (Onde o botão de som deve ficar)
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Pedidos</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-semibold">Pedidos</h2>
+          {/* Botão de Teste de Som */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={playSound}
+            title="Testar som de notificação"
+          >
+            🔊
+          </Button>
+        </div>
         <span className="text-sm text-muted-foreground">Página {page + 1}</span>
       </div>
 

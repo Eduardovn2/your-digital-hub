@@ -1,10 +1,19 @@
-import { ShoppingBag, MapPin, Search } from "lucide-react";
+import { ShoppingBag, MapPin, Search, ExternalLink } from "lucide-react"; // Adicionei ExternalLink
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+// Se você tiver um hook de loja, importe aqui. Ex: import { useStore } from "@/hooks/useStore";
 
 export function Header() {
   const { totalItems, setIsCartOpen } = useCart();
+  
+  // TODO: Aqui você precisa garantir que tem os dados da loja.
+  // Muitas vezes, o próprio 'useCart' ou um 'useStore' já traz isso.
+  // Vou criar um objeto simulado para o código não quebrar agora, 
+  // mas você deve conectar com seu banco de dados real.
+  const store = { 
+    address: "Rua das Delícias, 123" // <-- O sistema deve buscar isso do banco
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
@@ -19,10 +28,30 @@ export function Header() {
           </div>
 
           {/* Location - Hidden on mobile */}
+          {/* --- AQUI ESTÁ A MUDANÇA --- */}
           <div className="hidden md:flex items-center gap-2 text-muted-foreground">
-            <MapPin className="h-4 w-4 text-primary" />
-            <span className="text-sm">Rua das Delícias, 123</span>
+            {store?.address ? (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-primary hover:underline transition-colors cursor-pointer"
+                title="Ver no Google Maps"
+              >
+                <MapPin className="h-4 w-4 text-primary" />
+                <span className="text-sm">{store.address}</span>
+                {/* Ícone pequeno para indicar link externo */}
+                <ExternalLink className="h-3 w-3 opacity-50" />
+              </a>
+            ) : (
+              // Fallback caso não tenha endereço carregado
+              <div className="flex items-center gap-2 opacity-50">
+                <MapPin className="h-4 w-4" />
+                <span className="text-sm">Carregando endereço...</span>
+              </div>
+            )}
           </div>
+          {/* --------------------------- */}
 
           {/* Search - Hidden on mobile */}
           <div className="hidden lg:flex flex-1 max-w-md mx-4">

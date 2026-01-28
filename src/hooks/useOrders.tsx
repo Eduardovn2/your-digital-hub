@@ -4,13 +4,18 @@ import { Order, OrderItem, OrderStatus } from "@/types/store";
 import { toast } from "sonner";
 import { printOrder } from "@/services/printService";
 
-export function useStoreOrders(storeId: string | undefined) {
+// src/hooks/useOrders.tsx
+export function useStoreOrders(storeId: string | undefined, page: number = 0) {
+  const pageSize = 20; // Número de pedidos por página
+
   return useQuery({
-    queryKey: ["orders", storeId],
+    queryKey: ["orders", storeId, page],
     queryFn: async () => {
       if (!storeId) return [];
       
-      // Paginação adicionada para segurança (limite de 50 para evitar travar)
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
       const { data, error } = await supabase
         .from("orders")
         .select(`
@@ -19,7 +24,7 @@ export function useStoreOrders(storeId: string | undefined) {
         `)
         .eq("store_id", storeId)
         .order("created_at", { ascending: false })
-        .limit(50); 
+        .range(from, to); // Implementação da paginação no banco de dados
 
       if (error) throw error;
       return data as (Order & { items: OrderItem[] })[];

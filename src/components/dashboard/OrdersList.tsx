@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStoreOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
 import { Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/types/store";
-import { Loader2, Package, Clock, Phone, MapPin, FileText } from "lucide-react";
+import { Loader2, Package, Clock, Phone, MapPin, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -13,7 +13,12 @@ interface OrdersListProps {
 }
 
 export function OrdersList({ storeId }: OrdersListProps) {
-  const { data: orders, isLoading } = useStoreOrders(storeId);
+  // 1. Criamos um estado para controlar a página atual (começa na 0)
+  const [page, setPage] = useState(0);
+  
+  // 2. Passamos a página para o hook (que agora aceita esse parâmetro)
+  const { data: orders, isLoading } = useStoreOrders(storeId, page);
+  
   const updateStatus = useUpdateOrderStatus();
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
@@ -29,7 +34,8 @@ export function OrdersList({ storeId }: OrdersListProps) {
     );
   }
 
-  if (!orders || orders.length === 0) {
+  // Se não houver pedidos e estivermos na primeira página
+  if ((!orders || orders.length === 0) && page === 0) {
     return (
       <div className="text-center py-12 bg-card border rounded-xl">
         <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -44,11 +50,12 @@ export function OrdersList({ storeId }: OrdersListProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Pedidos ({orders.length})</h2>
+        <h2 className="text-xl font-semibold">Pedidos</h2>
+        <span className="text-sm text-muted-foreground">Página {page + 1}</span>
       </div>
 
       <div className="space-y-3">
-        {orders.map((order) => (
+        {orders?.map((order) => (
           <div key={order.id} className="bg-card border rounded-xl overflow-hidden">
             {/* Header do pedido */}
             <div
@@ -152,6 +159,23 @@ export function OrdersList({ storeId }: OrdersListProps) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
+
+      {/* 3. Botões de Paginação (NOVO) */}
+      <div className="flex items-center justify-between pt-4 border-t mt-4">
+        <Button
+          variant="outline"
+          onClick={() => setPage((p) => Math.max(0, p - 1))}
+          disabled={page === 0 || isLoading}
+          className="w-[100px]"
+        >
+          <ChevronLeft className="h-4 w-4 mr-2" />
+          Anterior
+        </Button>
+        
+        <span className="text-sm text-muted-foreground">
+          Página {page + 1}
+        </span>
+
+        <Button
+          variant="outline"
+          onClick={() => setPage((p) => p +

@@ -1,78 +1,106 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MapPin } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, ShoppingCart, Plus } from "lucide-react";
 
 export default function StorePage() {
-  const { slug } = useParams(); // Pega o link da URL (ex: /hamburgueria-eduardo)
+  const { slug } = useParams();
+  const { addToCart, items, checkout, total } = useCart();
 
-  // Busca os dados da loja pelo slug
-  const { data: store, isLoading } = useQuery<any>({
-    queryKey: ["store-public", slug],
+  // 1. Busca os dados da loja pelo link (slug)
+  const { data: store, isLoading: loadingStore } = useQuery({
+    queryKey: ["store", slug],
     queryFn: async () => {
+      // CORREÇÃO LINHA 20: Usamos o '!' para dizer que o slug existe ou enviamos string vazia
       const { data, error } = await supabase
         .from("stores")
-        .select("*, products(*)")
-        .eq("slug", slug)
+        .select("*")
+        .eq("slug", slug || "") 
         .single();
-      
       if (error) throw error;
       return data;
     },
     enabled: !!slug,
   });
 
-  if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  // 2. Busca os produtos ativos desta loja
+  const { data: products, isLoading: loadingProducts } = useQuery({
+    queryKey: ["store-products", store?.id],
+    queryFn: async () => {
+      // CORREÇÃO LINHA 34: Garantimos que o store.id é uma string
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("store_id", store?.id as string);
+      if (error) throw error;
+      return data;
+    },
+    // A query só roda se o ID existir, o que ajuda o TS a entender a lógica
+    enabled: !!store?.id,
+  });
 
-  if (!store) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center text-center p-4">
-        <h1 className="text-2xl font-bold mb-2">Loja não encontrada 😕</h1>
-        <p className="text-gray-600">Verifique o endereço digitado.</p>
-      </div>
-    );
-  }
+  const handleFinalizeOrder = () => {
+    if (!store) return;
+    
+    const testCustomer = {
+      name: "Cliente de Teste",
+      phone: "21999999999",
+      address: "Rua do Teste, 123"
+    };
+    
+    const fee = (store as any)?.delivery_fee || 0;
+    // Aqui também garantimos que o ID está presente
+    checkout(testCustomer, store.id, fee);
+  };
+
+  if (loadingStore || loadingProducts) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Capa da Loja */}
-      <div className="h-48 bg-primary relative">
-        {store.image_url && <img src={store.image_url} alt={store.name} className="w-full h-full object-cover opacity-50" />}
-        <div className="absolute -bottom-10 left-4 right-4 bg-white p-4 rounded-lg shadow-lg flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">{store.name}</h1>
-            {store.address && <p className="text-sm text-gray-500 flex items-center"><MapPin className="h-3 w-3 mr-1"/> {store.address}</p>}
-          </div>
-          <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
-            Aberto
-          </div>
-        </div>
-      </div>
+      <header className="bg-orange-600 text-white p-6 shadow-md text-center">
+        <h1 className="text-2xl font-bold">{store?.name}</h1>
+        <p className="text-sm opacity-90">Bem-vindo ao nosso cardápio digital!</p>
+      </header>
 
-      {/* Lista de Produtos */}
-      <div className="container mx-auto px-4 mt-16">
-        <h2 className="text-lg font-bold mb-4">Cardápio</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {store.products && store.products.length > 0 ? (
-            store.products.map((product: any) => (
-              <div key={product.id} className="bg-white p-4 rounded-lg shadow flex gap-4">
-                {product.image_url && <img src={product.image_url} className="w-24 h-24 object-cover rounded-md bg-gray-100" />}
-                <div className="flex-1">
-                  <h3 className="font-semibold">{product.name}</h3>
+      <main className="max-w-4xl mx-auto p-4 space-y-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          {products?.map((product) => (
+            <Card key={product.id} className="overflow-hidden flex flex-row h-32 border-none shadow-sm">
+              {product.image_url && (
+                <img src={product.image_url} alt={product.name} className="w-32 h-full object-cover" />
+              )}
+              <div className="flex-1 p-3 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-gray-800">{product.name}</h3>
                   <p className="text-xs text-gray-500 line-clamp-2">{product.description}</p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="font-bold text-green-600">R$ {product.price}</span>
-                    <Button size="sm">Adicionar</Button>
-                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-orange-600 font-bold">R$ {Number(product.price).toFixed(2)}</span>
+                  <Button size="sm" onClick={() => addToCart(product)} className="h-8 w-8 rounded-full p-0">
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            ))
-          ) : (
-            <p className="text-gray-500 col-span-full text-center py-10">Nenhum produto cadastrado ainda.</p>
-          )}
+            </Card>
+          ))}
         </div>
-      </div>
+      </main>
+
+      {items.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg">
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <div>
+              <p className="text-lg font-bold text-orange-600">Total: R$ {total.toFixed(2)}</p>
+            </div>
+            <Button className="bg-orange-600 hover:bg-orange-700" onClick={handleFinalizeOrder}>
+              <ShoppingCart className="mr-2 h-4 w-4" /> Finalizar Pedido
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

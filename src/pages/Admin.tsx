@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PlusCircle, Store } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, PlusCircle, Store, LayoutDashboard, ClipboardList, UtensilsCrossed, Settings } from "lucide-react";
 import { toast } from "sonner";
-import DashboardStats from "@/components/admin/DashboardStats"; // Certifique-se que esses componentes existem
-  // Se não tiver os componentes abaixo importados, comente-os por enquanto para testar
-import OrdersList from "@/components/admin/OrdersList"; 
-import MenuManager from "@/components/admin/MenuManager"; 
+
+// Componentes das Abas
+import DashboardStats from "@/components/admin/DashboardStats";
+import OrdersList from "@/components/admin/OrdersList";
+import MenuManager from "@/components/admin/MenuManager";
+import DeliverySettings from "@/components/admin/DeliverySettings";
 
 export default function Admin() {
   const { user } = useAuth();
@@ -20,23 +23,53 @@ export default function Admin() {
   const [newStoreSlug, setNewStoreSlug] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  // 1. Busca a loja do usuário logado
-  const { data: store, isLoading } = useQuery({
+  // 1. Busca a loja do lojista logado
+  const { data: store, isLoading: isLoadingStore } = useQuery({
     queryKey: ["my-store", user?.id],
     queryFn: async () => {
+      if (!user?.id) return null;
       const { data, error } = await supabase
         .from("stores")
         .select("*")
-        .eq("owner_id", user?.id)
+        .eq("owner_id", user.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') throw error; // Ignora erro de "não encontrado"
+      if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
     enabled: !!user?.id,
   });
 
-  // 2. Função para criar a loja se ela não existir
+  // 2. Notificação Sonora e Real-time para Novos Pedidos
+  useEffect(() => {
+    if (!store?.id) return;
+
+    const audio = new Audio("/notification.mp3"); // Certifique-se que o arquivo existe em /public
+
+    const channel = supabase
+      .channel('admin-orders')
+      .on(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'orders', 
+          filter: `store_id=eq.${store.id}` 
+        },
+        (payload) => {
+          audio.play().catch(() => console.log("Interação do usuário necessária para tocar som"));
+          toast.info("🍔 Novo pedido recebido!");
+          queryClient.invalidateQueries({ queryKey: ["orders", store.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [store?.id, queryClient]);
+
+  // 3. Criação de Loja (Primeiro Acesso)
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -45,26 +78,29 @@ export default function Admin() {
     try {
       const { error } = await supabase.from("stores").insert({
         name: newStoreName,
-        slug: newStoreSlug.toLowerCase().replace(/\s+/g, '-'), // Transforma "Burgao do Ze" em "burgao-do-ze"
+        slug: newStoreSlug.toLowerCase().replace(/\s+/g, '-'),
         owner_id: user.id,
       });
 
       if (error) throw error;
-      
       toast.success("Loja criada com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["my-store"] }); // Recarrega a tela
+      queryClient.invalidateQueries({ queryKey: ["my-store"] });
     } catch (error: any) {
-      toast.error(error.message || "Erro ao criar loja. O link já pode estar em uso.");
+      toast.error(error.message || "Erro ao criar loja.");
     } finally {
       setIsCreating(false);
     }
   };
 
-  if (isLoading) {
-    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  if (isLoadingStore) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="animate-spin h-8 w-8 text-primary" />
+      </div>
+    );
   }
 
-  // --- CENÁRIO 1: USUÁRIO SEM LOJA (MOSTRA FORMULÁRIO) ---
+  // --- CENÁRIO: USUÁRIO SEM LOJA ---
   if (!store) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -74,40 +110,24 @@ export default function Admin() {
               <Store className="h-6 w-6 text-primary" />
             </div>
             <CardTitle className="text-center">Configure sua Loja</CardTitle>
-            <CardDescription className="text-center">
-              Para acessar o painel, precisamos saber o nome do seu negócio.
-            </CardDescription>
+            <CardDescription className="text-center">Defina o nome do seu negócio para começar.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreateStore} className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome da Loja</Label>
-                <Input 
-                  placeholder="Ex: Hamburgueria do Eduardo" 
-                  value={newStoreName}
-                  onChange={(e) => setNewStoreName(e.target.value)}
-                  required
-                />
+                <Input placeholder="Ex: Hamburgueria do Madruga" value={newStoreName} onChange={(e) => setNewStoreName(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label>Link Personalizado (Slug)</Label>
+                <Label>Link (Slug)</Label>
                 <div className="flex items-center">
-                  <span className="bg-gray-100 border border-r-0 rounded-l-md px-3 py-2 text-sm text-gray-500">
-                    viana.com/
-                  </span>
-                  <Input 
-                    className="rounded-l-none"
-                    placeholder="hamburgueria-eduardo" 
-                    value={newStoreSlug}
-                    onChange={(e) => setNewStoreSlug(e.target.value)}
-                    required
-                  />
+                  <span className="bg-gray-100 border border-r-0 rounded-l-md px-3 py-2 text-sm text-gray-500 font-mono">viana.com/</span>
+                  <Input className="rounded-l-none" placeholder="hamburgueria-do-madruga" value={newStoreSlug} onChange={(e) => setNewStoreSlug(e.target.value)} required />
                 </div>
-                <p className="text-xs text-muted-foreground">Este será o link que seus clientes usarão.</p>
               </div>
               <Button type="submit" className="w-full" disabled={isCreating}>
                 {isCreating ? <Loader2 className="animate-spin mr-2" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                Criar Loja e Acessar Painel
+                Criar Loja
               </Button>
             </form>
           </CardContent>
@@ -116,42 +136,52 @@ export default function Admin() {
     );
   }
 
-  // --- CENÁRIO 2: USUÁRIO COM LOJA (MOSTRA DASHBOARD) ---
-// --- CENÁRIO 2: USUÁRIO COM LOJA (MOSTRA DASHBOARD) ---
+  // --- CENÁRIO: DASHBOARD COM ABAS ---
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Painel Admin - {store.name}</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => window.open(`/${store.slug}`, '_blank')}>
-            Ver minha Loja
-          </Button>
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <Store className="h-5 w-5 text-primary" />
+          <h1 className="text-xl font-bold">Painel - {store.name}</h1>
         </div>
+        <Button variant="outline" size="sm" onClick={() => window.open(`/${store.slug}`, '_blank')}>
+          Ver minha Loja
+        </Button>
       </header>
       
-      <main className="p-6 max-w-7xl mx-auto space-y-6">
-        
-        {/* 1. Visão Geral (Gráficos) */}
-        <DashboardStats /> 
-        
-        {/* 2. Área Principal Dividida em Colunas */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          
-          {/* Coluna da Esquerda (Maior): Lista de Pedidos */}
-          <div className="lg:col-span-2 space-y-4">
-             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">Gerenciar Pedidos</h2>
-             </div>
-             {/* Passamos o ID da loja para buscar os pedidos certos */}
-             <OrdersList storeId={store.id} />
-          </div>
+      <main className="p-6 max-w-7xl mx-auto">
+        <Tabs defaultValue="pedidos" className="space-y-6">
+          <TabsList className="grid grid-cols-4 w-full lg:w-[600px] bg-white border">
+            <TabsTrigger value="dashboard" className="flex gap-2">
+              <LayoutDashboard className="h-4 w-4" /> <span className="hidden sm:inline">Geral</span>
+            </TabsTrigger>
+            <TabsTrigger value="pedidos" className="flex gap-2 relative">
+              <ClipboardList className="h-4 w-4" /> <span className="hidden sm:inline">Pedidos</span>
+            </TabsTrigger>
+            <TabsTrigger value="cardapio" className="flex gap-2">
+              <UtensilsCrossed className="h-4 w-4" /> <span className="hidden sm:inline">Cardápio</span>
+            </TabsTrigger>
+            <TabsTrigger value="config" className="flex gap-2">
+              <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Taxas</span>
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Coluna da Direita (Menor): Cardápio */}
-          <div>
+          <TabsContent value="dashboard">
+            <DashboardStats storeId={store.id} />
+          </TabsContent>
+
+          <TabsContent value="pedidos">
+            <OrdersList storeId={store.id} />
+          </TabsContent>
+
+          <TabsContent value="cardapio">
             <MenuManager storeId={store.id} />
-          </div>
+          </TabsContent>
 
-        </div>
+          <TabsContent value="config">
+            <DeliverySettings storeId={store.id} />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

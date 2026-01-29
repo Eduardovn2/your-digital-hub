@@ -3,47 +3,53 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-// --- IMPORTS DAS PÁGINAS ---
+// 1. IMPORTAÇÕES DE SEGURANÇA E CONTEXTO
+import { AuthProvider } from "@/contexts/AuthContext"; 
+import { CartProvider } from "@/contexts/CartContext"; // Adicionado para gerenciar o carrinho
+import { ProtectedRoute } from "@/pages/auth/ProtectedRoute";
+
+// 2. IMPORTS DAS PÁGINAS
 import Index from "./pages/Index";
 import StorePage from "./pages/StorePage";
 import PaymentMock from "./pages/subscription/PaymentMock";
-// O Admin está direto na pasta pages, então ajustamos o caminho:
 import Admin from "./pages/Admin";
-import { ProtectedRoute } from "./pages/auth/ProtectedRoute"; // <--- IMPORT NOVO
-// O Register ainda não existe, vamos criar ele no próximo passo
 import Register from "./pages/auth/Register";
-// Criação do cliente para gerenciar cache e dados
+import Login from "./pages/auth/Login";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <BrowserRouter>
-        <Routes>
-          {/* 1. Rotas Públicas (Fixas) */}
-          <Route path="/" element={<Index />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/payment" element={<PaymentMock />} />
+      {/* 3. O AuthProvider envolve a autenticação do lojista */}
+      <AuthProvider> 
+        {/* 4. O CartProvider envolve as rotas para permitir pedidos na StorePage */}
+        <CartProvider>
+          <Toaster />
+          <BrowserRouter>
+            <Routes>
+              {/* Rotas Públicas */}
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/payment" element={<PaymentMock />} />
 
-          {/* 2. Rota Protegida (Admin) */}
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute requiredRole="seller">
-                <Admin />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* 3. ROTA DA LOJA PÚBLICA (ADICIONE ISTO AQUI) 👇 */}
-          {/* O ":slug" diz para o React: "Qualquer coisa que vier depois da barra 
-              e não for admin/register/payment, trate como o endereço de uma loja" */}
-          <Route path="/:slug" element={<StorePage />} />
-
-        </Routes>
-      </BrowserRouter>
+              {/* Rota Protegida (Admin) */}
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute requiredRole="seller">
+                    <Admin />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Rota da Loja Pública (Slug) */}
+              <Route path="/:slug" element={<StorePage />} />
+            </Routes>
+          </BrowserRouter>
+        </CartProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

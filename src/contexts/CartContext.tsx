@@ -1,120 +1,104 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { CartItem, MenuItem } from "@/types/menu";
-import { Store } from "@/types/store"; 
-import { supabase } from "@/integrations/supabase/client";
+import React, { createContext, useContext, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (item: MenuItem) => void;
-  removeItem: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
+  addToCart: (product: any) => void;
+  removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  totalItems: number;
-  totalPrice: number;
-  isCartOpen: boolean;
-  setIsCartOpen: (open: boolean) => void;
-  // ADICIONADO: Disponibiliza os dados da loja para o site todo
-  store: Store | null; 
+  checkout: (customerData: { name: string; phone: string; address: string }, storeId: string, deliveryFee: number) => Promise<void>;
+  subtotal: number;
+  total: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  // ADICIONADO: Estado para guardar os dados da loja
-  const [store, setStore] = useState<Store | null>(null);
 
-  // ADICIONADO: Busca os dados da loja ao carregar o site
-  useEffect(() => {
-    async function fetchStore() {
-      try {
-        // Busca a primeira loja ativa encontrada no banco
-        // (Se tiver mais de uma loja, precisaremos filtrar por slug/domínio depois)
-        const { data, error } = await supabase
-          .from('stores')
-          .select('*')
-          .eq('is_active', true)
-          .limit(1)
-          .single();
-
-        if (error) {
-          console.error('Erro ao buscar loja:', error);
-          return;
-        }
-
-        if (data) {
-          console.log("Loja carregada no Contexto:", data.name);
-          setStore(data as Store);
-        }
-      } catch (error) {
-        console.error('Erro geral ao carregar loja:', error);
+  const addToCart = (product: any) => {
+    setItems(prev => {
+      const existing = prev.find(i => i.id === product.id);
+      if (existing) {
+        return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-    }
-
-    fetchStore();
-  }, []);
-
-  const addItem = useCallback((item: MenuItem) => {
-    setItems((prev) => {
-      const existingItem = prev.find((i) => i.id === item.id);
-      if (existingItem) {
-        return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-        );
-      }
-      return [...prev, { ...item, quantity: 1 }];
+      return [...prev, { id: product.id, name: product.name, price: Number(product.price), quantity: 1 }];
     });
-  }, []);
+    toast.success(`${product.name} adicionado!`);
+  };
 
-  const removeItem = useCallback((id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  }, []);
+  const removeFromCart = (productId: string) => {
+    setItems(prev => prev.filter(i => i.id !== productId));
+  };
 
-  const updateQuantity = useCallback((id: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(id);
+  const updateQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) return removeFromCart(productId);
+    setItems(prev => prev.map(i => i.id === productId ? { ...i, quantity } : i));
+  };
+
+  const clearCart = () => setItems([]);
+
+  const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+  // --- FUNÇÃO DE CHECKOUT (PASSO 1) ---
+  const checkout = async (customerData: any, storeId: string, deliveryFee: number) => {
+    if (items.length === 0) {
+      toast.error("Seu carrinho está vazio!");
       return;
     }
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
-    );
-  }, [removeItem]);
 
-  const clearCart = useCallback(() => {
-    setItems([]);
-  }, []);
+    const totalValue = subtotal + deliveryFee;
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+    try {
+      // Fazemos o insert na tabela 'orders'
+      // Usamos 'as any' para evitar erros de colunas recém-criadas no banco
+      const { error } = await supabase.from('orders').insert({
+        store_id: storeId,
+        customer_name: customerData.name,
+        customer_phone: customerData.phone,
+        customer_address: customerData.address,
+        subtotal: subtotal,
+        total: totalValue,
+        delivery_fee: deliveryFee,
+        status: 'pending' // Todo pedido entra como pendente
+      } as any);
+
+      if (error) throw error;
+
+      toast.success("Pedido enviado com sucesso! Aguarde a confirmação.");
+      clearCart();
+    } catch (error: any) {
+      toast.error("Erro ao finalizar pedido: " + error.message);
+    }
+  };
 
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
-        totalItems,
-        totalPrice,
-        isCartOpen,
-        setIsCartOpen,
-        store, // ADICIONADO: Exportando a loja
-      }}
-    >
+    <CartContext.Provider value={{ 
+      items, 
+      addToCart, 
+      removeFromCart, 
+      updateQuantity, 
+      clearCart, 
+      checkout, 
+      subtotal, 
+      total: subtotal // O total real é calculado na chamada do checkout
+    }}>
       {children}
     </CartContext.Provider>
   );
-}
+};
 
-export function useCart() {
+export const useCart = () => {
   const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error("useCart must be used within a CartProvider");
-  }
+  if (!context) throw new Error("useCart deve ser usado dentro de um CartProvider");
   return context;
-}
+};

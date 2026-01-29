@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import StorePage from "./pages/StorePage";
 import NotFound from "./pages/NotFound";
+import PaymentMock from "./pages/subscription/PaymentMock";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/:slug" element={<StorePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
+            <Route path="/payment" element={<PaymentMock />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

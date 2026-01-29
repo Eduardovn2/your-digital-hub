@@ -7,7 +7,6 @@ import { printOrder } from "@/services/printService";
 // src/hooks/useOrders.tsx
 export function useStoreOrders(storeId: string | undefined, page: number = 0) {
   const pageSize = 20; // Número de pedidos por página
-
   return useQuery({
     queryKey: ["orders", storeId, page],
     queryFn: async () => {

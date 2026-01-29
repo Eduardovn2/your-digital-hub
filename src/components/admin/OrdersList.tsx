@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Printer, Check, Truck, CheckCircle2 } from "lucide-react";
+import { Loader2, Printer, Check, Bike, CheckCircle2 } from "lucide-react"; // Importe 'Bike' aqui
 import { toast } from "sonner";
+
 
 // Definimos os status exatos que o seu processo de hamburgueria segue
 type OrderStatus = "pending" | "preparing" | "shipped" | "delivered" | "cancelled";
@@ -98,10 +99,13 @@ export default function OrdersList({ storeId }: { storeId: string }) {
               )}
               
               {order.status === 'preparing' && (
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => updateStatus(order.id, 'shipped')}>
-                  <Truck className="mr-2 h-4 w-4" /> Despachar
-                </Button>
-              )}
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold" 
+                    onClick={() => updateStatus(order.id, 'shipped')}
+                  >
+                    <Bike className="mr-2 h-5 w-5" /> Despachar
+                  </Button>
+                )}
 
               {order.status === 'shipped' && (
                 <Button className="bg-slate-800 hover:bg-slate-900 text-white" onClick={() => updateStatus(order.id, 'delivered')}>

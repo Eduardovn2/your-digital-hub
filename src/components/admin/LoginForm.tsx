@@ -1,100 +1,107 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 export function LoginForm() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn, signUp } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await signUp(email, password);
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success("Conta criada! Aguarde aprovação de administrador.");
-        }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // --- AQUI ESTÁ A MÁGICA DO REDIRECIONAMENTO ---
+      // Verificamos o 'role' que salvamos na hora do registro
+      const role = data.user?.user_metadata?.role;
+
+      if (role === 'seller') {
+        toast.success("Bem-vindo de volta, Lojista!");
+        navigate("/admin");
       } else {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast.error(error.message);
-        }
+        // Se for 'customer' ou se não tiver role definido (antigos), vai pra home
+        toast.success("Login realizado com sucesso!");
+        navigate("/");
       }
+
+    } catch (error: any) {
+      console.error("Erro login:", error);
+      toast.error(error.message || "Erro ao fazer login");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="flex items-center justify-center min-h-[80vh]">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-food-orange">
-            🍽️ Área Administrativa
-          </CardTitle>
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-2xl font-bold">Acessar Conta</CardTitle>
           <CardDescription>
-            {isSignUp ? "Crie sua conta" : "Entre para gerenciar o cardápio"}
+            Entre com seu e-mail e senha
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+              <Label htmlFor="email">E-mail</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  className="pl-9"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Senha</Label>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  className="pl-9"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <Button
-              type="submit"
-              className="w-full bg-food-orange hover:bg-food-red"
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? "Criar Conta" : "Entrar"}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Entrar"}
             </Button>
           </form>
-
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              className="text-sm text-muted-foreground hover:text-food-orange transition-colors"
-              onClick={() => setIsSignUp(!isSignUp)}
-            >
-              {isSignUp
-                ? "Já tem conta? Entre aqui"
-                : "Não tem conta? Cadastre-se"}
-            </button>
-          </div>
         </CardContent>
+        <CardFooter className="flex flex-col gap-4 text-center">
+          <div className="text-sm text-muted-foreground">
+            Não tem uma conta?{" "}
+            <Link to="/register" className="text-primary hover:underline font-medium">
+              Criar conta grátis
+            </Link>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );

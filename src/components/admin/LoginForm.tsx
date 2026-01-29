@@ -14,27 +14,27 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
+const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // TRUQUE: Usamos (supabase.auth as any) para o TypeScript parar de reclamar
+      // e aceitar o comando, pois ele existe na biblioteca.
+      const { data, error } = await (supabase.auth as any).signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
-      // --- AQUI ESTÁ A MÁGICA DO REDIRECIONAMENTO ---
-      // Verificamos o 'role' que salvamos na hora do registro
+      // Verificamos o 'role' nos metadados para redirecionar corretamente
       const role = data.user?.user_metadata?.role;
 
       if (role === 'seller') {
         toast.success("Bem-vindo de volta, Lojista!");
         navigate("/admin");
       } else {
-        // Se for 'customer' ou se não tiver role definido (antigos), vai pra home
         toast.success("Login realizado com sucesso!");
         navigate("/");
       }

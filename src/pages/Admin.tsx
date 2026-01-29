@@ -1,136 +1,157 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useMyStore } from "@/hooks/useStores";
-import { LoginForm } from "@/components/admin/LoginForm";
-import { StoreSetupForm } from "@/components/dashboard/StoreSetupForm";
-import { StoreSettings } from "@/components/dashboard/StoreSettings";
-import { StoreProducts } from "@/components/dashboard/StoreProducts";
-import { OrdersList } from "@/components/dashboard/OrdersList";
-import { DashboardStats } from "@/components/dashboard/DashboardStats"; // <--- NOVO IMPORT
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  LogOut, 
-  Settings, 
-  Package, 
-  ShoppingBag, 
-  Loader2, 
-  ExternalLink, 
-  LayoutDashboard // <--- NOVO ICONE
-} from "lucide-react";
-import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, PlusCircle, Store } from "lucide-react";
+import { toast } from "sonner";
+import DashboardStats from "@/components/admin/DashboardStats"; // Certifique-se que esses componentes existem
+  // Se não tiver os componentes abaixo importados, comente-os por enquanto para testar
+import OrdersList from "@/components/admin/OrdersList"; 
+import MenuManager from "@/components/admin/MenuManager"; 
 
 export default function Admin() {
-  const { user, isLoading: authLoading, signOut } = useAuth();
-  const { data: store, isLoading: storeLoading, refetch } = useMyStore(user?.id);
-  
-  // Mudei o padrão para iniciar já vendo os gráficos
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [newStoreName, setNewStoreName] = useState("");
+  const [newStoreSlug, setNewStoreSlug] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
-  // Loading state
-  if (authLoading || (user && storeLoading)) {
+  // 1. Busca a loja do usuário logado
+  const { data: store, isLoading } = useQuery({
+    queryKey: ["my-store", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("owner_id", user?.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error; // Ignora erro de "não encontrado"
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // 2. Função para criar a loja se ela não existir
+  const handleCreateStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setIsCreating(true);
+
+    try {
+      const { error } = await supabase.from("stores").insert({
+        name: newStoreName,
+        slug: newStoreSlug.toLowerCase().replace(/\s+/g, '-'), // Transforma "Burgao do Ze" em "burgao-do-ze"
+        owner_id: user.id,
+      });
+
+      if (error) throw error;
+      
+      toast.success("Loja criada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["my-store"] }); // Recarrega a tela
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao criar loja. O link já pode estar em uso.");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  }
+
+  // --- CENÁRIO 1: USUÁRIO SEM LOJA (MOSTRA FORMULÁRIO) ---
+  if (!store) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader>
+            <div className="mx-auto bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+              <Store className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle className="text-center">Configure sua Loja</CardTitle>
+            <CardDescription className="text-center">
+              Para acessar o painel, precisamos saber o nome do seu negócio.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateStore} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome da Loja</Label>
+                <Input 
+                  placeholder="Ex: Hamburgueria do Eduardo" 
+                  value={newStoreName}
+                  onChange={(e) => setNewStoreName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Link Personalizado (Slug)</Label>
+                <div className="flex items-center">
+                  <span className="bg-gray-100 border border-r-0 rounded-l-md px-3 py-2 text-sm text-gray-500">
+                    viana.com/
+                  </span>
+                  <Input 
+                    className="rounded-l-none"
+                    placeholder="hamburgueria-eduardo" 
+                    value={newStoreSlug}
+                    onChange={(e) => setNewStoreSlug(e.target.value)}
+                    required
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Este será o link que seus clientes usarão.</p>
+              </div>
+              <Button type="submit" className="w-full" disabled={isCreating}>
+                {isCreating ? <Loader2 className="animate-spin mr-2" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                Criar Loja e Acessar Painel
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Not logged in
-  if (!user) {
-    return <LoginForm />;
-  }
-
-  // No store yet - show setup
-  if (!store) {
-    return <StoreSetupForm onSuccess={() => refetch()} />;
-  }
-
+  // --- CENÁRIO 2: USUÁRIO COM LOJA (MOSTRA DASHBOARD) ---
+// --- CENÁRIO 2: USUÁRIO COM LOJA (MOSTRA DASHBOARD) ---
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {store.logo_url ? (
-                <img src={store.logo_url} alt={store.name} className="h-8 w-8 rounded-lg object-cover" />
-              ) : (
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  🏪
-                </div>
-              )}
-              <div>
-                <h1 className="font-semibold text-foreground">{store.name}</h1>
-                <Link 
-                  to={`/${store.slug}`} 
-                  target="_blank" 
-                  className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
-                >
-                  /{store.slug}
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className={`text-xs px-2 py-1 rounded-full ${store.is_open ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {store.is_open ? '🟢 Aberto' : '🔴 Fechado'}
-              </span>
-              <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b px-6 py-4 flex justify-between items-center">
+        <h1 className="text-xl font-bold">Painel Admin - {store.name}</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.open(`/${store.slug}`, '_blank')}>
+            Ver minha Loja
+          </Button>
         </div>
       </header>
-
-      {/* Content */}
-      <main className="container mx-auto px-4 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+      
+      <main className="p-6 max-w-7xl mx-auto space-y-6">
+        
+        {/* 1. Visão Geral (Gráficos) */}
+        <DashboardStats /> 
+        
+        {/* 2. Área Principal Dividida em Colunas */}
+        <div className="grid lg:grid-cols-3 gap-6">
           
-          {/* Mudei aqui para grid-cols-4 para caber as 4 abas */}
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            
-            {/* NOVA ABA: Visão Geral */}
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Visão Geral</span>
-            </TabsTrigger>
+          {/* Coluna da Esquerda (Maior): Lista de Pedidos */}
+          <div className="lg:col-span-2 space-y-4">
+             <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">Gerenciar Pedidos</h2>
+             </div>
+             {/* Passamos o ID da loja para buscar os pedidos certos */}
+             <OrdersList storeId={store.id} />
+          </div>
 
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Produtos</span>
-            </TabsTrigger>
-            
-            <TabsTrigger value="orders" className="flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline">Pedidos</span>
-            </TabsTrigger>
-            
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Configurações</span>
-            </TabsTrigger>
-          </TabsList>
+          {/* Coluna da Direita (Menor): Cardápio */}
+          <div>
+            <MenuManager storeId={store.id} />
+          </div>
 
-          {/* CONTEÚDO DA NOVA ABA */}
-          <TabsContent value="dashboard" className="animate-in fade-in-50 duration-500">
-            <DashboardStats storeId={store.id} />
-          </TabsContent>
-
-          <TabsContent value="products" className="animate-in fade-in-50 duration-500">
-            <StoreProducts storeId={store.id} />
-          </TabsContent>
-
-          <TabsContent value="orders" className="animate-in fade-in-50 duration-500">
-            <OrdersList storeId={store.id} />
-          </TabsContent>
-
-          <TabsContent value="settings" className="animate-in fade-in-50 duration-500">
-            <StoreSettings store={store} />
-          </TabsContent>
-        </Tabs>
+        </div>
       </main>
     </div>
   );

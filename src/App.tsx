@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // --- IMPORTS DAS PÁGINAS ---
 import Index from "./pages/Index";
+import StorePage from "./pages/StorePage";
 import PaymentMock from "./pages/subscription/PaymentMock";
 // O Admin está direto na pasta pages, então ajustamos o caminho:
 import Admin from "./pages/Admin";
@@ -21,13 +22,12 @@ const App = () => (
       <Toaster />
       <BrowserRouter>
         <Routes>
-          {/* Rotas Públicas */}
-          {/* Rotas Públicas */}
+          {/* 1. Rotas Públicas (Fixas) */}
           <Route path="/" element={<Index />} />
           <Route path="/register" element={<Register />} />
           <Route path="/payment" element={<PaymentMock />} />
 
-          {/* --- ROTA PROTEGIDA (O SEGURANÇA ESTÁ AQUI) --- */}
+          {/* 2. Rota Protegida (Admin) */}
           <Route 
             path="/admin" 
             element={
@@ -36,6 +36,12 @@ const App = () => (
               </ProtectedRoute>
             } 
           />
+          
+          {/* 3. ROTA DA LOJA PÚBLICA (ADICIONE ISTO AQUI) 👇 */}
+          {/* O ":slug" diz para o React: "Qualquer coisa que vier depois da barra 
+              e não for admin/register/payment, trate como o endereço de uma loja" */}
+          <Route path="/:slug" element={<StorePage />} />
+
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

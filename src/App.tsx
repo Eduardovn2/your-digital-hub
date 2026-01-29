@@ -7,7 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import PaymentMock from "./pages/subscription/PaymentMock";
 // O Admin está direto na pasta pages, então ajustamos o caminho:
-import Admin from "./pages/Admin"; 
+import Admin from "./pages/Admin";
+import { ProtectedRoute } from "./pages/auth/ProtectedRoute"; // <--- IMPORT NOVO
 // O Register ainda não existe, vamos criar ele no próximo passo
 import Register from "./pages/auth/Register";
 // Criação do cliente para gerenciar cache e dados
@@ -21,17 +22,20 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           {/* Rotas Públicas */}
+          {/* Rotas Públicas */}
           <Route path="/" element={<Index />} />
           <Route path="/register" element={<Register />} />
-          
-          {/* Rota de Pagamento (Criamos antes) */}
           <Route path="/payment" element={<PaymentMock />} />
 
-          {/* Rotas Protegidas / Admin */}
-          <Route path="/admin" element={<Admin />} />
-          
-          {/* Rota coringa para 404 (opcional) */}
-          {/* <Route path="*" element={<NotFound />} /> */}
+          {/* --- ROTA PROTEGIDA (O SEGURANÇA ESTÁ AQUI) --- */}
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute requiredRole="seller">
+                <Admin />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

@@ -10,11 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, PlusCircle, Store, LayoutDashboard, ClipboardList, UtensilsCrossed, Settings } from "lucide-react";
 import { toast } from "sonner";
 
-// Componentes das Abas
-import DashboardStats from "@/components/admin/DashboardStats";
-import OrdersList from "@/components/admin/OrdersList";
-import MenuManager from "@/components/admin/MenuManager";
-import DeliverySettings from "@/components/admin/DeliverySettings";
+// --- NOVOS IMPORTS CORRETOS (Do Dashboard) ---
+import { DashboardStats } from "@/components/dashboard/DashboardStats";
+import { OrdersList } from "@/components/dashboard/OrdersList";
+import { StoreProducts } from "@/components/dashboard/StoreProducts"; // Substitui o antigo MenuManager
+import { StoreSettings } from "@/components/dashboard/StoreSettings"; // Engloba Delivery, Horários e Aparência
 
 export default function Admin() {
   const { user } = useAuth();
@@ -59,7 +59,10 @@ export default function Admin() {
         (payload) => {
           audio.play().catch(() => console.log("Interação do usuário necessária para tocar som"));
           toast.info("🍔 Novo pedido recebido!");
+          
+          // Atualiza as listas e estatísticas imediatamente
           queryClient.invalidateQueries({ queryKey: ["orders", store.id] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-stats", store.id] });
         }
       )
       .subscribe();
@@ -162,7 +165,7 @@ export default function Admin() {
               <UtensilsCrossed className="h-4 w-4" /> <span className="hidden sm:inline">Cardápio</span>
             </TabsTrigger>
             <TabsTrigger value="config" className="flex gap-2">
-              <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Taxas</span>
+              <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Configurações</span>
             </TabsTrigger>
           </TabsList>
 
@@ -175,11 +178,12 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="cardapio">
-            <MenuManager storeId={store.id} />
+            <StoreProducts storeId={store.id} />
           </TabsContent>
 
           <TabsContent value="config">
-            <DeliverySettings storeId={store.id} />
+            {/* StoreSettings agora recebe o objeto store completo */}
+            <StoreSettings store={store} />
           </TabsContent>
         </Tabs>
       </main>

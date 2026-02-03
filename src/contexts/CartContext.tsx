@@ -2,11 +2,13 @@ import React, { createContext, useContext, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// ADICIONADO: Campo 'image' na interface
 interface CartItem {
   id: string;
   name: string;
   price: number;
   quantity: number;
+  image?: string; 
 }
 
 interface CartContextType {
@@ -31,7 +33,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (existing) {
         return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { id: product.id, name: product.name, price: Number(product.price), quantity: 1 }];
+      // CORREÇÃO: Agora salvamos a imagem do produto no estado do carrinho
+      return [...prev, { 
+        id: product.id, 
+        name: product.name, 
+        price: Number(product.price), 
+        quantity: 1,
+        image: product.image // Importante: salvando a URL da imagem
+      }];
     });
     toast.success(`${product.name} adicionado!`);
   };
@@ -49,7 +58,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-  // --- FUNÇÃO DE CHECKOUT (PASSO 1) ---
   const checkout = async (customerData: any, storeId: string, deliveryFee: number) => {
     if (items.length === 0) {
       toast.error("Seu carrinho está vazio!");
@@ -59,8 +67,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const totalValue = subtotal + deliveryFee;
 
     try {
-      // Fazemos o insert na tabela 'orders'
-      // Usamos 'as any' para evitar erros de colunas recém-criadas no banco
       const { error } = await supabase.from('orders').insert({
         store_id: storeId,
         customer_name: customerData.name,
@@ -69,7 +75,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subtotal: subtotal,
         total: totalValue,
         delivery_fee: deliveryFee,
-        status: 'pending' // Todo pedido entra como pendente
+        status: 'pending'
       } as any);
 
       if (error) throw error;
@@ -90,7 +96,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearCart, 
       checkout, 
       subtotal, 
-      total: subtotal // O total real é calculado na chamada do checkout
+      total: subtotal 
     }}>
       {children}
     </CartContext.Provider>

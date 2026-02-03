@@ -1,70 +1,94 @@
-import { Plus, Star } from "lucide-react";
+import { Plus, Star, Eye } from "lucide-react";
 import { MenuItem } from "@/types/menu";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { useState } from "react";
+import { ProductDetailsModal } from "@/components/store/ProductDetailsModal"; // Importando o modal novo
 
 interface MenuItemCardProps {
   item: MenuItem;
 }
 
 export function MenuItemCard({ item }: MenuItemCardProps) {
-  const { addItem } = useCart();
+  const { addToCart } = useCart();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleAddToCart = () => {
-    addItem(item);
-    toast.success(`${item.name} adicionado ao carrinho!`, {
-      duration: 2000,
+  // Função para adicionar direto (botão rápido)
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede que abra o modal ao clicar no botão
+    addToCart(item);
+    toast.success(`${item.name} adicionado!`, {
       position: "bottom-center",
-    });
-  };
-
-  const formatPrice = (price: number) => {
-    return price.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
+      className: "bg-white/80 backdrop-blur-md border-primary/20 text-primary"
     });
   };
 
   return (
-    <div className="group bg-card rounded-xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1">
-      {/* Image Container */}
-      <div className="relative aspect-[4/3] overflow-hidden">
-        <img
-          src={item.image}
-          alt={item.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        {item.popular && (
-          <div className="absolute top-3 left-3 flex items-center gap-1 bg-food-yellow text-foreground px-2 py-1 rounded-full text-xs font-semibold">
-            <Star className="h-3 w-3 fill-current" />
-            Popular
+    <>
+      <GlassCard 
+        className="group h-full flex flex-col cursor-pointer transition-all duration-300 hover:ring-2 hover:ring-primary/20"
+        onClick={() => setIsModalOpen(true)} // Abre o modal ao clicar no card
+      >
+        {/* Imagem com Overlay Gradiente */}
+        <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity z-10" />
+          
+          <img
+            src={item.image}
+            alt={item.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+          />
+          
+          {/* Badge Popular */}
+          {item.popular && (
+            <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-yellow-500/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+              <Star className="h-3 w-3 fill-current" />
+              POPULAR
+            </div>
+          )}
+
+          {/* Ícone de "Ver Detalhes" que aparece no Hover */}
+          <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20 backdrop-blur-[2px]">
+            <div className="bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full p-3 transform scale-75 group-hover:scale-100 transition-transform">
+              <Eye className="h-6 w-6" />
+            </div>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <h3 className="font-semibold text-lg text-foreground mb-1 line-clamp-1">
-          {item.name}
-        </h3>
-        <p className="text-muted-foreground text-sm mb-3 line-clamp-2 min-h-[40px]">
-          {item.description}
-        </p>
+        {/* Conteúdo */}
+        <div className="p-5 flex flex-col flex-1">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="font-bold text-lg text-slate-800 leading-tight line-clamp-2">
+              {item.name}
+            </h3>
+            <span className="font-bold text-primary text-lg whitespace-nowrap ml-2">
+              {item.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </span>
+          </div>
+          
+          <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">
+            {item.description}
+          </p>
 
-        <div className="flex items-center justify-between">
-          <span className="text-xl font-bold text-primary">
-            {formatPrice(item.price)}
-          </span>
           <Button
-            onClick={handleAddToCart}
-            size="sm"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full h-10 w-10 p-0 button-shadow"
+            onClick={handleQuickAdd}
+            className="w-full bg-slate-100 hover:bg-primary hover:text-white text-slate-700 shadow-sm hover:shadow-primary/30 transition-all rounded-xl h-11 font-semibold group-active:scale-95"
+            variant="ghost"
           >
-            <Plus className="h-5 w-5" />
+            Adicionar ao Pedido
+            <Plus className="ml-2 h-4 w-4" />
           </Button>
         </div>
-      </div>
-    </div>
+      </GlassCard>
+
+      {/* Renderiza o Modal Controlado */}
+      <ProductDetailsModal 
+        product={item} 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
+    </>
   );
 }

@@ -4,9 +4,9 @@ import { Order, OrderItem, OrderStatus } from "@/types/store";
 import { toast } from "sonner";
 import { printOrder } from "@/services/printService";
 
-// src/hooks/useOrders.tsx
-export function useStoreOrders(storeId: string | undefined, page: number = 0) {
-  const pageSize = 20; // Número de pedidos por página
+// CORREÇÃO 1: Renomeado de useStoreOrders para useOrders para corrigir o erro de importação
+export function useOrders(storeId: string | undefined, page: number = 0) {
+  const pageSize = 50; 
   return useQuery({
     queryKey: ["orders", storeId, page],
     queryFn: async () => {
@@ -23,16 +23,17 @@ export function useStoreOrders(storeId: string | undefined, page: number = 0) {
         `)
         .eq("store_id", storeId)
         .order("created_at", { ascending: false })
-        .range(from, to); // Implementação da paginação no banco de dados
+        .range(from, to);
 
       if (error) throw error;
       return data as (Order & { items: OrderItem[] })[];
     },
     enabled: !!storeId,
+    refetchInterval: 10000,
   });
 }
 
-// Tipo específico para a entrada da nossa nova função RPC
+// Hook de criação (Mantido igual)
 type CreateOrderParams = {
   order: {
     store_id: string;
@@ -54,7 +55,6 @@ export function useCreateOrder() {
 
   return useMutation({
     mutationFn: async ({ order, items, deliveryZoneId }: CreateOrderParams) => {
-      // Prepara os dados para o formato exato que a função SQL espera
       const rpcPayload = {
         p_store_id: order.store_id,
         p_customer_name: order.customer_name,
@@ -69,27 +69,18 @@ export function useCreateOrder() {
         }))
       };
 
-        // Chama a função segura no banco
-      // Adicione 'as any' para ignorar a validação de tipo estrito temporariamente
       const { data, error } = await supabase.rpc('create_new_order' as any, rpcPayload);
 
       if (error) throw error;
 
-      // Tenta imprimir
-      // O 'data' aqui é o JSON retornado pela RPC { id, total, status }
       const newOrderId = (data as any)?.id;
       if (newOrderId) {
-        printOrder(newOrderId, order.store_id).then(result => {
-          if (result.printed) {
-            console.log('Order printed successfully');
-          }
-        });
+        printOrder(newOrderId, order.store_id).catch(console.error);
       }
 
       return data;
     },
     onSuccess: (data: any) => {
-      // Invalida a lista para recarregar
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       
       const totalFormatado = data?.total 
@@ -99,17 +90,18 @@ export function useCreateOrder() {
       toast.success(`Pedido realizado! Total: R$ ${totalFormatado}`);
     },
     onError: (error: Error) => {
-      console.error('Erro ao criar pedido:', error);
       toast.error(`Erro ao criar pedido: ${error.message}`);
     },
   });
 }
 
+// CORREÇÃO 2: Removemos 'storeId' dos parâmetros e pegamos da resposta do banco
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId, status, storeId }: { orderId: string; status: OrderStatus; storeId: string }) => {
+    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+      // Atualiza e retorna o dado atualizado (que contém o store_id)
       const { data, error } = await supabase
         .from("orders")
         .update({ status: status as any })
@@ -118,10 +110,15 @@ export function useUpdateOrderStatus() {
         .single();
 
       if (error) throw error;
-      return { ...data, storeId } as Order & { storeId: string };
+      return data; // Retorna o objeto Order completo (com store_id)
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["orders", data.storeId] });
+      // Usa o store_id que veio da resposta do banco para invalidar o cache correto
+      if (data?.store_id) {
+         queryClient.invalidateQueries({ queryKey: ["orders", data.store_id] });
+      } else {
+         queryClient.invalidateQueries({ queryKey: ["orders"] });
+      }
       toast.success("Status atualizado!");
     },
     onError: (error: Error) => {

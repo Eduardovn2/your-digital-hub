@@ -1,258 +1,224 @@
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
+import { Order, OrderStatus } from "@/types/store";
+import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useStoreOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
-import { OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/types/store";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 import { 
-  Loader2, Package, Clock, Phone, MapPin, FileText, 
-  ChevronLeft, ChevronRight, CheckCircle2, Bike, AlertCircle, PackageCheck 
+  Clock, CheckCircle2, Truck, ChefHat, XCircle, 
+  Printer, MapPin, AlertCircle, Volume2, VolumeX
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
+import { supabase } from "@/integrations/supabase/client";
 
-interface OrdersListProps {
-  storeId: string;
-}
-
-// Agora o TypeScript vai reconhecer 'delivering' porque consertamos o store.ts
-const getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
-  const sequence: Partial<Record<OrderStatus, OrderStatus | null>> = {
-    'pending': 'preparing',    
-    'preparing': 'delivering', 
-    'delivering': 'delivered', 
-    'delivered': null,         
-    'cancelled': null
-  };
-  return sequence[currentStatus] || null;
+// ... (Mantenha o objeto STATUS_CONFIG igual ao anterior) ...
+const STATUS_CONFIG: Record<string, { label: string, color: string, icon: any, next?: OrderStatus }> = {
+  pending: { label: "Pendente", color: "bg-yellow-500/20 text-yellow-600 border-yellow-200", icon: AlertCircle, next: "confirmed" },
+  confirmed: { label: "Na Fila", color: "bg-blue-500/20 text-blue-600 border-blue-200", icon: Clock, next: "preparing" },
+  preparing: { label: "Preparando", color: "bg-orange-500/20 text-orange-600 border-orange-200", icon: ChefHat, next: "ready" },
+  ready: { label: "Pronto", color: "bg-green-500/20 text-green-600 border-green-200", icon: CheckCircle2, next: "delivering" },
+  delivering: { label: "Em Entrega", color: "bg-indigo-500/20 text-indigo-600 border-indigo-200", icon: Truck, next: "delivered" },
+  delivered: { label: "Entregue", color: "bg-slate-200 text-slate-600 border-slate-300", icon: CheckCircle2 },
+  cancelled: { label: "Cancelado", color: "bg-red-100 text-red-600 border-red-200", icon: XCircle }
 };
 
-const getStatusActionLabel = (currentStatus: OrderStatus): string => {
-  const labels: Partial<Record<OrderStatus, string>> = {
-    'pending': 'Aceitar Pedido',
-    'preparing': 'Saiu para Entrega',
-    'delivering': 'Concluir Pedido',
+export function OrdersList({ storeId }: { storeId: string }) {
+  const { data: initialOrders, refetch } = useOrders(storeId);
+  const { mutate: updateStatusMutation } = useUpdateOrderStatus();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+
+  // Inicializa o áudio
+  useEffect(() => {
+    audioRef.current = new Audio("/notification.mp3");
+    // Tenta habilitar o som com um clique falso se possível, ou espera interação
+  }, []);
+
+  const playSound = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(error => {
+        console.warn("Autoplay bloqueado pelo navegador:", error);
+        toast.warning("Clique na página para habilitar sons de notificação.");
+        setSoundEnabled(false);
+      });
+    }
   };
-  return labels[currentStatus] || 'Avançar';
-};
 
-export function OrdersList({ storeId }: OrdersListProps) {
-  const { playSound } = useRealtimeOrders(storeId);
-  const [page, setPage] = useState<number>(0);
-  const { data: orders, isLoading } = useStoreOrders(storeId, page);
-  const updateStatus = useUpdateOrderStatus();
-  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-
-  const statusOptions = Object.entries(ORDER_STATUS_LABELS);
-
-  const handleStatusChange = (orderId: string, status: OrderStatus) => {
-    updateStatus.mutate({ orderId, status, storeId });
+  // Botão para ativar som manualmente (Hack para contornar bloqueio do navegador)
+  const enableSound = () => {
+    if (audioRef.current) {
+      audioRef.current.play().then(() => {
+        audioRef.current?.pause();
+        audioRef.current!.currentTime = 0;
+        setSoundEnabled(true);
+        toast.success("Sons ativados!");
+      }).catch(() => toast.error("Erro ao ativar som. Verifique se o arquivo existe."));
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (initialOrders) setOrders(initialOrders);
+  }, [initialOrders]);
 
-  if ((!orders || orders.length === 0) && page === 0) {
-    return (
-      <div className="text-center py-12 bg-card border rounded-xl">
-        <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium">Nenhum pedido ainda</h3>
-        <p className="text-muted-foreground mt-1">
-          Os pedidos dos clientes aparecerão aqui
-        </p>
-      </div>
-    );
-  }
+  // Realtime Listener
+  useEffect(() => {
+    if (!storeId) return;
+
+    const channel = supabase
+      .channel('orders-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` }, () => {
+        toast.info("Novo pedido recebido! 🔔");
+        playSound();
+        refetch();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` }, () => {
+        refetch();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [storeId, refetch]);
+
+  const handleUpdateStatus = (orderId: string, newStatus: OrderStatus) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    
+    updateStatusMutation({ orderId, status: newStatus }, {
+      onSuccess: () => {
+        toast.success(`Pedido movido para: ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+      },
+      onError: () => {
+        refetch();
+      }
+    });
+  };
+
+  const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
+  const historyOrders = orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold">Pedidos</h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={playSound}
-            title="Testar som de notificação"
-          >
-            🔊
-          </Button>
+    <div className="space-y-8 animate-fade-in">
+      
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <ChefHat className="h-8 w-8 text-primary" />
+            Monitor de Cozinha
+          </h2>
+          <p className="text-slate-500">Gerencie os pedidos em tempo real.</p>
         </div>
-        <span className="text-sm text-muted-foreground">Página {page + 1}</span>
+        <div className="flex items-center gap-2">
+           <Button 
+             variant="ghost" 
+             size="sm" 
+             onClick={enableSound}
+             className={soundEnabled ? "text-green-600" : "text-slate-400"}
+           >
+             {soundEnabled ? <Volume2 className="h-5 w-5 mr-2" /> : <VolumeX className="h-5 w-5 mr-2" />}
+             {soundEnabled ? "Som Ativo" : "Ativar Som"}
+           </Button>
+           <Badge variant="outline" className="px-4 py-2 text-base bg-white shadow-sm">
+             {activeOrders.length} Pedidos Ativos
+           </Badge>
+        </div>
       </div>
 
-      <div className="space-y-3">
-        {orders?.map((order) => {
-          const nextStatus = getNextStatus(order.status);
-          const isPending = order.status === 'pending';
+      {/* GRID KANBAN (Mantenha o código do Grid igual ao anterior, apenas copiei o início para contexto) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {activeOrders.length === 0 ? (
+          <div className="col-span-full py-20 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-300">
+            <ChefHat className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-slate-500">Tudo calmo na cozinha</h3>
+            <p className="text-slate-400">Aguardando novos pedidos...</p>
+          </div>
+        ) : (
+          activeOrders.map((order) => {
+            const config = STATUS_CONFIG[order.status] || STATUS_CONFIG['pending'];
+            const StatusIcon = config.icon;
 
-          const cardClassName = isPending
-            ? "bg-amber-50/50 dark:bg-amber-950/10 border-2 border-amber-400 rounded-xl overflow-hidden shadow-sm"
-            : "bg-card border rounded-xl overflow-hidden";
-
-          return (
-            <div key={order.id} className={cardClassName}>
-              <div
-                className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {isPending && (
-                          <AlertCircle className="h-4 w-4 text-amber-600 animate-pulse" />
-                        )}
-                        <span className="font-medium">{order.customer_name}</span>
-                        <Badge className={ORDER_STATUS_COLORS[order.status]}>
-                          {ORDER_STATUS_LABELS[order.status]}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(order.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {order.customer_phone}
-                        </span>
-                      </div>
-                    </div>
+            return (
+              <GlassCard key={order.id} className="flex flex-col border-l-4" style={{ borderLeftColor: order.status === 'pending' ? '#eab308' : '#3b82f6' }}>
+                <div className="p-4 border-b border-slate-100 flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold text-lg text-slate-800">#{order.id.slice(0, 4)}</h4>
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-lg">
-                      R$ {Number(order.total).toFixed(2).replace('.', ',')}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {order.items?.length || 0} itens
-                    </div>
-                  </div>
+                  <Badge className={`px-2 py-1 ${config.color} border`}>
+                    <StatusIcon className="h-3 w-3 mr-1" />
+                    {config.label}
+                  </Badge>
                 </div>
-              </div>
 
-              {expandedOrder === order.id && (
-                <div className="border-t p-4 bg-background/50 space-y-4">
-                  {order.customer_address && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <span>{order.customer_address}</span>
-                    </div>
-                  )}
-
-                  {order.notes && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <span className="text-amber-600 font-medium">{order.notes}</span>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Itens do Pedido:</h4>
-                    <div className="bg-background rounded-lg p-3 space-y-2 border">
-                      {order.items?.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between text-sm">
-                          <span>
-                            {item.quantity}x {item.product_name}
-                            {item.notes && (
-                              <span className="text-muted-foreground ml-2">({item.notes})</span>
-                            )}
-                          </span>
-                          <span className="font-medium">
-                            R$ {Number(item.subtotal).toFixed(2).replace('.', ',')}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="border-t pt-2 flex items-center justify-between font-medium">
-                        <span>Total</span>
-                        <span>R$ {Number(order.total).toFixed(2).replace('.', ',')}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t mt-4">
-                    {nextStatus && (
-                      <Button
-                        className={`w-full sm:w-auto font-semibold text-white ${
-                          isPending 
-                            ? "bg-amber-500 hover:bg-amber-600 animate-pulse"
-                            : "bg-green-600 hover:bg-green-700"
-                        }`}
-                        onClick={() => handleStatusChange(order.id, nextStatus)}
-                        disabled={updateStatus.isPending}
-                      >
-                        {updateStatus.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <>
-                            {order.status === 'pending' && <CheckCircle2 className="h-4 w-4 mr-2" />}
-                            {order.status === 'preparing' && <Bike className="h-4 w-4 mr-2" />}
-                            {order.status === 'delivering' && <PackageCheck className="h-4 w-4 mr-2" />}
-                          </>
-                        )}
-                        {getStatusActionLabel(order.status)}
-                      </Button>
-                    )}
-
-                    <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto justify-end">
-                      <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
-                        Manual:
-                      </span>
-                      <Select
-                        value={order.status}
-                        onValueChange={(v) => handleStatusChange(order.id, v as OrderStatus)}
-                      >
-                        <SelectTrigger className="w-full sm:w-48 h-10">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statusOptions.map(([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                <div className="px-4 py-3 bg-slate-50/50 text-sm space-y-1">
+                   <div className="font-medium text-slate-800 flex items-center gap-2">
+                     <span className="truncate">{order.customer_name}</span>
+                   </div>
+                   {order.customer_address && (
+                     <div className="text-slate-500 text-xs flex items-start gap-1">
+                       <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                       <span className="line-clamp-2">{order.customer_address}</span>
+                     </div>
+                   )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                <ScrollArea className="flex-1 h-32 px-4 py-2">
+                   <div className="space-y-2">
+                      {order.items && order.items.length > 0 ? (
+                        order.items.map((item: any, i: number) => (
+                          <div key={i} className="flex justify-between text-sm">
+                             <span className="text-slate-700 font-medium">
+                               {item.quantity}x {item.product_name || "Item"}
+                             </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">Carregando itens...</p>
+                      )}
+                      <div className="pt-2 border-t border-dashed">
+                        <p className="text-sm font-bold text-slate-800 text-right">
+                          Total: {order.total?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </p>
+                      </div>
+                   </div>
+                </ScrollArea>
+
+                <div className="p-4 pt-2 mt-auto grid grid-cols-2 gap-2">
+                  {config.next && (
+                    <Button 
+                      className="col-span-2 bg-green-600 hover:bg-green-700 text-white shadow-sm transition-all active:scale-95"
+                      onClick={() => handleUpdateStatus(order.id, config.next as OrderStatus)}
+                    >
+                      Avançar para {STATUS_CONFIG[config.next]?.label}
+                      <CheckCircle2 className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
+                  
+                  <Button variant="outline" size="sm" className="text-xs">
+                    <Printer className="h-3 w-3 mr-1" /> Imprimir
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                    onClick={() => handleUpdateStatus(order.id, 'cancelled')}
+                  >
+                    <XCircle className="h-3 w-3 mr-1" /> Cancelar
+                  </Button>
+                </div>
+              </GlassCard>
+            );
+          })
+        )}
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t mt-4">
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => Math.max(0, p - 1))}
-          disabled={page === 0 || isLoading}
-          className="w-[100px]"
-        >
-          <ChevronLeft className="h-4 w-4 mr-2" />
-          Anterior
-        </Button>
-        
-        <span className="text-sm text-muted-foreground">
-          Página {page + 1}
-        </span>
-
-        <Button
-          variant="outline"
-          onClick={() => setPage((p) => p + 1)}
-          disabled={!orders || orders.length < 20 || isLoading}
-          className="w-[100px]"
-        >
-          Próximo
-          <ChevronRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
+      <Separator className="my-8" />
+      {/* (Mantenha o histórico aqui igual ao anterior) */}
     </div>
   );
 }

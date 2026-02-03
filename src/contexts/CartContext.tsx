@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// ADICIONADO: Campo 'image' na interface
 interface CartItem {
   id: string;
   name: string;
@@ -33,16 +32,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (existing) {
         return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      // CORREÇÃO: Agora salvamos a imagem do produto no estado do carrinho
       return [...prev, { 
         id: product.id, 
         name: product.name, 
         price: Number(product.price), 
         quantity: 1,
-        image: product.image // Importante: salvando a URL da imagem
+        image: product.image
       }];
     });
-    toast.success(`${product.name} adicionado!`);
+    // REMOVIDO: toast.success(...) daqui para evitar duplicidade
   };
 
   const removeFromCart = (productId: string) => {

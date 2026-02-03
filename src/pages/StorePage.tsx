@@ -11,16 +11,63 @@ import { Button } from "@/components/ui/button";
 import { useStoreBySlug } from "@/hooks/useStores";
 import { useProducts, productToMenuItem } from "@/hooks/useProducts";
 import { useStoreHours, isStoreCurrentlyOpen } from "@/hooks/useStoreHours";
+import { MenuItem } from "@/types/menu";
+
+// --- DICIONÁRIO DE TRADUÇÃO CORRIGIDO ---
+const CATEGORY_TRANSLATIONS: Record<string, string> = {
+  // Hambúrgueres
+  "Burger": "Hambúrgueres",
+  "Burgers": "Hambúrgueres",
+  "burger": "Hambúrgueres",
+  "burgers": "Hambúrgueres",
+  "burges": "Hambúrgueres", // Caso de erro de digitação comum
+
+  // Bebidas
+  "Drink": "Bebidas",
+  "Drinks": "Bebidas",
+  "drink": "Bebidas",
+  "drinks": "Bebidas",
+  "Beverage": "Bebidas",
+  "beverages": "Bebidas",
+
+  // Acompanhamentos (Batatas, etc)
+  "Side": "Acompanhamentos",
+  "Sides": "Acompanhamentos",
+  "side": "Acompanhamentos",
+  "sides": "Acompanhamentos",
+  "Portion": "Porções",
+  "Portions": "Porções",
+  
+  // Sobremesas
+  "Dessert": "Sobremesas",
+  "Desserts": "Sobremesas",
+  "dessert": "Sobremesas",
+  "desserts": "Sobremesas",
+  
+  // Outros
+  "Main": "Pratos Principais",
+  "Mains": "Pratos Principais",
+  "Pizza": "Pizzas",
+  "Pizzas": "Pizzas",
+  "pizzas": "Pizzas",
+  "Snack": "Lanches",
+  "Snacks": "Lanches",
+  "snacks": "Lanches",
+  "Sandwich": "Sanduíches",
+  "Sandwiches": "Sanduíches"
+};
 
 export default function StorePage() {
   const { slug } = useParams();
-  const [activeCategory, setActiveCategory] = useState("Destaques");
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("Destaques");
 
   const { data: store, isLoading: isStoreLoading } = useStoreBySlug(slug);
   const { data: products, isLoading: isProductsLoading } = useProducts(store?.id);
   const { data: hours } = useStoreHours(store?.id);
+
+  const isOpen = isStoreCurrentlyOpen(hours || null);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -28,36 +75,54 @@ export default function StorePage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const isOpen = isStoreCurrentlyOpen(hours || null);
-
-  const categories = useMemo(() => {
-    if (!products) return ["Destaques"];
-    const cats = new Set(products.map(p => p.category));
-    return ["Destaques", ...Array.from(cats).filter(c => c !== "Destaques")];
-  }, [products]);
-
-  const filteredProducts = useMemo(() => {
-    if (!products) return [];
-
-    let result = products.map(productToMenuItem);
+  const groupedProducts = useMemo(() => {
+    if (!products) return {};
+    
+    const allItems = products.map(productToMenuItem);
+    let filtered = allItems;
 
     if (searchTerm) {
-      result = result.filter(p => 
+      filtered = allItems.filter(p => 
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         p.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      return { "Resultados da Busca": filtered };
     }
 
-    if (activeCategory === "Destaques") {
-      if (!searchTerm) {
-        result = result.filter(p => p.popular);
+    const groups: Record<string, MenuItem[]> = {};
+
+    const popularItems = filtered.filter(p => p.popular);
+    if (popularItems.length > 0) {
+      groups["Destaques"] = popularItems;
+    }
+
+    filtered.forEach(item => {
+      // Normaliza a chave para buscar a tradução ou usa a original
+      // Mas mantém a chave original no objeto para garantir unicidade
+      if (!groups[item.category]) {
+        groups[item.category] = [];
       }
-    } else {
-      result = result.filter(p => p.category === activeCategory);
-    }
+      groups[item.category].push(item);
+    });
 
-    return result;
-  }, [products, activeCategory, searchTerm]);
+    return groups;
+  }, [products, searchTerm]);
+
+  const categories = Object.keys(groupedProducts);
+
+  const scrollToCategory = (category: string) => {
+    setActiveCategory(category);
+    const element = document.getElementById(`category-${category}`);
+    if (element) {
+      const y = element.getBoundingClientRect().top + window.scrollY - 180;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
+  // Função auxiliar para traduzir
+  const translateCategory = (cat: string) => {
+    return CATEGORY_TRANSLATIONS[cat] || CATEGORY_TRANSLATIONS[cat.toLowerCase()] || cat;
+  };
 
   if (isStoreLoading || isProductsLoading) {
     return (
@@ -84,7 +149,6 @@ export default function StorePage() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20 font-sans">
       
-      {/* HEADER FLUTUANTE (Navegação) */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm py-2" : "bg-transparent py-4"}`}>
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -95,15 +159,11 @@ export default function StorePage() {
               {store.name}
             </h1>
           </div>
-          <CheckoutDrawer />
+          <CheckoutDrawer storeId={store.id} isStoreOpen={!!isOpen} />
         </div>
       </header>
 
-      {/* --- HERO SECTION CORRIGIDA --- */}
-      {/* Removemos o overflow-hidden deste container pai para o card poder "vazar" para baixo */}
       <div className="relative h-64 md:h-80 w-full mb-20"> 
-        
-        {/* Container da Imagem (Aqui sim aplicamos overflow hidden para o zoom não vazar) */}
         <div className="absolute inset-0 overflow-hidden rounded-b-[2.5rem] shadow-lg">
            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 pointer-events-none" />
            <img 
@@ -113,11 +173,8 @@ export default function StorePage() {
            />
         </div>
         
-        {/* CARD DE INFORMAÇÕES (Agora visível) */}
         <div className="absolute -bottom-16 left-0 right-0 z-20 px-4">
           <GlassCard className="container mx-auto max-w-4xl p-4 md:p-6 flex flex-row items-center gap-4 md:gap-6 bg-white/95 backdrop-blur-xl border-white/40 shadow-xl">
-            
-            {/* Logo Responsiva */}
             <div className="h-16 w-16 md:h-24 md:w-24 rounded-2xl overflow-hidden border-4 border-white shadow-md flex-shrink-0 bg-white">
               <img 
                 src={store.logo_url || "https://github.com/shadcn.png"} 
@@ -126,7 +183,6 @@ export default function StorePage() {
               />
             </div>
             
-            {/* Informações da Loja */}
             <div className="flex-1 min-w-0">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4">
                 <div>
@@ -156,10 +212,8 @@ export default function StorePage() {
         </div>
       </div>
 
-      {/* ÁREA DO CARDÁPIO */}
       <div className="container mx-auto px-4 max-w-6xl">
         
-        {/* Busca e Filtros */}
         <div className="sticky top-16 z-40 bg-slate-50/95 backdrop-blur-sm py-4 space-y-4">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
@@ -171,54 +225,55 @@ export default function StorePage() {
             />
           </div>
 
-          <Tabs defaultValue="Destaques" value={activeCategory} onValueChange={setActiveCategory}>
-            <TabsList className="w-full justify-start overflow-x-auto bg-transparent p-0 h-auto gap-2 no-scrollbar py-2">
-              {categories.map((cat) => (
-                <TabsTrigger 
-                  key={cat} 
-                  value={cat}
-                  className="rounded-full border border-slate-200 bg-white px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shadow-sm transition-all hover:bg-slate-50 whitespace-nowrap"
-                >
-                  {cat}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          {!searchTerm && categories.length > 0 && (
+            <Tabs value={activeCategory} onValueChange={scrollToCategory} className="w-full">
+              <TabsList className="w-full justify-start overflow-x-auto bg-transparent p-0 h-auto gap-2 no-scrollbar py-2">
+                {categories.map((cat) => (
+                  <TabsTrigger 
+                    key={cat} 
+                    value={cat}
+                    onClick={() => scrollToCategory(cat)}
+                    className="rounded-full border border-slate-200 bg-white px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shadow-sm transition-all hover:bg-slate-50 whitespace-nowrap"
+                  >
+                    {/* Aplica tradução aqui */}
+                    {translateCategory(cat)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
         </div>
 
-        {/* Grid de Produtos */}
-        <div className="mt-6 pb-20">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-slate-800">
-              {searchTerm ? `Resultados para "${searchTerm}"` : activeCategory}
-            </h2>
-            <span className="text-xs text-slate-400 font-medium">
-              {filteredProducts.length} itens
-            </span>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.length > 0 ? (
-              filteredProducts.map((item) => (
-                <MenuItemCard key={item.id} item={item} />
-              ))
-            ) : (
-              <div className="col-span-full py-12 text-center">
-                <div className="mx-auto h-24 w-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <Search className="h-10 w-10 text-slate-300" />
+        <div className="mt-6 pb-20 space-y-12">
+          {categories.length > 0 ? (
+            categories.map((category) => (
+              <div key={category} id={`category-${category}`} className="scroll-mt-48 animate-fade-in">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                  {/* Aplica tradução aqui também */}
+                  {translateCategory(category)}
+                  <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+                    {groupedProducts[category].length}
+                  </span>
+                </h2>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {groupedProducts[category].map((item) => (
+                    <MenuItemCard key={`${category}-${item.id}`} item={item} />
+                  ))}
                 </div>
-                <h3 className="text-lg font-medium text-slate-600">Nenhum item encontrado</h3>
-                <p className="text-slate-400 text-sm mt-1">
-                  Tente mudar a categoria ou o termo de busca.
-                </p>
-                {searchTerm && (
-                  <Button variant="link" onClick={() => setSearchTerm("")} className="mt-2 text-primary">
-                    Limpar busca
-                  </Button>
-                )}
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="py-12 text-center">
+              <div className="mx-auto h-24 w-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <Search className="h-10 w-10 text-slate-300" />
+              </div>
+              <h3 className="text-lg font-medium text-slate-600">Nenhum item encontrado</h3>
+              <p className="text-slate-400 text-sm mt-1">
+                {searchTerm ? "Tente outro termo de busca." : "Esta loja ainda não tem produtos cadastrados."}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

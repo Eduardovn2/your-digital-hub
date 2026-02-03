@@ -1,148 +1,197 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useStoreHours, useUpsertStoreHours } from "@/hooks/useStoreHours";
-import { DAYS_OF_WEEK } from "@/types/store";
-import { Clock, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Loader2, Save, Clock } from "lucide-react";
+import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
 interface StoreHoursSettingsProps {
   storeId: string;
 }
 
+const DAYS_OF_WEEK = [
+  { id: 0, label: "Domingo" },
+  { id: 1, label: "Segunda" },
+  { id: 2, label: "Terça" },
+  { id: 3, label: "Quarta" },
+  { id: 4, label: "Quinta" },
+  { id: 5, label: "Sexta" },
+  { id: 6, label: "Sábado" },
+];
+
 export function StoreHoursSettings({ storeId }: StoreHoursSettingsProps) {
-  const { data: hours, isLoading } = useStoreHours(storeId);
-  const upsertHours = useUpsertStoreHours();
+  const queryClient = useQueryClient();
   
-  const [formData, setFormData] = useState({
-    opening_time: "08:00",
-    closing_time: "22:00",
-    days_open: [1, 2, 3, 4, 5, 6] as number[],
-    is_auto_control: true,
+  // Estado local alinhado com seu Banco de Dados
+  const [openingTime, setOpeningTime] = useState("18:00");
+  const [closingTime, setClosingTime] = useState("23:00");
+  const [daysOpen, setDaysOpen] = useState<number[]>([]);
+  const [isAutoControl, setIsAutoControl] = useState(true);
+  const [recordId, setRecordId] = useState<string | null>(null);
+
+  // 1. Busca configurações existentes
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["store-hours", storeId],
+    queryFn: async () => {
+      // Tenta buscar a configuração única desta loja
+      const { data, error } = await supabase
+        .from("store_hours")
+        .select("*")
+        .eq("store_id", storeId)
+        .maybeSingle(); // Usa maybeSingle pois pode não existir ainda
+
+      if (error) throw error;
+      return data;
+    },
   });
 
+  // 2. Carrega dados no estado
   useEffect(() => {
-    if (hours) {
-      setFormData({
-        opening_time: hours.opening_time.slice(0, 5),
-        closing_time: hours.closing_time.slice(0, 5),
-        days_open: hours.days_open,
-        is_auto_control: hours.is_auto_control,
-      });
+    if (settings) {
+      setOpeningTime(settings.opening_time || "18:00");
+      setClosingTime(settings.closing_time || "23:00");
+      setDaysOpen(settings.days_open || []);
+      setIsAutoControl(settings.is_auto_control ?? true);
+      setRecordId(settings.id);
     }
-  }, [hours]);
+  }, [settings]);
 
-  const handleDayToggle = (day: number) => {
-    setFormData(prev => ({
-      ...prev,
-      days_open: prev.days_open.includes(day)
-        ? prev.days_open.filter(d => d !== day)
-        : [...prev.days_open, day].sort()
-    }));
-  };
-
-  const handleSave = async () => {
-    await upsertHours.mutateAsync({
-      storeId,
-      hours: {
-        store_id: storeId,
-        opening_time: formData.opening_time,
-        closing_time: formData.closing_time,
-        days_open: formData.days_open,
-        is_auto_control: formData.is_auto_control,
-      },
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+  // 3. Função para alternar dias
+  const toggleDay = (dayId: number) => {
+    setDaysOpen(prev => 
+      prev.includes(dayId) 
+        ? prev.filter(d => d !== dayId) 
+        : [...prev, dayId].sort()
     );
-  }
+  };
+
+  // 4. Mutação para Salvar
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        store_id: storeId,
+        opening_time: openingTime,
+        closing_time: closingTime,
+        days_open: daysOpen,
+        is_auto_control: isAutoControl
+      };
+
+      let error;
+      
+      if (recordId) {
+        // Atualiza existente
+        const { error: updateError } = await supabase
+          .from("store_hours")
+          .update(payload)
+          .eq("id", recordId);
+        error = updateError;
+      } else {
+        // Cria novo
+        const { error: insertError } = await supabase
+          .from("store_hours")
+          .insert([payload]);
+        error = insertError;
+      }
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["store-hours"] });
+      toast.success("Horários atualizados!");
+    },
+    onError: (error) => toast.error("Erro ao salvar: " + error.message),
+  });
+
+  if (isLoading) return <Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" />;
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h4 className="font-medium flex items-center gap-2">
-          <Clock className="h-4 w-4" />
-          Horário de Funcionamento
-        </h4>
-        <p className="text-sm text-muted-foreground">Configure quando sua loja está aberta</p>
-      </div>
-
-      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-        <Switch
-          checked={formData.is_auto_control}
-          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_auto_control: checked }))}
-        />
-        <div>
-          <Label>Controle Automático</Label>
-          <p className="text-xs text-muted-foreground">Abrir/fechar a loja automaticamente no horário</p>
-        </div>
-      </div>
-
-      {formData.is_auto_control && (
-        <>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Horário de Abertura</Label>
-              <Input
-                type="time"
-                value={formData.opening_time}
-                onChange={(e) => setFormData(prev => ({ ...prev, opening_time: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Horário de Fechamento</Label>
-              <Input
-                type="time"
-                value={formData.closing_time}
-                onChange={(e) => setFormData(prev => ({ ...prev, closing_time: e.target.value }))}
-              />
-            </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Horário de Funcionamento</CardTitle>
+        <CardDescription>
+          Defina os dias e o horário padrão que sua loja opera.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        
+        {/* Controle Automático */}
+        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
+          <div className="space-y-0.5">
+            <Label className="text-base">Abrir/Fechar Automaticamente</Label>
+            <p className="text-sm text-slate-500">
+              O site mudará status baseado nos horários abaixo.
+            </p>
           </div>
+          <Switch 
+            checked={isAutoControl} 
+            onCheckedChange={setIsAutoControl}
+          />
+        </div>
 
-          <div className="space-y-2">
+        <div className={!isAutoControl ? "opacity-50 pointer-events-none" : ""}>
+          {/* Seleção de Dias */}
+          <div className="space-y-3 mb-6">
             <Label>Dias de Funcionamento</Label>
             <div className="flex flex-wrap gap-2">
-              {DAYS_OF_WEEK.map(day => (
-                <label
-                  key={day.value}
-                  className={`
-                    flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border transition-colors
-                    ${formData.days_open.includes(day.value) 
-                      ? 'bg-primary/10 border-primary text-primary' 
-                      : 'bg-muted/50 border-transparent'
-                    }
-                  `}
-                >
-                  <Checkbox
-                    checked={formData.days_open.includes(day.value)}
-                    onCheckedChange={() => handleDayToggle(day.value)}
-                  />
-                  <span className="text-sm">{day.label.slice(0, 3)}</span>
-                </label>
-              ))}
+              {DAYS_OF_WEEK.map((day) => {
+                const isSelected = daysOpen.includes(day.id);
+                return (
+                  <div 
+                    key={day.id}
+                    onClick={() => toggleDay(day.id)}
+                    className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                      isSelected 
+                        ? "bg-primary text-white border-primary shadow-sm" 
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {day.label.slice(0, 3)}
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </>
-      )}
 
-      <Button 
-        onClick={handleSave} 
-        disabled={upsertHours.isPending}
-        className="w-full"
-      >
-        {upsertHours.isPending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          "Salvar Horário"
-        )}
-      </Button>
-    </div>
+          {/* Seleção de Horário (Global) */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Abertura</Label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Input 
+                  type="time" 
+                  className="pl-9"
+                  value={openingTime}
+                  onChange={(e) => setOpeningTime(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Fechamento</Label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Input 
+                  type="time" 
+                  className="pl-9"
+                  value={closingTime}
+                  onChange={(e) => setClosingTime(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-4 border-t">
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="w-full sm:w-auto">
+            {saveMutation.isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+            Salvar Configurações
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

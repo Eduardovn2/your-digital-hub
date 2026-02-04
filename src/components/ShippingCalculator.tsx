@@ -1,238 +1,132 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea"; // Se não tiver, use Input
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Loader2, MapPin, CheckCircle } from "lucide-react";
-import { getDistance } from "geolib";
-import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Truck, Loader2, MapPin, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
-// --- REGRAS DE PREÇO ---
-const TAXAS = [
-  { maxKm: 2, preco: 5.00 },
-  { maxKm: 5, preco: 8.00 },
-  { maxKm: 10, preco: 12.00 },
-  { maxKm: 15, preco: 18.00 }
-];
-
-interface AddressData {
-  cep: string;
-  rua: string;
-  numero: string;
-  bairro: string;
-  cidade: string;
-  complemento: string;
-  referencia: string;
-}
-
-interface Props {
-  onAddressComplete: (address: AddressData, frete: number) => void;
-}
-
-export function DeliveryAddressForm({ onAddressComplete }: Props) {
-  const { toast } = useToast();
+export function ShippingCalculator({ storeId, storeAddress }: { storeId: string, storeAddress: string }) {
+  const [cep, setCep] = useState("");
   const [loading, setLoading] = useState(false);
-  const [storeCep, setStoreCep] = useState<string | null>(null);
-  const [step, setStep] = useState<1 | 2>(1); // 1 = Digitar CEP, 2 = Completar endereço
-  
-  // Dados do Cliente
-  const [address, setAddress] = useState<AddressData>({
-    cep: "",
-    rua: "",
-    numero: "",
-    bairro: "",
-    cidade: "",
-    complemento: "",
-    referencia: ""
-  });
+  const [deliveryFee, setDeliveryFee] = useState<number | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
 
-  const [freteCalculado, setFreteCalculado] = useState<number | null>(null);
-
-  // 1. Busca CEP da loja ao iniciar
-// Adicione essa interface simples logo acima da função do componente (fora dela)
-  // ou apenas use 'any' se quiser ser mais rápido
-  
-  useEffect(() => {
-    async function getStoreCep() {
-      // O truque está aqui: adicionamos 'as any' para calar o erro do TypeScript
-      const { data } = await supabase
-        .from("stores")
-        .select("zip_code")
-        .limit(1)
-        .single();
-      
-      // Convertendo para 'any' para podermos acessar .zip_code sem erro vermelho
-      const loja = data as any;
-
-      if (loja?.zip_code) {
-        setStoreCep(loja.zip_code.replace(/\D/g, ""));
-      }
-    }
-    getStoreCep();
-  }, []);
-
-  // 2. Função de Busca de CEP e Cálculo
-  const handleBuscarCep = async () => {
-    const cepLimpo = address.cep.replace(/\D/g, "");
-    if (cepLimpo.length !== 8) {
-      toast({ title: "CEP Inválido", description: "Digite 8 números", variant: "destructive" });
+  const calculateDistance = async () => {
+    const cleanCep = cep.replace(/\D/g, "");
+    if (cleanCep.length < 8) {
+      toast.error("CEP inválido.");
       return;
     }
-
-    if (!storeCep) {
-      toast({ title: "Erro na Loja", description: "A loja ainda não configurou o endereço de origem.", variant: "destructive" });
-      return;
-    }
-
+    
     setLoading(true);
+    setDeliveryFee(null);
 
     try {
-      // A. Busca dados do Cliente
-      const resCliente = await fetch(`https://brasilapi.com.br/api/cep/v2/${cepLimpo}`);
-      if (!resCliente.ok) throw new Error("CEP não encontrado");
-      const dataCliente = await resCliente.json();
+      console.log("📍 Iniciando cálculo...");
 
-      // B. Busca dados da Loja (para ter lat/long exata)
-      const resLoja = await fetch(`https://brasilapi.com.br/api/cep/v2/${storeCep}`);
-      const dataLoja = await resLoja.json();
+      // 1. Geolocalização do Cliente
+      const resClient = await fetch(`https://cep.awesomeapi.com.br/json/${cleanCep}`);
+      const dataClient = await resClient.json();
+      if (!dataClient.lat) throw new Error("CEP do cliente não encontrado.");
 
-      // C. Calcula Distância
-      if (!dataCliente.location?.coordinates || !dataLoja.location?.coordinates) {
-        throw new Error("Não foi possível calcular a rota GPS.");
-      }
-
-      const distMetros = getDistance(
-        { latitude: dataLoja.location.coordinates.latitude, longitude: dataLoja.location.coordinates.longitude },
-        { latitude: dataCliente.location.coordinates.latitude, longitude: dataCliente.location.coordinates.longitude }
+      // 2. Geolocalização da Loja
+      const resStore = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(storeAddress)}`,
+        { headers: { 'User-Agent': 'VianaHub-App' } }
       );
-      const distKm = distMetros / 1000;
+      const dataStore = await resStore.json();
+      if (!dataStore[0]) throw new Error("Endereço da loja não encontrado no mapa.");
 
-      // D. Define Preço
-      const faixa = TAXAS.find(t => distKm <= t.maxKm);
+      const lat1 = parseFloat(dataClient.lat);
+      const lon1 = parseFloat(dataClient.lng);
+      const lat2 = parseFloat(dataStore[0].lat);
+      const lon2 = parseFloat(dataStore[0].lon);
 
-      if (!faixa) {
-        toast({ title: "Indisponível", description: `Muito longe (${distKm.toFixed(1)}km). Máximo 15km.`, variant: "destructive" });
-        setFreteCalculado(null);
-        return;
+      // Distância (Haversine)
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distKM = R * c * 1.2; // +20% margem de segurança
+
+      setDistance(distKM);
+      console.log(`📏 Distância calculada: ${distKM.toFixed(2)} km`);
+
+      // 3. BUSCA NA TABELA CERTA (delivery_rules)
+      // Usando 'min_distance' e 'max_distance' que é como o Admin salva
+      const { data, error } = await supabase
+        .from("delivery_rules" as any)
+        .select("fee")
+        .eq("store_id", storeId)
+        .lte("min_distance", distKM)  // <--- Correção aqui
+        .gte("max_distance", distKM)  // <--- Correção aqui
+        .maybeSingle() as any;
+
+      if (error) {
+        console.error("Erro banco:", error);
+        throw new Error("Erro ao consultar tabela de regras.");
       }
 
-      // Sucesso! Avança para etapa 2
-      setFreteCalculado(faixa.preco);
-      setAddress(prev => ({
-        ...prev,
-        rua: dataCliente.street,
-        bairro: dataCliente.neighborhood,
-        cidade: dataCliente.city
-      }));
-      setStep(2); // Mostra o resto do formulário
+      if (data && typeof data.fee === 'number') {
+        setDeliveryFee(data.fee);
+        toast.success(`Frete: R$ ${data.fee.toFixed(2)}`);
+      } else {
+        // Se não achar regra, avisa que está fora da área
+        toast.warning(`Fora da área de entrega configurada (${distKM.toFixed(1)}km).`);
+        setDeliveryFee(null); 
+      }
 
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message || "Erro ao buscar CEP", variant: "destructive" });
+      console.error("Erro:", error);
+      toast.error("Erro ao calcular. Tente novamente.");
     } finally {
       setLoading(false);
     }
   };
 
-  // 3. Finalizar preenchimento
-  const handleConfirmar = () => {
-    if (!address.numero) {
-      toast({ title: "Falta o número", description: "Por favor, informe o número da casa.", variant: "destructive" });
-      return;
-    }
-    // Envia tudo para o Pai (CustomerHub)
-    if (freteCalculado !== null) {
-      onAddressComplete(address, freteCalculado);
-    }
-  };
-
   return (
-    <Card className="border-dashed bg-slate-50">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <MapPin className="h-4 w-4"/> Entrega
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {/* ETAPA 1: CEP */}
-        <div className="flex gap-2">
-          <Input 
-            placeholder="Seu CEP" 
-            value={address.cep}
-            onChange={e => {
-                let v = e.target.value.replace(/\D/g, "");
-                if (v.length > 5) v = v.replace(/^(\d{5})(\d)/, "$1-$2");
-                setAddress({...address, cep: v});
-            }}
-            maxLength={9}
-            className="bg-white"
-            disabled={step === 2} // Trava se já calculou
-          />
-          {step === 1 && (
-            <Button onClick={handleBuscarCep} disabled={loading} size="icon">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin"/> : <CheckCircle className="h-4 w-4"/>}
-            </Button>
-          )}
-          {step === 2 && (
-             <Button variant="ghost" size="sm" onClick={() => { setStep(1); setFreteCalculado(null); }} className="text-xs text-red-500">
-                Trocar
-             </Button>
-          )}
+    <div className="bg-white/90 backdrop-blur-xl border border-white/50 p-6 rounded-[2rem] shadow-xl">
+      <div className="flex items-center gap-3 mb-4 text-slate-800">
+        <div className="bg-primary/10 p-2 rounded-xl">
+          <Truck className="h-5 w-5 text-primary" />
         </div>
+        <h3 className="font-bold">Cálculo de Frete</h3>
+      </div>
 
-        {/* ETAPA 2: DADOS COMPLETOS (Só aparece se o frete for calculado) */}
-        {step === 2 && freteCalculado !== null && (
-          <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-            
-            <div className="bg-green-100 p-2 rounded text-green-800 text-sm font-bold flex justify-between">
-                <span>Frete: R$ {freteCalculado.toFixed(2)}</span>
-                <span className="font-normal text-xs">{address.bairro}</span>
-            </div>
+      <div className="flex gap-2 mb-2">
+        <Input 
+          placeholder="Seu CEP" 
+          value={cep}
+          onChange={(e) => setCep(e.target.value)}
+          maxLength={9}
+          className="rounded-xl border-slate-200 bg-white/50 h-11"
+        />
+        <Button onClick={calculateDistance} disabled={loading} className="rounded-xl px-6 h-11 bg-primary text-white hover:bg-primary/90">
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Calcular"}
+        </Button>
+      </div>
 
-            <div className="space-y-1">
-                <Label className="text-xs">Rua</Label>
-                <Input value={address.rua} readOnly className="bg-gray-100 h-8 text-sm"/>
-            </div>
-
-            <div className="flex gap-2">
-                <div className="w-1/3 space-y-1">
-                    <Label className="text-xs">Número *</Label>
-                    <Input 
-                        value={address.numero} 
-                        onChange={e => setAddress({...address, numero: e.target.value})} 
-                        className="bg-white h-8"
-                        autoFocus
-                    />
-                </div>
-                <div className="w-2/3 space-y-1">
-                    <Label className="text-xs">Complemento</Label>
-                    <Input 
-                        value={address.complemento} 
-                        onChange={e => setAddress({...address, complemento: e.target.value})} 
-                        className="bg-white h-8" 
-                        placeholder="Apt 101, Casa B..."
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-1">
-                <Label className="text-xs">Ponto de Referência / Obs</Label>
-                <Textarea 
-                    value={address.referencia} 
-                    onChange={e => setAddress({...address, referencia: e.target.value})} 
-                    className="bg-white text-sm h-16"
-                    placeholder="Ex: Portão azul, deixar na portaria..."
-                />
-            </div>
-
-            <Button onClick={handleConfirmar} className="w-full bg-green-600 hover:bg-green-700">
-                Confirmar Endereço
-            </Button>
+      {distance !== null && (
+        <div className="mt-4 p-4 bg-slate-50/80 rounded-2xl border border-slate-100 animate-in slide-in-from-top-2">
+          <div className="flex justify-between items-center text-sm text-slate-600 mb-1">
+            <span className="flex items-center gap-1"><MapPin className="h-3 w-3"/> Distância</span>
+            <strong>{distance.toFixed(1)} km</strong>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          
+          <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2">
+            <span className="text-xs font-bold uppercase text-slate-400">Total</span>
+            {deliveryFee !== null ? (
+              <span className="text-xl font-black text-primary">R$ {deliveryFee.toFixed(2)}</span>
+            ) : (
+              <span className="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-md">
+                Indisponível
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

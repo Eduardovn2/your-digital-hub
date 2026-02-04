@@ -1,108 +1,97 @@
-import React, { createContext, useContext, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { createContext, useContext, useState, ReactNode } from "react";
+import { toast } from "sonner"; // Mantive o sonner conforme seu código
 
-interface CartItem {
+// 1. Definição do Item
+export interface CartItem {
   id: string;
   name: string;
   price: number;
   quantity: number;
-  image?: string; 
+  observation?: string;
+  image_url?: string;
 }
 
+// 2. Definição do Contexto
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: any) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (item: CartItem) => void;
+  removeFromCart: (id: string) => void;
   clearCart: () => void;
-  checkout: (customerData: { name: string; phone: string; address: string }, storeId: string, deliveryFee: number) => Promise<void>;
-  subtotal: number;
   total: number;
+  storeId: string;
+  setStoreId: (id: string) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [storeId, setStoreId] = useState<string>(""); 
 
-  const addToCart = (product: any) => {
-    setItems(prev => {
-      const existing = prev.find(i => i.id === product.id);
-      if (existing) {
-        return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+  const addToCart = (newItem: CartItem) => {
+    // BLINDAGEM 1: Garante que os dados de entrada são números
+    const safeItem = {
+        ...newItem,
+        price: Number(newItem.price) || 0,
+        quantity: Number(newItem.quantity) || 1
+    };
+
+    setItems((currentItems) => {
+      // Verifica se já existe item igual (mesmo ID e mesma observação)
+      const existingItem = currentItems.find(
+        (item) => item.id === safeItem.id && item.observation === safeItem.observation
+      );
+
+      if (existingItem) {
+        return currentItems.map((item) =>
+          item.id === safeItem.id && item.observation === safeItem.observation
+            ? { ...item, quantity: Number(item.quantity) + Number(safeItem.quantity) }
+            : item
+        );
       }
-      return [...prev, { 
-        id: product.id, 
-        name: product.name, 
-        price: Number(product.price), 
-        quantity: 1,
-        image: product.image
-      }];
+      return [...currentItems, safeItem];
     });
-    // REMOVIDO: toast.success(...) daqui para evitar duplicidade
+    
+    // Feedback visual
+    toast.success("Item adicionado à sacola!");
   };
 
-  const removeFromCart = (productId: string) => {
-    setItems(prev => prev.filter(i => i.id !== productId));
+  const removeFromCart = (itemId: string) => {
+    setItems((currentItems) => currentItems.filter((item) => item.id !== itemId));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) return removeFromCart(productId);
-    setItems(prev => prev.map(i => i.id === productId ? { ...i, quantity } : i));
+  const clearCart = () => {
+    setItems([]);
   };
 
-  const clearCart = () => setItems([]);
-
-  const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-
-  const checkout = async (customerData: any, storeId: string, deliveryFee: number) => {
-    if (items.length === 0) {
-      toast.error("Seu carrinho está vazio!");
-      return;
-    }
-
-    const totalValue = subtotal + deliveryFee;
-
-    try {
-      const { error } = await supabase.from('orders').insert({
-        store_id: storeId,
-        customer_name: customerData.name,
-        customer_phone: customerData.phone,
-        customer_address: customerData.address,
-        subtotal: subtotal,
-        total: totalValue,
-        delivery_fee: deliveryFee,
-        status: 'pending'
-      } as any);
-
-      if (error) throw error;
-
-      toast.success("Pedido enviado com sucesso! Aguarde a confirmação.");
-      clearCart();
-    } catch (error: any) {
-      toast.error("Erro ao finalizar pedido: " + error.message);
-    }
-  };
+  // BLINDAGEM 2: O cálculo do total global agora é à prova de falhas
+  const total = items.reduce((acc, item) => {
+      const price = Number(item.price) || 0;
+      const qtd = Number(item.quantity) || 1;
+      return acc + (price * qtd);
+  }, 0);
 
   return (
-    <CartContext.Provider value={{ 
-      items, 
-      addToCart, 
-      removeFromCart, 
-      updateQuantity, 
-      clearCart, 
-      checkout, 
-      subtotal, 
-      total: subtotal 
-    }}>
+    <CartContext.Provider 
+      value={{ 
+        items, 
+        addToCart, 
+        removeFromCart, 
+        clearCart, 
+        total, 
+        storeId, 
+        setStoreId 
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
-};
+}
 
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (!context) throw new Error("useCart deve ser usado dentro de um CartProvider");
+  if (!context) {
+    throw new Error("useCart must be used within a CartProvider");
+  }
   return context;
 };

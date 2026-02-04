@@ -12,7 +12,7 @@ interface DeliveryRule {
   price: number;
 }
 
-interface AddressData {
+export interface AddressData {
   cep: string;
   rua: string;
   numero: string;
@@ -24,22 +24,17 @@ interface AddressData {
 
 interface Props {
   onAddressComplete: (address: AddressData, frete: number) => void;
+  storeId: string;
 }
 
-// Fallback se tudo falhar
 const FRETE_FIXO_SEGURANCA = 15.00; 
 
-export function DeliveryAddressForm({ onAddressComplete }: Props) {
+export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
-  // Guardamos o endereço COMPLETO da loja vindo do banco
   const [storeAddress, setStoreAddress] = useState<{
-    cep: string, 
-    rua?: string, 
-    numero?: string, 
-    bairro?: string, 
-    cidade?: string
+    cep: string, rua?: string, numero?: string, bairro?: string, cidade?: string
   } | null>(null);
   
   const [step, setStep] = useState<1 | 2>(1); 
@@ -53,25 +48,24 @@ export function DeliveryAddressForm({ onAddressComplete }: Props) {
   const [freteCalculado, setFreteCalculado] = useState<number | null>(null);
   const [isSimulado, setIsSimulado] = useState(false);
 
+  // 1. CARREGAMENTO INTELIGENTE (COM FALLBACK)
   useEffect(() => {
     async function loadData() {
       try {
-        // 1. Busca Dados da Loja (AGORA PEGAMOS TUDO)
-        const { data: storeData } = await supabase
-          .from("stores")
-          .select("zip_code, street_number, neighborhood") // Pegamos numero e bairro do banco
-          .not("zip_code", "is", null)
-          .limit(1)
-          .maybeSingle();
+        // A. Busca Loja (Tenta com ID, se falhar pega a primeira para não quebrar)
+        let queryLoja = supabase.from("stores").select("zip_code, street_number, neighborhood, id");
+        if (storeId) {
+            queryLoja = queryLoja.eq("id", storeId);
+        }
+        const { data: storeData } = await queryLoja.limit(1).maybeSingle();
 
         if (storeData) {
             const loja = storeData as any;
+            // Configura endereço da loja
             if (loja.zip_code) {
                 const cepLimpo = String(loja.zip_code).replace(/\D/g, "");
-                
-                // Primeiro tenta pegar nome da rua pelo CEP
                 let ruaLoja = "";
-                let cidadeLoja = "Rio de Janeiro"; // Default
+                let cidadeLoja = "Rio de Janeiro";
                 
                 try {
                   const res = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
@@ -82,56 +76,58 @@ export function DeliveryAddressForm({ onAddressComplete }: Props) {
                   }
                 } catch(e) {}
 
-                // Salva o endereço completão para usar no calculo
                 setStoreAddress({
                   cep: cepLimpo,
-                  rua: ruaLoja, // Rua vem da API
-                  numero: loja.street_number, // Numero vem do seu Admin
-                  bairro: loja.neighborhood, // Bairro vem do seu Admin
+                  rua: ruaLoja, 
+                  numero: loja.street_number, 
+                  bairro: loja.neighborhood, 
                   cidade: cidadeLoja
                 });
-                
-                console.log("📍 Endereço da Loja Carregado:", { 
-                    rua: ruaLoja, 
-                    num: loja.street_number, 
-                    bairro: loja.neighborhood 
-                });
             }
-        }
 
-        // 2. Busca Regras
-        const { data: rulesData } = await supabase
-          .from("delivery_rules" as any)
-          .select("max_km, price")
-          .order("max_km", { ascending: true });
+            // B. BUSCA REGRAS (O PULO DO GATO PARA CORRIGIR O R$ 15,00)
+            // 1. Tenta buscar regras ESPECÍFICAS dessa loja
+            let { data: rulesData } = await supabase
+                .from("delivery_rules" as any)
+                .select("max_km, price")
+                .eq("store_id", storeId) // Tenta filtrar
+                .order("max_km", { ascending: true });
 
-        if (rulesData) {
-            const regrasFormatadas = rulesData.map((r: any) => ({
-                max_km: Number(r.max_km),
-                price: Number(r.price)
-            }));
-            setRules(regrasFormatadas);
+            // 2. Se não achou nada (array vazio), busca regras GERAIS (sem filtro)
+            // Isso resolve o problema se o banco ainda não tiver os IDs vinculados
+            if (!rulesData || rulesData.length === 0) {
+                console.log("⚠️ Regras específicas não encontradas. Buscando regras gerais...");
+                const { data: allRules } = await supabase
+                    .from("delivery_rules" as any)
+                    .select("max_km, price")
+                    .order("max_km", { ascending: true });
+                rulesData = allRules;
+            }
+
+            if (rulesData) {
+                const regrasFormatadas = rulesData.map((r: any) => ({
+                    max_km: Number(r.max_km),
+                    price: Number(r.price)
+                }));
+                console.log("✅ Regras de Frete Carregadas:", regrasFormatadas);
+                setRules(regrasFormatadas);
+            }
         }
       } catch (err) {
         console.error("Erro loadData:", err);
       }
     }
     loadData();
-  }, []);
+  }, [storeId]);
 
-  // Busca GPS por Texto (Muito mais preciso que CEP)
   async function buscarCoordenadasPorTexto(rua: string, numero: string, bairro: string, cidade: string) {
     try {
-        // Monta: "Rua X, 123, Bairro Y, Cidade Z, Brazil"
-        // O numero é crucial para precisão
         const query = `${rua}, ${numero || ''}, ${bairro || ''}, ${cidade}, Brazil`;
         const encodedQuery = encodeURIComponent(query);
-        
-        console.log(`🌍 Buscando GPS: ${query}`);
-
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&limit=1`);
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&limit=1`, {
+             headers: { 'User-Agent': 'VianaHub-App' }
+        });
         const data = await response.json();
-        
         if (data && data.length > 0) {
             return {
                 latitude: parseFloat(data[0].lat),
@@ -160,13 +156,10 @@ export function DeliveryAddressForm({ onAddressComplete }: Props) {
     let lojaCoords: { latitude: number; longitude: number } | null = null;
 
     try {
-      console.log(`🚀 Iniciando Cálculo...`);
-
       if (!storeAddress?.cep) throw new Error("Loja sem endereço configurado.");
 
-      // ATALHO: MESMO CEP (Distancia 0)
+      // Mesmo CEP = Frete Mínimo
       if (cepLimpo === storeAddress.cep) {
-          console.log("Mesmo CEP. Distância considerada 0.");
           const res = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
           const dados = await res.json();
           const novoEndereco = {
@@ -176,13 +169,13 @@ export function DeliveryAddressForm({ onAddressComplete }: Props) {
             cidade: dados.city || ""
           };
           setAddress(novoEndereco);
-          if (rules.length > 0) aplicarFrete(novoEndereco, rules[0].price);
-          else aplicarFrete(novoEndereco, 0); 
+          const precoMinimo = rules.length > 0 ? rules[0].price : 0;
+          aplicarFrete(novoEndereco, precoMinimo);
           setLoading(false);
           return;
       }
 
-      // 1. CLIENTE: Busca Dados
+      // Busca Cliente
       const resCliente = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
       if (!resCliente.ok) throw new Error("CEP não encontrado.");
       dadosEncontrados = await resCliente.json();
@@ -195,93 +188,72 @@ export function DeliveryAddressForm({ onAddressComplete }: Props) {
       };
       setAddress(novoEndereco);
 
-      // 1.1 CLIENTE: Coordenadas (Prioriza Texto porque CEP falha em Guaratiba)
+      // Coordenadas
       if (dadosEncontrados.street) {
-          // Busca "Rua Cliente, Bairro Cliente, Cidade"
           clienteCoords = await buscarCoordenadasPorTexto(
-            dadosEncontrados.street, 
-            "", // Não temos numero do cliente ainda
-            dadosEncontrados.neighborhood, 
-            dadosEncontrados.city
+            dadosEncontrados.street, "", dadosEncontrados.neighborhood, dadosEncontrados.city
           );
       }
-      // Fallback: Tenta API v2 se texto falhar
       if (!clienteCoords) {
           try {
-            const resv2 = await fetch(`https://brasilapi.com.br/api/cep/v2/${cepLimpo}`);
-            const dataV2 = await resv2.json();
-            if (dataV2.location?.coordinates?.latitude) {
-               clienteCoords = {
-                  latitude: parseFloat(dataV2.location.coordinates.latitude),
-                  longitude: parseFloat(dataV2.location.coordinates.longitude)
-               };
-            }
-          } catch (e) {}
+             const resv2 = await fetch(`https://brasilapi.com.br/api/cep/v2/${cepLimpo}`);
+             const dataV2 = await resv2.json();
+             if (dataV2.location?.coordinates?.latitude) {
+               clienteCoords = { latitude: parseFloat(dataV2.location.coordinates.latitude), longitude: parseFloat(dataV2.location.coordinates.longitude) };
+             }
+          } catch(e) {}
       }
 
-      // 2. LOJA: Coordenadas (Prioriza Texto Exato com Número)
       if (storeAddress.rua) {
           lojaCoords = await buscarCoordenadasPorTexto(
-             storeAddress.rua,
-             storeAddress.numero || "", // IMPORTANTE: Usa o numero salvo no admin
-             storeAddress.bairro || "",
-             storeAddress.cidade || ""
+             storeAddress.rua, storeAddress.numero || "", storeAddress.bairro || "", storeAddress.cidade || ""
           );
       }
-      
-      // Fallback: API v2
       if (!lojaCoords) {
-          try {
+        // Tenta fallback V2 para loja
+         try {
             const resLojaV2 = await fetch(`https://brasilapi.com.br/api/cep/v2/${storeAddress.cep}`);
             const dataLojaV2 = await resLojaV2.json();
             if (dataLojaV2.location?.coordinates?.latitude) {
-                lojaCoords = {
-                    latitude: parseFloat(dataLojaV2.location.coordinates.latitude),
-                    longitude: parseFloat(dataLojaV2.location.coordinates.longitude)
-                };
+                lojaCoords = { latitude: parseFloat(dataLojaV2.location.coordinates.latitude), longitude: parseFloat(dataLojaV2.location.coordinates.longitude) };
             }
-          } catch (e) {}
+         } catch(e) {}
       }
 
-      // 3. Validação
       if (!clienteCoords || !lojaCoords) {
-         console.warn("Falha de GPS em um dos lados.");
          throw { simulacao: true };
       }
 
-      // 4. Calcula
       const distMetros = getDistance(
         { latitude: lojaCoords.latitude, longitude: lojaCoords.longitude },
         { latitude: clienteCoords.latitude, longitude: clienteCoords.longitude }
       );
-      
       const distKm = distMetros / 1000;
       console.log(`📏 Distância Real: ${distKm.toFixed(2)}km`);
 
-      // Trava para erros absurdos (>150km)
       if (distKm > 150) throw { simulacao: true };
 
-      // 5. Aplica Regra
+      // Aplica Regras
       if (rules.length > 0) {
           const regraAplicavel = rules.find(r => distKm <= r.max_km);
-
           if (!regraAplicavel) {
-            const limiteMaximo = rules[rules.length - 1].max_km;
-            setErroMsg(`Distância de ${distKm.toFixed(1)}km excede o limite. WhatsApp.`);
+            setErroMsg(`Fora da área (${distKm.toFixed(1)}km).`);
             setFreteCalculado(null);
           } else {
-            console.log(`💰 Frete: R$ ${regraAplicavel.price}`);
+            console.log(`✅ Regra Encontrada: Até ${regraAplicavel.max_km}km = R$ ${regraAplicavel.price}`);
             aplicarFrete(novoEndereco, regraAplicavel.price);
           }
       } else {
+          // Se chegou aqui e rules está vazio, vai pro catch
           throw { simulacao: true };
       }
 
     } catch (error: any) {
-      if (typeof error === 'string' && error.includes("limite")) {
-          // Erro real de limite
+      if (typeof error === 'string' && error.includes("Fora")) {
+        // Erro legítimo de área
       } else {
-          console.log("⚠️ Caindo no Frete de Segurança.");
+          // Se deu erro de GPS ou falta de regras -> R$ 15.00
+          console.log("⚠️ Falha no cálculo exato. Usando modo de segurança.");
           setIsSimulado(true);
           const enderecoFallback = {
             ...address,
@@ -315,7 +287,7 @@ export function DeliveryAddressForm({ onAddressComplete }: Props) {
                         setAddress(prev => ({...prev, cep: v}));
                     }}
                     maxLength={9}
-                    className="bg-white/70 border-white/50 focus:bg-white text-slate-900 placeholder:text-slate-500 shadow-sm font-medium"
+                    className="bg-white border-slate-200 focus:bg-white text-slate-900 placeholder:text-slate-500 shadow-sm font-medium"
                     disabled={step === 2} 
                 />
             </div>
@@ -339,7 +311,7 @@ export function DeliveryAddressForm({ onAddressComplete }: Props) {
       )}
 
       {step === 2 && freteCalculado !== null && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 bg-white/60 p-4 rounded-xl border border-white/50 shadow-sm">
+        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
           <div className="border-b border-slate-200 pb-3 mb-2">
               <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Entregar em:</p>
               {address.rua ? (
@@ -347,7 +319,7 @@ export function DeliveryAddressForm({ onAddressComplete }: Props) {
               ) : (
                   <Input 
                     value={address.rua} 
-                    onChange={e => { const novo = {...address, rua: e.target.value}; setAddress(novo); onAddressComplete(novo, freteCalculado); }}
+                    onChange={e => { const novo = {...address, rua: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }}
                     placeholder="Nome da Rua" className="bg-white h-8 text-sm mb-1 font-bold"
                   />
               )}
@@ -362,18 +334,27 @@ export function DeliveryAddressForm({ onAddressComplete }: Props) {
           <div className="flex gap-3">
               <div className="w-1/3 space-y-1">
                   <Label className="text-xs font-bold text-slate-700">Número *</Label>
-                  <Input value={address.numero} onChange={e => { const novo = {...address, numero: e.target.value}; setAddress(novo); onAddressComplete(novo, freteCalculado); }} className="bg-white h-10 border-slate-300 text-slate-900 font-medium" autoFocus placeholder="Nº" />
+                  <Input 
+                     value={address.numero} 
+                     onChange={e => { 
+                        const novo = {...address, numero: e.target.value}; 
+                        setAddress(novo); 
+                        aplicarFrete(novo, freteCalculado); // Atualiza o pai
+                     }} 
+                     className="bg-white h-10 border-slate-300 text-slate-900 font-medium" 
+                     autoFocus 
+                     placeholder="Nº" 
+                  />
               </div>
               <div className="w-2/3 space-y-1">
                   <Label className="text-xs font-bold text-slate-700">Complemento</Label>
-                  <Input value={address.complemento} onChange={e => { const novo = {...address, complemento: e.target.value}; setAddress(novo); onAddressComplete(novo, freteCalculado); }} className="bg-white h-10 border-slate-300 text-slate-900" placeholder="Apto, Bloco..." />
+                  <Input value={address.complemento} onChange={e => { const novo = {...address, complemento: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} className="bg-white h-10 border-slate-300 text-slate-900" placeholder="Apto, Bloco..." />
               </div>
           </div>
           <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Referência</Label>
-              <Input value={address.referencia} onChange={e => { const novo = {...address, referencia: e.target.value}; setAddress(novo); onAddressComplete(novo, freteCalculado); }} className="bg-white h-10 border-slate-300 text-slate-900" placeholder="Ex: Portão preto" />
+              <Input value={address.referencia} onChange={e => { const novo = {...address, referencia: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} className="bg-white h-10 border-slate-300 text-slate-900" placeholder="Ex: Portão preto" />
           </div>
-          <div className="text-center pt-1"><span className="text-[10px] text-slate-500 font-medium">Preencha o número para liberar o pedido</span></div>
         </div>
       )}
     </div>

@@ -4,7 +4,8 @@ import { MenuItemCard } from "@/components/MenuItemCard";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Search, Star, AlertCircle, ArrowLeft } from "lucide-react";
-import { CartDrawer } from "@/components/CartDrawer";
+import CartDrawer from "@/components/CartDrawer";
+import { useCart } from "@/contexts/CartContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -13,51 +14,74 @@ import { useProducts, productToMenuItem } from "@/hooks/useProducts";
 import { useStoreHours, isStoreCurrentlyOpen } from "@/hooks/useStoreHours";
 import { MenuItem } from "@/types/menu";
 
-// --- DICIONÁRIO DE TRADUÇÃO CORRIGIDO ---
+// --- DICIONÁRIO DE TRADUÇÃO (AGORA COM "OTHER") ---
 const CATEGORY_TRANSLATIONS: Record<string, string> = {
-  // Hambúrgueres
+  // Gerais & Categorias padrão
+  "All": "Todos",
+  "Popular": "Populares",
+  "Featured": "Destaques",
+  "Promotions": "Promoções",
+  "Offers": "Ofertas",
+  "Combos": "Combos",
+  "Meals": "Refeições",
+  "Kids": "Infantil",
+  "Vegan": "Vegano",
+  "Vegetarian": "Vegetariano",
+  "Other": "Outros",    // <--- ADICIONADO
+  "Others": "Outros",   // <--- ADICIONADO
+  
+  // Lanches & Principais
   "Burger": "Hambúrgueres",
   "Burgers": "Hambúrgueres",
-  "burger": "Hambúrgueres",
-  "burgers": "Hambúrgueres",
-  "burges": "Hambúrgueres", // Caso de erro de digitação comum
-
-  // Bebidas
-  "Drink": "Bebidas",
-  "Drinks": "Bebidas",
-  "drink": "Bebidas",
-  "drinks": "Bebidas",
-  "Beverage": "Bebidas",
-  "beverages": "Bebidas",
-
-  // Acompanhamentos (Batatas, etc)
-  "Side": "Acompanhamentos",
-  "Sides": "Acompanhamentos",
-  "side": "Acompanhamentos",
-  "sides": "Acompanhamentos",
+  "Sandwich": "Sanduíches",
+  "Sandwiches": "Sanduíches",
+  "Pizza": "Pizzas",
+  "Pizzas": "Pizzas",
+  "Hot Dog": "Cachorro Quente",
+  "Pastry": "Pastéis",
+  "Pastries": "Salgados",
+  "Snack": "Lanches",
+  "Snacks": "Petiscos",
   "Portion": "Porções",
   "Portions": "Porções",
+  "Pasta": "Massas",
+  "Meat": "Carnes",
+  "Chicken": "Frango",
+  "Fish": "Peixes",
+  "Salad": "Saladas",
+  "Salads": "Saladas",
+  "Soup": "Sopas",
+  "Japanese": "Japonesa",
+  "Sushi": "Sushi",
+  "Acai": "Açaí",
+  
+  // Acompanhamentos & Bebidas
+  "Side": "Acompanhamentos",
+  "Sides": "Acompanhamentos",
+  "Fries": "Batata Frita",
+  "Sauce": "Molhos",
+  "Sauces": "Molhos",
+  "Drink": "Bebidas",
+  "Drinks": "Bebidas",
+  "Beverage": "Bebidas",
+  "Beverages": "Bebidas",
+  "Soda": "Refrigerantes",
+  "Juice": "Sucos",
+  "Beer": "Cervejas",
+  "Water": "Água",
+  "Coffee": "Cafés",
   
   // Sobremesas
   "Dessert": "Sobremesas",
   "Desserts": "Sobremesas",
-  "dessert": "Sobremesas",
-  "desserts": "Sobremesas",
-  
-  // Outros
-  "Main": "Pratos Principais",
-  "Mains": "Pratos Principais",
-  "Pizza": "Pizzas",
-  "Pizzas": "Pizzas",
-  "pizzas": "Pizzas",
-  "Snack": "Lanches",
-  "Snacks": "Lanches",
-  "snacks": "Lanches",
-  "Sandwich": "Sanduíches",
-  "Sandwiches": "Sanduíches"
+  "Ice Cream": "Sorvetes",
+  "Cake": "Bolos",
+  "Sweet": "Doces",
+  "Sweets": "Doces"
 };
 
 export default function StorePage() {
+  const { setStoreId } = useCart();
   const { slug } = useParams();
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,10 +94,14 @@ export default function StorePage() {
   const isOpen = isStoreCurrentlyOpen(hours || null);
 
   useEffect(() => {
+    if (store) {
+      setStoreId(store.id);
+    }
+
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [store, setStoreId]);
 
   const groupedProducts = useMemo(() => {
     if (!products) return {};
@@ -90,19 +118,19 @@ export default function StorePage() {
     }
 
     const groups: Record<string, MenuItem[]> = {};
-
     const popularItems = filtered.filter(p => p.popular);
     if (popularItems.length > 0) {
       groups["Destaques"] = popularItems;
     }
 
     filtered.forEach(item => {
-      // Normaliza a chave para buscar a tradução ou usa a original
-      // Mas mantém a chave original no objeto para garantir unicidade
-      if (!groups[item.category]) {
-        groups[item.category] = [];
+      // Se vier vazio, vira "Outros". Se vier "Other" do banco, a tradução lá em cima pega.
+      const categoryName = item.category || "Outros";
+      
+      if (!groups[categoryName]) {
+        groups[categoryName] = [];
       }
-      groups[item.category].push(item);
+      groups[categoryName].push(item);
     });
 
     return groups;
@@ -119,9 +147,12 @@ export default function StorePage() {
     }
   };
 
-  // Função auxiliar para traduzir
   const translateCategory = (cat: string) => {
-    return CATEGORY_TRANSLATIONS[cat] || CATEGORY_TRANSLATIONS[cat.toLowerCase()] || cat;
+    if (!cat) return "Outros";
+    return CATEGORY_TRANSLATIONS[cat] || 
+           CATEGORY_TRANSLATIONS[cat.toLowerCase()] || 
+           CATEGORY_TRANSLATIONS[cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase()] || 
+           cat;
   };
 
   if (isStoreLoading || isProductsLoading) {
@@ -149,6 +180,7 @@ export default function StorePage() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20 font-sans">
       
+      {/* Header Fixo */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm py-2" : "bg-transparent py-4"}`}>
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -159,9 +191,11 @@ export default function StorePage() {
               {store.name}
             </h1>
           </div>
+          <CartDrawer />
         </div>
       </header>
 
+      {/* Banner de Capa */}
       <div className="relative h-64 md:h-80 w-full mb-20"> 
         <div className="absolute inset-0 overflow-hidden rounded-b-[2.5rem] shadow-lg">
            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 pointer-events-none" />
@@ -172,6 +206,7 @@ export default function StorePage() {
            />
         </div>
         
+        {/* Card de Perfil da Loja */}
         <div className="absolute -bottom-16 left-0 right-0 z-20 px-4">
           <GlassCard className="container mx-auto max-w-4xl p-4 md:p-6 flex flex-row items-center gap-4 md:gap-6 bg-white/95 backdrop-blur-xl border-white/40 shadow-xl">
             <div className="h-16 w-16 md:h-24 md:w-24 rounded-2xl overflow-hidden border-4 border-white shadow-md flex-shrink-0 bg-white">
@@ -199,17 +234,15 @@ export default function StorePage() {
                   </div>
                 </div>
                 
-                  {/* Verifica se o endereço existe antes de tentar mostrar a div inteira */}
-                  {(store as any).address && (
-                    <div className="flex items-center gap-1 text-sm text-gray-600 bg-white/80 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">
-                      <MapPin className="h-3 w-3 text-primary" />
-                      <span>
-                        {/* Aqui montamos a string completa: Rua, Número */}
-                        {(store as any).address}
-                        {(store as any).street_number ? `, ${(store as any).street_number}` : ''}
-                        {(store as any).neighborhood ? ` - ${(store as any).neighborhood}` : ''}
-                      </span>
-                    </div>
+                {(store as any).street && (
+                  <div className="flex items-center gap-1 text-sm text-gray-600 bg-white/80 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">
+                    <MapPin className="h-3 w-3 text-primary" />
+                    <span className="truncate max-w-[200px] md:max-w-xs">
+                      {(store as any).street}
+                      {(store as any).street_number ? `, ${(store as any).street_number}` : ''}
+                      {(store as any).neighborhood ? ` - ${(store as any).neighborhood}` : ''}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -218,7 +251,7 @@ export default function StorePage() {
       </div>
 
       <div className="container mx-auto px-4 max-w-6xl">
-        
+        {/* Barra de Busca e Filtros */}
         <div className="sticky top-16 z-40 bg-slate-50/95 backdrop-blur-sm py-4 space-y-4">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
@@ -237,10 +270,8 @@ export default function StorePage() {
                   <TabsTrigger 
                     key={cat} 
                     value={cat}
-                    onClick={() => scrollToCategory(cat)}
                     className="rounded-full border border-slate-200 bg-white px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shadow-sm transition-all hover:bg-slate-50 whitespace-nowrap"
                   >
-                    {/* Aplica tradução aqui */}
                     {translateCategory(cat)}
                   </TabsTrigger>
                 ))}
@@ -249,12 +280,12 @@ export default function StorePage() {
           )}
         </div>
 
+        {/* Lista de Produtos */}
         <div className="mt-6 pb-20 space-y-12">
           {categories.length > 0 ? (
             categories.map((category) => (
               <div key={category} id={`category-${category}`} className="scroll-mt-48 animate-fade-in">
                 <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                  {/* Aplica tradução aqui também */}
                   {translateCategory(category)}
                   <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
                     {groupedProducts[category].length}
@@ -280,9 +311,6 @@ export default function StorePage() {
             </div>
           )}
         </div>
-      </div>
-    <div className="fixed bottom-6 right-6 z-50">
-        <CartDrawer />
       </div>
     </div>
   );

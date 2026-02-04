@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useState } from "react";
-import { ProductDetailsModal } from "@/components/store/ProductDetailsModal"; // Importando o modal novo
+import { ProductDetailsModal } from "@/components/store/ProductDetailsModal"; 
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -17,8 +17,19 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
 
   // Função para adicionar direto (botão rápido)
   const handleQuickAdd = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede que abra o modal ao clicar no botão
-    addToCart(item);
+    e.stopPropagation(); 
+    
+    // AQUI ESTÁ A CORREÇÃO MÁGICA
+    // Convertemos os dados do Menu para o formato do Carrinho
+    addToCart({
+      id: item.id,
+      name: item.name,
+      price: Number(item.price), // Garante que é número
+      quantity: 1,
+      image_url: item.image,     // <--- O SEGREDO: Mapeamos 'image' para 'image_url'
+      observation: ""            // Garante que não vai undefined
+    });
+
     toast.success(`${item.name} adicionado!`, {
       position: "bottom-center",
       className: "bg-white/80 backdrop-blur-md border-primary/20 text-primary"
@@ -29,7 +40,7 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
     <>
       <GlassCard 
         className="group h-full flex flex-col cursor-pointer transition-all duration-300 hover:ring-2 hover:ring-primary/20"
-        onClick={() => setIsModalOpen(true)} // Abre o modal ao clicar no card
+        onClick={() => setIsModalOpen(true)} 
       >
         {/* Imagem com Overlay Gradiente */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
@@ -49,7 +60,7 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
             </div>
           )}
 
-          {/* Ícone de "Ver Detalhes" que aparece no Hover */}
+          {/* Ícone de "Ver Detalhes" */}
           <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20 backdrop-blur-[2px]">
             <div className="bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full p-3 transform scale-75 group-hover:scale-100 transition-transform">
               <Eye className="h-6 w-6" />

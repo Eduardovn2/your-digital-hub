@@ -5,43 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, MapPin, Truck, Bell, Save, Loader2, BellOff, Search } from "lucide-react";
+import { Store, MapPin, Truck, Bell, Save, Loader2, Search, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { DeliverySettings } from "./DeliverySettings"; 
 
 export function StoreSettings({ store }: { store: any }) {
   const [loading, setLoading] = useState(false);
-  const [loadingCep, setLoadingCep] = useState(false); // Novo estado para loading do CEP
-  
-  // --- NOTIFICAÇÕES ---
+  const [loadingCep, setLoadingCep] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   
-  useEffect(() => {
-    if ("Notification" in window) {
-      setPushEnabled(Notification.permission === "granted");
-    }
-  }, []);
-
-  const handleEnableNotifications = async () => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      toast.error("Este navegador não suporta notificações em standby.");
-      return;
-    }
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        toast.error("Permissão negada.");
-        return;
-      }
-      await navigator.serviceWorker.ready;
-      setPushEnabled(true);
-      toast.success("Notificações ativadas!");
-    } catch (error) {
-      toast.error("Erro ao ativar.");
-    }
-  };
-
-  // --- DADOS ---
   const [formData, setFormData] = useState({
     name: store?.name || "",
     description: store?.description || "",
@@ -50,40 +22,57 @@ export function StoreSettings({ store }: { store: any }) {
     street: store?.street || "",
     street_number: store?.street_number || "",
     neighborhood: store?.neighborhood || "",
+    city: store?.city || "",
     complement: store?.complement || ""
   });
 
-  // FUNÇÃO NOVA: Busca o CEP automaticamente
+  useEffect(() => {
+    if ("Notification" in window) {
+      setPushEnabled(Notification.permission === "granted");
+    }
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      toast.error("O navegador não suporta notificações em standby.");
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        await navigator.serviceWorker.ready;
+        setPushEnabled(true);
+        toast.success("Notificações ativadas com sucesso!");
+      }
+    } catch (error) {
+      toast.error("Erro ao configurar notificações.");
+    }
+  };
+
   const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // 1. Atualiza o valor digitado
-    let valor = e.target.value;
-    // Mascara simples 00000-000
-    valor = valor.replace(/\D/g, "");
+    let valor = e.target.value.replace(/\D/g, "");
     if (valor.length > 5) valor = valor.replace(/^(\d{5})(\d)/, "$1-$2");
     
     setFormData(prev => ({ ...prev, zip_code: valor }));
 
-    // 2. Se tiver 8 numeros, busca na API
     const cepLimpo = valor.replace(/\D/g, "");
     if (cepLimpo.length === 8) {
-        setLoadingCep(true);
-        try {
-            const res = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
-            if (res.ok) {
-                const data = await res.json();
-                setFormData(prev => ({
-                    ...prev,
-                    street: data.street || prev.street, // Preenche Rua
-                    neighborhood: data.neighborhood || prev.neighborhood, // Preenche Bairro
-                    // Mantem o resto
-                }));
-                toast.success("Endereço encontrado!");
-            }
-        } catch (error) {
-            console.error("Erro ao buscar CEP", error);
-        } finally {
-            setLoadingCep(false);
+      setLoadingCep(true);
+      try {
+        const res = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
+        if (res.ok) {
+          const data = await res.json();
+          setFormData(prev => ({
+            ...prev,
+            street: data.street || prev.street,
+            neighborhood: data.neighborhood || prev.neighborhood,
+            city: data.city || prev.city
+          }));
+          toast.success("Morada localizada!");
         }
+      } finally {
+        setLoadingCep(false);
+      }
     }
   };
 
@@ -95,161 +84,121 @@ export function StoreSettings({ store }: { store: any }) {
       .eq("id", store.id);
 
     if (error) {
-      toast.error("Erro ao salvar.");
+      toast.error("Erro ao atualizar as configurações.");
     } else {
-      toast.success("Loja atualizada!");
+      toast.success("Definições da loja guardadas!");
     }
     setLoading(false);
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
-      
+    <div className="w-full max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight text-slate-800">Configurações</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Configurações do Hub</h2>
       </div>
 
       <Tabs defaultValue="dados" className="space-y-6">
-        
-        <TabsList className="bg-white/40 backdrop-blur-md border border-white/50 p-1 h-auto flex flex-wrap gap-2 justify-start rounded-xl shadow-sm">
-          <TabsTrigger value="dados" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">
-            <Store className="h-4 w-4 mr-2" /> Dados & Endereço
+        <TabsList className="bg-white/40 backdrop-blur-md border border-white/60 p-1.5 h-auto flex flex-wrap gap-2 justify-start rounded-2xl shadow-sm">
+          <TabsTrigger value="dados" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+            <Store className="h-4 w-4 mr-2" /> Loja & Morada
           </TabsTrigger>
-          <TabsTrigger value="entrega" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-sm">
-            <Truck className="h-4 w-4 mr-2" /> Entrega & Taxas
+          <TabsTrigger value="entrega" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md transition-all">
+            <Truck className="h-4 w-4 mr-2" /> Logística de Entrega
           </TabsTrigger>
-          <TabsTrigger value="notificacoes" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">
+          <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-md transition-all">
             <Bell className="h-4 w-4 mr-2" /> Notificações
           </TabsTrigger>
         </TabsList>
 
-        {/* --- ABA 1: DADOS --- */}
-        <TabsContent value="dados" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-          
-          <Card className="bg-white/60 backdrop-blur-xl border-white/50 shadow-sm">
-            <CardHeader>
-              <CardTitle>Informações Básicas</CardTitle>
-              <CardDescription>Nome e descrição da sua loja.</CardDescription>
+        <TabsContent value="dados" className="space-y-6 outline-none">
+          <Card className="bg-white/60 backdrop-blur-xl border-white/50 shadow-lg rounded-3xl overflow-hidden">
+            <CardHeader className="border-b border-white/40 bg-white/20">
+              <CardTitle>Perfil da Loja</CardTitle>
+              <CardDescription>Dados públicos visualizados pelos clientes no VianaHub.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label>Nome da Loja</Label>
-                <Input className="bg-white/50 border-white/60 focus:bg-white" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+            <CardContent className="p-6 space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Nome Comercial</Label>
+                  <Input className="bg-white/50 border-white/80 focus:bg-white transition-all rounded-xl" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contacto (WhatsApp)</Label>
+                  <Input className="bg-white/50 border-white/80 focus:bg-white transition-all rounded-xl" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label>Descrição / Bio</Label>
-                <Input className="bg-white/50 border-white/60 focus:bg-white" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+              <div className="space-y-2">
+                <Label>Descrição da Loja</Label>
+                <Input className="bg-white/50 border-white/80 focus:bg-white transition-all rounded-xl" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-50/40 backdrop-blur-xl border-blue-100 shadow-sm">
+          <Card className="bg-indigo-50/40 backdrop-blur-xl border-indigo-100/50 shadow-lg rounded-3xl">
             <CardHeader>
-              <div className="flex items-center gap-2 text-blue-800">
+              <div className="flex items-center gap-2 text-indigo-900">
                 <MapPin className="h-5 w-5" />
-                <CardTitle>Endereço da Loja</CardTitle>
+                <CardTitle>Geolocalização</CardTitle>
               </div>
-              <CardDescription className="text-blue-600/80">
-                Digite o CEP para buscar o endereço automaticamente.
-              </CardDescription>
+              <CardDescription className="text-indigo-700/70">Estes dados garantem a precisão do cálculo de frete por KM.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 pt-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* CAMPO DE CEP INTELIGENTE */}
-                <div className="space-y-2 relative">
-                  <Label>CEP</Label>
-                  <div className="relative">
-                    <Input 
-                        className="bg-white/70 border-blue-200 focus:bg-white pr-10"
-                        placeholder="00000-000"
-                        value={formData.zip_code} 
-                        onChange={handleCepChange}
-                        maxLength={9}
-                    />
-                    <div className="absolute right-3 top-2.5 text-slate-400">
-                        {loadingCep ? <Loader2 className="h-5 w-5 animate-spin text-blue-600"/> : <Search className="h-5 w-5"/>}
-                    </div>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2 relative">
+                <Label>CEP</Label>
+                <div className="relative">
+                  <Input className="bg-white/80 border-indigo-200 focus:ring-indigo-500 rounded-xl pr-10" value={formData.zip_code} onChange={handleCepChange} maxLength={9} />
+                  <div className="absolute right-3 top-2.5">
+                    {loadingCep ? <Loader2 className="h-5 w-5 animate-spin text-indigo-600"/> : <Search className="h-5 w-5 text-indigo-300"/>}
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Rua / Logradouro</Label>
-                  <Input 
-                    className="bg-white/70 border-blue-200 focus:bg-white"
-                    placeholder="Nome da Rua"
-                    value={formData.street} 
-                    onChange={e => setFormData({...formData, street: e.target.value})} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Número</Label>
-                  <Input 
-                    className="bg-white/70 border-blue-200 focus:bg-white"
-                    placeholder="Nº"
-                    value={formData.street_number} 
-                    onChange={e => setFormData({...formData, street_number: e.target.value})} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Bairro</Label>
-                  <Input 
-                    className="bg-white/70 border-blue-200 focus:bg-white"
-                    placeholder="Bairro"
-                    value={formData.neighborhood} 
-                    onChange={e => setFormData({...formData, neighborhood: e.target.value})} 
-                  />
-                </div>
-                <div className="col-span-1 md:col-span-2 space-y-2">
-                  <Label>Complemento</Label>
-                  <Input 
-                    className="bg-white/70 border-blue-200 focus:bg-white"
-                    placeholder="Opcional"
-                    value={formData.complement} 
-                    onChange={e => setFormData({...formData, complement: e.target.value})} 
-                  />
-                </div>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label>Rua / Avenida</Label>
+                <Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Número</Label>
+                <Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.street_number} onChange={e => setFormData({...formData, street_number: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Bairro</Label>
+                <Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Cidade</Label>
+                <Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
               </div>
             </CardContent>
           </Card>
 
-          <div className="flex justify-end pt-4">
-            <Button onClick={handleSave} disabled={loading} className="w-full md:w-auto bg-slate-900 hover:bg-slate-800 shadow-lg">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Save className="h-4 w-4 mr-2"/>}
-              Salvar Tudo
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={loading} className="px-8 py-6 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white shadow-xl hover:shadow-2xl transition-all">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2"/> : <Save className="h-5 w-5 mr-2"/>}
+              Guardar Configurações
             </Button>
           </div>
         </TabsContent>
 
-        {/* --- ABA 2: ENTREGA --- */}
-        <TabsContent value="entrega" className="animate-in fade-in slide-in-from-bottom-2">
+        <TabsContent value="entrega" className="outline-none">
           <DeliverySettings storeId={store.id} />
         </TabsContent>
 
-        {/* --- ABA 3: NOTIFICAÇÕES --- */}
-        <TabsContent value="notificacoes" className="animate-in fade-in slide-in-from-bottom-2">
-          <Card className="bg-orange-50/40 backdrop-blur-xl border-orange-200 shadow-sm">
+        <TabsContent value="notificacoes" className="outline-none">
+          <Card className="bg-orange-50/40 backdrop-blur-xl border-orange-200 shadow-lg rounded-3xl">
             <CardHeader>
-              <div className="flex items-center gap-2 text-orange-700">
+              <div className="flex items-center gap-2 text-orange-800">
                 {pushEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
-                <CardTitle>Alertas em Tempo Real</CardTitle>
+                <CardTitle>Alertas de Sistema</CardTitle>
               </div>
-              <CardDescription className="text-orange-600/80">
-                Receba sons quando cair um novo pedido.
-              </CardDescription>
+              <CardDescription className="text-orange-700/70">Mantenha-se informado sobre novos pedidos em tempo real.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={handleEnableNotifications} 
-                variant={pushEnabled ? "outline" : "default"}
-                className={`w-full sm:w-auto ${pushEnabled ? "bg-white text-green-600 border-green-200" : "bg-orange-500 text-white"}`}
-              >
-                {pushEnabled ? "Ativados ✓" : "Ativar Alertas"}
+              <Button onClick={handleEnableNotifications} variant={pushEnabled ? "outline" : "default"} className={`rounded-xl h-12 px-6 ${pushEnabled ? "bg-white text-green-600 border-green-200" : "bg-orange-600 hover:bg-orange-700 text-white"}`}>
+                {pushEnabled ? "Notificações Ativas ✓" : "Ativar Alertas Push"}
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
     </div>
   );

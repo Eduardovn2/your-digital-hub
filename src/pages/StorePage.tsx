@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { MenuItemCard } from "@/components/MenuItemCard";
-import { CheckoutDrawer } from "@/components/store/CheckoutDrawer";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Search, Star, AlertCircle, ArrowLeft } from "lucide-react";
+import { CartDrawer } from "@/components/CartDrawer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -159,7 +159,6 @@ export default function StorePage() {
               {store.name}
             </h1>
           </div>
-          <CheckoutDrawer storeId={store.id} isStoreOpen={!!isOpen} />
         </div>
       </header>
 
@@ -200,11 +199,17 @@ export default function StorePage() {
                   </div>
                 </div>
                 
-                {store.address && (
-                  <div className="hidden md:flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-lg text-xs text-slate-500 border border-slate-100 whitespace-nowrap">
-                    <MapPin className="h-3 w-3 flex-shrink-0" /> 
-                    <span className="max-w-[200px] truncate">{store.address}</span>
-                  </div>
+                  {/* Verifica se o endereço existe antes de tentar mostrar a div inteira */}
+                  {(store as any).address && (
+                    <div className="flex items-center gap-1 text-sm text-gray-600 bg-white/80 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">
+                      <MapPin className="h-3 w-3 text-primary" />
+                      <span>
+                        {/* Aqui montamos a string completa: Rua, Número */}
+                        {(store as any).address}
+                        {(store as any).street_number ? `, ${(store as any).street_number}` : ''}
+                        {(store as any).neighborhood ? ` - ${(store as any).neighborhood}` : ''}
+                      </span>
+                    </div>
                 )}
               </div>
             </div>
@@ -275,6 +280,9 @@ export default function StorePage() {
             </div>
           )}
         </div>
+      </div>
+    <div className="fixed bottom-6 right-6 z-50">
+        <CartDrawer />
       </div>
     </div>
   );

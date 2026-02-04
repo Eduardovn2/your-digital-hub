@@ -3,136 +3,130 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Loader2, Truck, Save, Bell, BellOff } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Loader2, Truck, Plus, Trash2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
-export default function DeliverySettings({ storeId }: { storeId: string }) {
-  const [baseFee, setBaseFee] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(false);
+interface DeliveryRule {
+  id: string;
+  max_km: number;
+  price: number;
+}
 
-  // 1. Carrega configurações e verifica permissão de notificação
+export function DeliverySettings({ storeId }: { storeId: string }) {
+  const [rules, setRules] = useState<DeliveryRule[]>([]);
+  const [newKm, setNewKm] = useState("");
+  const [newPrice, setNewPrice] = useState("");
+  const [loadingRules, setLoadingRules] = useState(false);
+
   useEffect(() => {
-    async function loadSettings() {
-      const { data, error } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("id", storeId)
-        .single();
+    fetchRules();
+  }, []);
 
-      if (!error && data) {
-        setBaseFee((data as any).delivery_fee?.toString() || "0");
-      }
-      
-      if ("Notification" in window) {
-        setPushEnabled(Notification.permission === "granted");
-      }
-      
-      setIsLoading(false);
-    }
-    loadSettings();
-  }, [storeId]);
+  async function fetchRules() {
+    const { data, error } = await supabase
+      .from("delivery_rules" as any)
+      .select("*")
+      .order("max_km", { ascending: true });
 
-  // 2. Função para Ativar Notificações em Standby (iPhone, Android, PC)
-  const handleEnableNotifications = async () => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      toast.error("Este navegador não suporta notificações em standby.");
+    if (error) console.error(error);
+    if (data) setRules(data as any);
+  }
+
+  async function handleAddRule() {
+    if (!newKm || !newPrice) {
+      toast.error("Preencha KM e Valor.");
       return;
     }
-
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        toast.error("Permissão de notificação negada.");
-        return;
-      }
-
-      // Registro do Service Worker para rodar com tela desligada
-      const registration = await navigator.serviceWorker.ready;
-      
-      // Aqui você enviaria a 'subscription' para o Supabase para disparar o Push real-time
-      setPushEnabled(true);
-      toast.success("Notificações em standby ativadas com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao ativar notificações.");
-    }
-  };
-
-  // 3. Salva a taxa de entrega
-  const saveSettings = async () => {
-    setIsSaving(true);
-    const feeValue = parseFloat(baseFee.replace(',', '.'));
+    setLoadingRules(true);
+    
+    const kmValue = parseFloat(newKm.replace(",", "."));
+    const priceValue = parseFloat(newPrice.replace(",", "."));
 
     const { error } = await supabase
-      .from("stores")
-      .update({ delivery_fee: feeValue } as any)
-      .eq("id", storeId);
+      .from("delivery_rules" as any)
+      .insert({ max_km: kmValue, price: priceValue });
 
     if (error) {
-      toast.error("Erro ao salvar: verifique a coluna no Supabase.");
+      toast.error("Erro ao salvar.");
     } else {
-      toast.success("Configurações salvas!");
+      toast.success("Regra adicionada!");
+      setNewKm("");
+      setNewPrice("");
+      fetchRules();
     }
-    setIsSaving(false);
-  };
+    setLoadingRules(false);
+  }
 
-  if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+  async function handleDeleteRule(id: string) {
+    const { error } = await supabase.from("delivery_rules" as any).delete().eq("id", id);
+    if (!error) {
+      toast.success("Removido.");
+      fetchRules();
+    }
+  }
 
   return (
-    <div className="space-y-6">
-      {/* CARD DE NOTIFICAÇÕES (STANDBY) */}
-      <Card className="border-orange-200 bg-orange-50/30">
-        <CardHeader>
-          <div className="flex items-center gap-2 text-orange-700">
-            {pushEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
-            <CardTitle>Alertas em Tempo Real</CardTitle>
+    <Card className="bg-white/60 backdrop-blur-xl border-white/50 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center gap-2 text-slate-800">
+          <Truck className="h-5 w-5 text-orange-600" />
+          <CardTitle>Tabela de Fretes</CardTitle>
+        </div>
+        <CardDescription>
+          Defina o valor cobrado por raio de distância.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {/* Input */}
+        <div className="flex gap-4 mb-6 items-end bg-white/50 p-4 rounded-xl border border-white/60 shadow-sm">
+          <div className="flex-1">
+            <label className="text-xs font-bold text-slate-500 ml-1">Até (KM)</label>
+            <Input type="number" placeholder="Ex: 5" value={newKm} onChange={e => setNewKm(e.target.value)} className="bg-white/80 border-slate-200" />
           </div>
-          <CardDescription className="text-orange-600/80">
-            Ative para receber avisos sonoros de novos pedidos mesmo com a tela do celular desligada ou navegador fechado.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            onClick={handleEnableNotifications} 
-            variant={pushEnabled ? "outline" : "default"}
-            className={pushEnabled ? "bg-white" : "bg-orange-600 hover:bg-orange-700"}
-          >
-            {pushEnabled ? "Alertas Ativados" : "Ativar Alertas em Standby"}
+          <div className="flex-1">
+            <label className="text-xs font-bold text-slate-500 ml-1">Preço (R$)</label>
+            <Input type="number" placeholder="Ex: 10.00" value={newPrice} onChange={e => setNewPrice(e.target.value)} className="bg-white/80 border-slate-200" />
+          </div>
+          <Button onClick={handleAddRule} disabled={loadingRules} className="bg-green-600 hover:bg-green-700 text-white shadow-md">
+            {loadingRules ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />} Add
           </Button>
-          <p className="mt-2 text-[10px] text-gray-500 italic">
-            *No iPhone, você deve primeiro "Adicionar à Tela de Início" pelo Safari.
-          </p>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* CARD DE TAXAS */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Truck className="h-5 w-5 text-primary" />
-            <CardTitle>Configurações de Entrega</CardTitle>
-          </div>
-          <CardDescription>Defina o valor fixo da taxa de entrega.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="fee">Taxa Fixa (R$)</Label>
-            <Input 
-              id="fee"
-              type="number" 
-              step="0.01"
-              value={baseFee} 
-              onChange={(e) => setBaseFee(e.target.value)} 
-            />
-          </div>
-          <Button onClick={saveSettings} disabled={isSaving} className="w-full sm:w-auto">
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Salvar Configurações
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+        {/* Tabela */}
+        <div className="border border-slate-100 rounded-xl overflow-hidden bg-white/40">
+          <Table>
+            <TableHeader className="bg-slate-50/80">
+              <TableRow>
+                <TableHead>Raio</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead className="text-right">Apagar</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rules.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-slate-400 py-8">Nenhuma regra.</TableCell>
+                </TableRow>
+              ) : (
+                rules.map((rule) => (
+                  <TableRow key={rule.id} className="hover:bg-white/60">
+                    <TableCell className="font-medium flex items-center gap-2">
+                      <MapPin className="h-3 w-3 text-slate-400" /> Até {rule.max_km} km
+                    </TableCell>
+                    <TableCell className="font-bold text-green-700">R$ {rule.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(rule.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50 h-8 w-8">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

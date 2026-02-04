@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMyStore, useCreateStore } from "@/hooks/useStores";
+import { useMyStore } from "@/hooks/useStores";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Store, LayoutDashboard, UtensilsCrossed, Settings, LogOut, PlusCircle } from "lucide-react";
 import { StoreSetupForm } from "@/components/dashboard/StoreSetupForm";
 import { OrdersList } from "@/components/dashboard/OrdersList";
 import { StoreProducts } from "@/components/dashboard/StoreProducts";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
+
+// 1. IMPORTAÇÃO CORRIGIDA (Pasta dashboard, nome DeliverySettings)
+import { DeliverySettings } from "@/components/dashboard/DeliverySettings";
 
 export default function Admin() {
   const { user, signOut } = useAuth();
@@ -21,7 +23,7 @@ export default function Admin() {
     </div>;
   }
 
-  // Se não tiver loja, mostra form de criação (Centralizado e Bonito)
+  // Se não tiver loja, mostra form de criação
   if (!store) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -45,7 +47,7 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
       
-      {/* SIDEBAR (Desktop) / TOPBAR (Mobile) */}
+      {/* SIDEBAR */}
       <aside className="md:w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col">
         <div className="p-6 border-b border-slate-800">
           <div className="flex items-center gap-3">
@@ -96,7 +98,7 @@ export default function Admin() {
       <main className="flex-1 overflow-y-auto h-screen">
         <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 px-8 py-4 flex justify-between items-center">
           <h2 className="text-xl font-bold text-slate-800 capitalize">
-            {activeTab === 'orders' ? 'Gerenciamento de Pedidos' : activeTab}
+            {activeTab === 'orders' ? 'Gerenciamento de Pedidos' : activeTab === 'dashboard' ? 'Visão Geral' : activeTab === 'menu' ? 'Cardápio' : 'Configurações'}
           </h2>
           <Button size="sm" variant="outline" className="hidden md:flex">
              <PlusCircle className="h-4 w-4 mr-2" /> Novo Item Rápido
@@ -107,7 +109,6 @@ export default function Admin() {
           {activeTab === "dashboard" && (
             <div className="space-y-8 animate-fade-in">
               <DashboardStats storeId={store.id} />
-              {/* Resumo rápido dos pedidos também aparece aqui */}
               <div className="mt-8">
                  <h3 className="text-lg font-bold mb-4">Pedidos Recentes</h3>
                  <OrdersList storeId={store.id} /> 
@@ -124,8 +125,11 @@ export default function Admin() {
           )}
 
           {activeTab === "settings" && (
-             <div className="animate-fade-in">
-               <StoreSettings store={store} />
+             <div className="animate-fade-in space-y-8">
+                {/* Configurações Gerais da Loja */}
+                <StoreSettings store={store} />
+                
+
              </div>
           )}
         </div>

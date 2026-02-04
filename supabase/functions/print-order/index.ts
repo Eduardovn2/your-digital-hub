@@ -1,11 +1,14 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// 1. REMOVIDO: import { serve } ... (Agora usamos o nativo Deno.serve)
+// 2. ATUALIZADO: Import do Supabase usando 'npm:' ou versão fixa do esm
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
+// Configuração de CORS
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// --- INTERFACES (Mantive as suas iguais) ---
 interface OrderItem {
   product_name: string;
   quantity: number;
@@ -33,7 +36,7 @@ interface PrinterSettings {
   is_enabled: boolean;
 }
 
-// ESC/POS commands
+// --- CONSTANTES ESC/POS (Mantive as suas iguais) ---
 const ESC = '\x1B';
 const GS = '\x1D';
 const INIT = ESC + '@';
@@ -46,6 +49,7 @@ const DOUBLE_HEIGHT = GS + '!' + '\x10';
 const NORMAL_SIZE = GS + '!' + '\x00';
 const LINE = '--------------------------------';
 
+// --- FUNÇÕES AUXILIARES (Mantive as suas iguais) ---
 function formatCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace('.', ',')}`;
 }
@@ -137,6 +141,8 @@ function buildReceipt(order: Order, storeName: string): string {
   return receipt;
 }
 
+// --- FUNÇÃO DE ENVIO PARA IMPRESSORA ---
+// Importante: Deno.connect requer permissão --allow-net no ambiente local
 async function sendToPrinter(printerIp: string, printerPort: number, data: string): Promise<boolean> {
   try {
     const conn = await Deno.connect({
@@ -155,7 +161,8 @@ async function sendToPrinter(printerIp: string, printerPort: number, data: strin
   }
 }
 
-serve(async (req) => {
+// --- SERVIDOR (ALTERADO PARA Deno.serve) ---
+Deno.serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

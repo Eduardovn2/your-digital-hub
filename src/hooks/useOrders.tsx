@@ -4,7 +4,7 @@ import { Order, OrderItem, OrderStatus } from "@/types/store";
 import { toast } from "sonner";
 import { printOrder } from "@/services/printService";
 
-// CORREÇÃO 1: Renomeado de useStoreOrders para useOrders para corrigir o erro de importação
+// Hook de listagem de pedidos
 export function useOrders(storeId: string | undefined, page: number = 0) {
   const pageSize = 50; 
   return useQuery({
@@ -15,25 +15,29 @@ export function useOrders(storeId: string | undefined, page: number = 0) {
       const from = page * pageSize;
       const to = from + pageSize - 1;
 
+      // CORREÇÃO CRÍTICA AQUI:
+      // Removemos a parte `items:order_items(*)` porque a tabela order_items não existe mais.
+      // Agora usamos apenas `*` porque a coluna 'items' já está dentro da tabela 'orders'.
       const { data, error } = await supabase
         .from("orders")
-        .select(`
-          *,
-          items:order_items(*)
-        `)
+        .select("*") 
         .eq("store_id", storeId)
         .order("created_at", { ascending: false })
         .range(from, to);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao buscar pedidos:", error);
+        throw error;
+      }
+      
       return data as (Order & { items: OrderItem[] })[];
     },
     enabled: !!storeId,
-    refetchInterval: 10000,
+    refetchInterval: 10000, // Garante atualização a cada 10s mesmo sem realtime
   });
 }
 
-// Hook de criação (Mantido igual)
+// Hook de criação (Mantido)
 type CreateOrderParams = {
   order: {
     store_id: string;
@@ -55,6 +59,10 @@ export function useCreateOrder() {
 
   return useMutation({
     mutationFn: async ({ order, items, deliveryZoneId }: CreateOrderParams) => {
+      // Como estamos usando a tabela direta agora, podemos simplificar se o RPC falhar,
+      // mas vamos manter o RPC se ele estiver atualizado. 
+      // Se der erro aqui também, avise que mudamos para insert direto.
+      
       const rpcPayload = {
         p_store_id: order.store_id,
         p_customer_name: order.customer_name,
@@ -82,12 +90,7 @@ export function useCreateOrder() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      
-      const totalFormatado = data?.total 
-        ? Number(data.total).toFixed(2).replace('.', ',') 
-        : '0,00';
-        
-      toast.success(`Pedido realizado! Total: R$ ${totalFormatado}`);
+      toast.success(`Pedido realizado!`);
     },
     onError: (error: Error) => {
       toast.error(`Erro ao criar pedido: ${error.message}`);
@@ -95,13 +98,12 @@ export function useCreateOrder() {
   });
 }
 
-// CORREÇÃO 2: Removemos 'storeId' dos parâmetros e pegamos da resposta do banco
+// Hook de atualização de status
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      // Atualiza e retorna o dado atualizado (que contém o store_id)
       const { data, error } = await supabase
         .from("orders")
         .update({ status: status as any })
@@ -110,10 +112,9 @@ export function useUpdateOrderStatus() {
         .single();
 
       if (error) throw error;
-      return data; // Retorna o objeto Order completo (com store_id)
+      return data;
     },
     onSuccess: (data) => {
-      // Usa o store_id que veio da resposta do banco para invalidar o cache correto
       if (data?.store_id) {
          queryClient.invalidateQueries({ queryKey: ["orders", data.store_id] });
       } else {

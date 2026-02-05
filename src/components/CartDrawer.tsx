@@ -8,10 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, ShoppingBag, CreditCard, Banknote, Trash2, Coins, ImageOff } from "lucide-react";
+import { Loader2, ShoppingBag, CreditCard, Banknote, Trash2, Coins, ImageOff, AlertTriangle } from "lucide-react";
 import { DeliveryAddressForm, AddressData } from "@/components/DeliveryAddressForm";
 
-// Função para limpar valores monetários
 const parseCurrency = (value: string) => {
   if (!value) return 0;
   return parseFloat(value.replace(",", ".")) || 0;
@@ -28,29 +27,30 @@ export default function CartDrawer() {
   const [pagamento, setPagamento] = useState<"pix" | "card" | "money">("pix");
   const [trocoPara, setTrocoPara] = useState("");
   
-  const [frete, setFrete] = useState<number>(0);
+  // O segredo está aqui: frete começa como NULL
+  const [frete, setFrete] = useState<number | null>(null);
   const [enderecoCompleto, setEnderecoCompleto] = useState<AddressData | null>(null);
 
-  // --- CÁLCULOS ---
   const subtotalReal = items.reduce((acc, item) => {
     const preco = Number(item.price) || 0;
     const qtd = Number(item.quantity) || 1;
     return acc + (preco * qtd);
   }, 0);
 
-  const freteSeguro = (typeof frete === 'number' && !isNaN(frete)) ? frete : 0;
-  const totalFinal = subtotalReal + freteSeguro;
+  // Se frete for null (erro), visualmente mostra 0, mas a lógica bloqueia
+  const freteVisual = frete === null ? 0 : frete;
+  const totalFinal = subtotalReal + freteVisual;
   
   const valorTrocoInput = parseCurrency(trocoPara);
   const valorTrocoDevolver = valorTrocoInput - totalFinal;
-  // ----------------
 
-  const handleAddressUpdate = (address: AddressData, valorFrete: number) => {
+  const handleAddressUpdate = (address: AddressData, valorFrete: number | null) => {
     setEnderecoCompleto(address);
-    setFrete(Number(valorFrete) || 0);
+    setFrete(valorFrete); // Atualiza com o valor calculado ou NULL se deu erro
   };
 
   const handleFinalizar = async () => {
+    // 1. Validações Básicas
     if (!nome.trim() || !telefone.trim()) {
       toast({ title: "Faltam dados", description: "Preencha seu nome e contato.", variant: "destructive" });
       return;
@@ -59,9 +59,21 @@ export default function CartDrawer() {
       toast({ title: "Carrinho vazio", description: "Adicione itens antes de finalizar.", variant: "destructive" });
       return;
     }
+    
+    // 2. Validação de Endereço e Frete (A TRAVA DE SEGURANÇA)
     if (!enderecoCompleto || !enderecoCompleto.numero) {
        toast({ title: "Endereço incompleto", description: "Preencha o CEP e o Número da casa.", variant: "destructive" });
        return;
+    }
+
+    // BLOQUEIO TOTAL: Se o frete for nulo, não deixa passar
+    if (frete === null) {
+        toast({ 
+            title: "Frete Indisponível", 
+            description: "Não conseguimos calcular a entrega para este local. Por favor, chame no WhatsApp.", 
+            variant: "destructive" 
+        });
+        return;
     }
     
     let changeValue = null;
@@ -84,7 +96,7 @@ export default function CartDrawer() {
         customer_name: nome,
         customer_phone: telefone,
         customer_address: fullAddress,
-        delivery_fee: freteSeguro,
+        delivery_fee: freteVisual,
         total_amount: totalFinal,
         payment_method: pagamento,
         change_for: changeValue,
@@ -137,7 +149,6 @@ export default function CartDrawer() {
         </Button>
       </SheetTrigger>
       
-      {/* REMOVI O overflow-y-auto DAQUI PARA NÃO CAUSAR O PULO */}
       <SheetContent className="w-full sm:max-w-md flex flex-col h-full bg-white/95 backdrop-blur-xl border-l border-white/40 shadow-2xl p-0">
         <SheetHeader className="px-6 pt-6 text-left">
           <SheetTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -146,11 +157,10 @@ export default function CartDrawer() {
           </SheetTitle>
         </SheetHeader>
 
-        {/* AQUI ESTÁ A MÁGICA: ScrollArea controla a rolagem sem empurrar o layout */}
         <ScrollArea className="flex-1 px-6">
           <div className="space-y-6 py-6">
-              
-            {/* 1. LISTA DE ITENS */}
+            
+            {/* ITENS */}
             <div className="space-y-3">
                <h3 className="font-semibold text-sm text-slate-600 uppercase tracking-wider">Seus Itens</h3>
                {items.length === 0 ? (
@@ -190,7 +200,7 @@ export default function CartDrawer() {
                )}
             </div>
 
-            {/* 2. DADOS */}
+            {/* DADOS PESSOAIS */}
             <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
               <h3 className="font-semibold text-sm text-slate-700">Identificação</h3>
               <div className="space-y-3">
@@ -199,15 +209,21 @@ export default function CartDrawer() {
               </div>
             </div>
 
-            {/* 3. ENTREGA */}
-            <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            {/* ENTREGA - Se frete for null, mostra aviso */}
+            <div className={`space-y-3 bg-white p-4 rounded-xl border shadow-sm ${frete === null && enderecoCompleto ? "border-red-200 bg-red-50/50" : "border-slate-100"}`}>
                <DeliveryAddressForm 
                   onAddressComplete={handleAddressUpdate} 
                   storeId={storeId} 
                />
+               {frete === null && enderecoCompleto && (
+                   <div className="flex items-center gap-2 text-xs text-red-600 font-medium animate-pulse mt-2">
+                       <AlertTriangle className="h-4 w-4" />
+                       Não foi possível calcular o frete para este local.
+                   </div>
+               )}
             </div>
 
-            {/* 4. PAGAMENTO */}
+            {/* PAGAMENTO */}
             <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
               <h3 className="font-semibold text-sm text-slate-700">Pagamento</h3>
               <div className="grid grid-cols-3 gap-2">
@@ -249,7 +265,7 @@ export default function CartDrawer() {
           </div>
         </ScrollArea>
 
-        {/* FOOTER */}
+        {/* FOOTER - BLOQUEIO DO BOTÃO */}
         <div className="border-t border-slate-200 bg-slate-50 px-6 py-4 shadow-inner mt-auto">
           <div className="space-y-1 mb-4">
             <div className="flex justify-between text-sm text-slate-600">
@@ -257,8 +273,8 @@ export default function CartDrawer() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-slate-600">Entrega</span>
-              <span className={freteSeguro > 0 ? "text-green-600 font-bold" : "text-slate-400"}>
-                {freteSeguro > 0 ? `R$ ${freteSeguro.toFixed(2)}` : "--"}
+              <span className={frete !== null ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                {frete !== null ? `R$ ${frete.toFixed(2)}` : "A calcular"}
               </span>
             </div>
             <Separator className="my-2 bg-slate-200" />
@@ -268,11 +284,13 @@ export default function CartDrawer() {
           </div>
 
           <Button 
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 text-base font-bold rounded-xl shadow-lg transition-transform active:scale-95" 
+            className={`w-full h-12 text-base font-bold rounded-xl shadow-lg transition-transform active:scale-95 ${
+                frete === null ? "bg-slate-400 hover:bg-slate-400 cursor-not-allowed opacity-70" : "bg-slate-900 hover:bg-slate-800 text-white"
+            }`}
             onClick={handleFinalizar}
-            disabled={loading || items.length === 0}
+            disabled={loading || items.length === 0 || frete === null}
           >
-            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Confirmar Pedido"}
+            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : (frete === null ? "Calcule a Entrega" : "Confirmar Pedido")}
           </Button>
         </div>
       </SheetContent>

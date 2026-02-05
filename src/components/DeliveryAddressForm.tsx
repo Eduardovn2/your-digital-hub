@@ -27,7 +27,13 @@ interface Props {
   storeId: string;
 }
 
-const FRETE_FIXO_SEGURANCA = 15.00; 
+// REGRAS PADRÃO DO SISTEMA (Fallback) - Definindo as regras padrão aqui
+const DEFAULT_SYSTEM_RULES: DeliveryRule[] = [
+    { max_km: 2, price: 5.00 },
+    { max_km: 5, price: 8.00 },
+    { max_km: 8, price: 12.00 },
+    { max_km: 12, price: 15.00 }
+];
 
 export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
   const { toast } = useToast();
@@ -46,27 +52,24 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
   });
 
   const [freteCalculado, setFreteCalculado] = useState<number | null>(null);
-  const [isSimulado, setIsSimulado] = useState(false);
 
-  // 1. CARREGAMENTO INTELIGENTE (COM FALLBACK)
+  // 1. CARREGAMENTO DOS DADOS
   useEffect(() => {
     async function loadData() {
+      if (!storeId) return;
+
       try {
-        // A. Busca Loja (Tenta com ID, se falhar pega a primeira para não quebrar)
         let queryLoja = supabase.from("stores").select("zip_code, street_number, neighborhood, id");
-        if (storeId) {
-            queryLoja = queryLoja.eq("id", storeId);
-        }
+        if (storeId) queryLoja = queryLoja.eq("id", storeId);
+        
         const { data: storeData } = await queryLoja.limit(1).maybeSingle();
 
         if (storeData) {
             const loja = storeData as any;
-            // Configura endereço da loja
             if (loja.zip_code) {
                 const cepLimpo = String(loja.zip_code).replace(/\D/g, "");
                 let ruaLoja = "";
                 let cidadeLoja = "Rio de Janeiro";
-                
                 try {
                   const res = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
                   if(res.ok) {
@@ -77,40 +80,27 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
                 } catch(e) {}
 
                 setStoreAddress({
-                  cep: cepLimpo,
-                  rua: ruaLoja, 
-                  numero: loja.street_number, 
-                  bairro: loja.neighborhood, 
-                  cidade: cidadeLoja
+                  cep: cepLimpo, rua: ruaLoja, numero: loja.street_number, 
+                  bairro: loja.neighborhood, cidade: cidadeLoja
                 });
             }
 
-            // B. BUSCA REGRAS (O PULO DO GATO PARA CORRIGIR O R$ 15,00)
-            // 1. Tenta buscar regras ESPECÍFICAS dessa loja
-            let { data: rulesData } = await supabase
+            // BUSCA REGRAS DA LOJA
+            const { data: rulesData } = await supabase
                 .from("delivery_rules" as any)
                 .select("max_km, price")
-                .eq("store_id", storeId) // Tenta filtrar
+                .eq("store_id", storeId)
                 .order("max_km", { ascending: true });
 
-            // 2. Se não achou nada (array vazio), busca regras GERAIS (sem filtro)
-            // Isso resolve o problema se o banco ainda não tiver os IDs vinculados
-            if (!rulesData || rulesData.length === 0) {
-                console.log("⚠️ Regras específicas não encontradas. Buscando regras gerais...");
-                const { data: allRules } = await supabase
-                    .from("delivery_rules" as any)
-                    .select("max_km, price")
-                    .order("max_km", { ascending: true });
-                rulesData = allRules;
-            }
-
-            if (rulesData) {
-                const regrasFormatadas = rulesData.map((r: any) => ({
+            if (rulesData && rulesData.length > 0) {
+                setRules(rulesData.map((r: any) => ({
                     max_km: Number(r.max_km),
                     price: Number(r.price)
-                }));
-                console.log("✅ Regras de Frete Carregadas:", regrasFormatadas);
-                setRules(regrasFormatadas);
+                })));
+            } else {
+                // FALLBACK: Se não tiver regras, usa as padrão do sistema
+                console.warn("⚠️ Loja sem regras de frete. Usando tabela padrão.");
+                setRules(DEFAULT_SYSTEM_RULES);
             }
         }
       } catch (err) {
@@ -129,20 +119,14 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
         });
         const data = await response.json();
         if (data && data.length > 0) {
-            return {
-                latitude: parseFloat(data[0].lat),
-                longitude: parseFloat(data[0].lon)
-            };
+            return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
         }
         return null;
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
   }
 
   const handleBuscarCep = async () => {
     setErroMsg(null);
-    setIsSimulado(false);
     const cepLimpo = address.cep.replace(/\D/g, "");
     
     if (cepLimpo.length !== 8) {
@@ -151,26 +135,23 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
     }
 
     setLoading(true);
-    let dadosEncontrados: any = null;
-    let clienteCoords: { latitude: number; longitude: number } | null = null;
-    let lojaCoords: { latitude: number; longitude: number } | null = null;
-
+    let ruaDetectada = ""; 
+    
     try {
-      if (!storeAddress?.cep) throw new Error("Loja sem endereço configurado.");
+      if (!storeAddress?.cep) throw new Error("LOJA_SEM_ENDERECO");
 
-      // Mesmo CEP = Frete Mínimo
+      // Caso 1: Mesmo CEP
       if (cepLimpo === storeAddress.cep) {
           const res = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
           const dados = await res.json();
-          const novoEndereco = {
-            ...address,
-            rua: dados.street || "",
-            bairro: dados.neighborhood || "",
-            cidade: dados.city || ""
-          };
+          ruaDetectada = dados.street || ""; 
+          
+          const novoEndereco = {...address, rua: dados.street || "", bairro: dados.neighborhood || "", cidade: dados.city || ""};
           setAddress(novoEndereco);
-          const precoMinimo = rules.length > 0 ? rules[0].price : 0;
-          aplicarFrete(novoEndereco, precoMinimo);
+          
+          const taxaLocal = rules.length > 0 ? rules[0].price : 2.00;
+          aplicarFrete(novoEndereco, taxaLocal);
+          
           setLoading(false);
           return;
       }
@@ -178,23 +159,21 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
       // Busca Cliente
       const resCliente = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
       if (!resCliente.ok) throw new Error("CEP não encontrado.");
-      dadosEncontrados = await resCliente.json();
+      const dadosEncontrados = await resCliente.json();
+      
+      ruaDetectada = dadosEncontrados.street || "";
 
       const novoEndereco = {
-        ...address,
-        rua: dadosEncontrados.street || "",
-        bairro: dadosEncontrados.neighborhood || "",
-        cidade: dadosEncontrados.city || ""
+        ...address, rua: dadosEncontrados.street || "", bairro: dadosEncontrados.neighborhood || "", cidade: dadosEncontrados.city || ""
       };
       setAddress(novoEndereco);
 
-      // Coordenadas
+      // GPS
+      let clienteCoords = null;
       if (dadosEncontrados.street) {
-          clienteCoords = await buscarCoordenadasPorTexto(
-            dadosEncontrados.street, "", dadosEncontrados.neighborhood, dadosEncontrados.city
-          );
+          clienteCoords = await buscarCoordenadasPorTexto(dadosEncontrados.street, "", dadosEncontrados.neighborhood, dadosEncontrados.city);
       }
-      if (!clienteCoords) {
+      if (!clienteCoords) { 
           try {
              const resv2 = await fetch(`https://brasilapi.com.br/api/cep/v2/${cepLimpo}`);
              const dataV2 = await resv2.json();
@@ -204,13 +183,11 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
           } catch(e) {}
       }
 
+      let lojaCoords = null;
       if (storeAddress.rua) {
-          lojaCoords = await buscarCoordenadasPorTexto(
-             storeAddress.rua, storeAddress.numero || "", storeAddress.bairro || "", storeAddress.cidade || ""
-          );
+          lojaCoords = await buscarCoordenadasPorTexto(storeAddress.rua, storeAddress.numero || "", storeAddress.bairro || "", storeAddress.cidade || "");
       }
       if (!lojaCoords) {
-        // Tenta fallback V2 para loja
          try {
             const resLojaV2 = await fetch(`https://brasilapi.com.br/api/cep/v2/${storeAddress.cep}`);
             const dataLojaV2 = await resLojaV2.json();
@@ -220,49 +197,40 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
          } catch(e) {}
       }
 
-      if (!clienteCoords || !lojaCoords) {
-         throw { simulacao: true };
-      }
+      if (!clienteCoords || !lojaCoords) throw { erro_tecnico: true };
 
       const distMetros = getDistance(
         { latitude: lojaCoords.latitude, longitude: lojaCoords.longitude },
         { latitude: clienteCoords.latitude, longitude: clienteCoords.longitude }
       );
       const distKm = distMetros / 1000;
-      console.log(`📏 Distância Real: ${distKm.toFixed(2)}km`);
 
-      if (distKm > 150) throw { simulacao: true };
+      if (distKm > 100) {
+          setErroMsg(`Distância muito longa (${distKm.toFixed(0)}km).`);
+          setFreteCalculado(null);
+          return;
+      }
 
       // Aplica Regras
-      if (rules.length > 0) {
-          const regraAplicavel = rules.find(r => distKm <= r.max_km);
-          if (!regraAplicavel) {
-            setErroMsg(`Fora da área (${distKm.toFixed(1)}km).`);
-            setFreteCalculado(null);
-          } else {
-            console.log(`✅ Regra Encontrada: Até ${regraAplicavel.max_km}km = R$ ${regraAplicavel.price}`);
-            aplicarFrete(novoEndereco, regraAplicavel.price);
-          }
+      const regraAplicavel = rules.find(r => distKm <= r.max_km);
+      
+      if (!regraAplicavel) {
+        setErroMsg(`A rota exata para '${ruaDetectada || "seu endereço"}' encontra-se indisponível ou é inviável no momento (${distKm.toFixed(1)}km). Entre em contato pelo WhatsApp.`);
+        setFreteCalculado(null);
       } else {
-          // Se chegou aqui e rules está vazio, vai pro catch
-          throw { simulacao: true };
+        aplicarFrete(novoEndereco, regraAplicavel.price);
       }
 
     } catch (error: any) {
-      if (typeof error === 'string' && error.includes("Fora")) {
-        // Erro legítimo de área
+      console.log("Erro cálculo:", error);
+      
+      if (error.message === "LOJA_SEM_ENDERECO") {
+          setErroMsg("Erro na Loja: Endereço de origem não cadastrado.");
       } else {
-          // Se deu erro de GPS ou falta de regras -> R$ 15.00
-          console.log("⚠️ Falha no cálculo exato. Usando modo de segurança.");
-          setIsSimulado(true);
-          const enderecoFallback = {
-            ...address,
-            rua: dadosEncontrados?.street || address.rua || "",
-            bairro: dadosEncontrados?.neighborhood || "",
-            cidade: dadosEncontrados?.city || ""
-          };
-          aplicarFrete(enderecoFallback, FRETE_FIXO_SEGURANCA);
+          setErroMsg(`A rota exata para '${ruaDetectada || "seu endereço"}' encontra-se indisponível ou é inviável no momento. Entre em contato pelo WhatsApp para mais informações.`);
       }
+      
+      setFreteCalculado(null);
     } finally {
       setLoading(false);
     }
@@ -317,34 +285,20 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
               {address.rua ? (
                   <p className="text-base font-bold text-slate-900 leading-tight">{address.rua}</p>
               ) : (
-                  <Input 
-                    value={address.rua} 
-                    onChange={e => { const novo = {...address, rua: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }}
-                    placeholder="Nome da Rua" className="bg-white h-8 text-sm mb-1 font-bold"
-                  />
+                  <Input value={address.rua} onChange={e => { const novo = {...address, rua: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} placeholder="Nome da Rua" className="bg-white h-8 text-sm mb-1 font-bold" />
               )}
               <div className="flex justify-between items-center mt-2">
                   <span className="text-xs text-slate-600">{address.bairro || "Bairro"} - {address.cidade || "Cidade"}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${isSimulado ? "bg-orange-100 text-orange-800" : "bg-green-100 text-green-800"}`}>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1 bg-green-100 text-green-800">
                       <MapPin className="h-3 w-3" />
-                      Frete: R$ {freteCalculado.toFixed(2)} {isSimulado && "*"}
+                      Frete: R$ {freteCalculado.toFixed(2)}
                   </span>
               </div>
           </div>
           <div className="flex gap-3">
               <div className="w-1/3 space-y-1">
                   <Label className="text-xs font-bold text-slate-700">Número *</Label>
-                  <Input 
-                     value={address.numero} 
-                     onChange={e => { 
-                        const novo = {...address, numero: e.target.value}; 
-                        setAddress(novo); 
-                        aplicarFrete(novo, freteCalculado); // Atualiza o pai
-                     }} 
-                     className="bg-white h-10 border-slate-300 text-slate-900 font-medium" 
-                     autoFocus 
-                     placeholder="Nº" 
-                  />
+                  <Input value={address.numero} onChange={e => { const novo = {...address, numero: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} className="bg-white h-10 border-slate-300 text-slate-900 font-medium" autoFocus placeholder="Nº" />
               </div>
               <div className="w-2/3 space-y-1">
                   <Label className="text-xs font-bold text-slate-700">Complemento</Label>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -6,20 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateStore } from "@/hooks/useStores";
-import { Store, MapPin, Phone } from "lucide-react";
+import { Store, MapPin, Phone, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
+// Schema definition remains the same as your original, but ensure zip_code is there
 const storeSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
   slug: z.string().min(3, "O link deve ter pelo menos 3 caracteres").regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e traços"),
   description: z.string().optional(),
   phone: z.string().optional(),
-  address: z.string().optional(),
+  zip_code: z.string().min(8, "CEP inválido"), // Ensure this is present
+  address_number: z.string().min(1, "Número obrigatório"),
+  address_street: z.string().optional(),
+  address_neighborhood: z.string().optional(),
+  address_city: z.string().optional(),
 });
 
 type StoreFormData = z.infer<typeof storeSchema>;
 
-// CORREÇÃO: Agora aceita userId opcional
 interface StoreSetupFormProps {
   userId?: string;
   onSuccess?: () => void;
@@ -27,6 +33,7 @@ interface StoreSetupFormProps {
 
 export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
   const { mutate: createStore, isPending } = useCreateStore();
+  const [loadingCep, setLoadingCep] = useState(false);
   
   const form = useForm<StoreFormData>({
     resolver: zodResolver(storeSchema),
@@ -35,12 +42,40 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       slug: "",
       description: "",
       phone: "",
-      address: "",
+      zip_code: "",
+      address_number: "",
+      address_street: "",
+      address_neighborhood: "",
+      address_city: ""
     }
   });
 
+  const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const cep = e.target.value.replace(/\D/g, "");
+    if (cep.length === 8) {
+      setLoadingCep(true);
+      try {
+        const res = await fetch(`https://brasilapi.com.br/api/cep/v1/${cep}`);
+        if (res.ok) {
+          const data = await res.json();
+          form.setValue("address_street", data.street);
+          form.setValue("address_neighborhood", data.neighborhood);
+          form.setValue("address_city", data.city);
+          toast.success("Endereço encontrado!");
+        }
+      } catch (error) {
+        // Silent error
+      } finally {
+        setLoadingCep(false);
+      }
+    }
+  };
+
   const onSubmit = (data: StoreFormData) => {
     if (!userId) return;
+
+    // Construct full address for legacy support
+    const fullAddress = `${data.address_street}, ${data.address_number} - ${data.address_neighborhood}, ${data.address_city}`;
 
     createStore({
       owner_id: userId,
@@ -48,7 +83,14 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       slug: data.slug,
       description: data.description || null,
       phone: data.phone || null,
-      address: data.address || null,
+      
+      // Save zip_code cleanly. This is crucial for the delivery calculation to work.
+      // We are casting to 'any' to bypass TS check if types are outdated, 
+      // but you MUST run the SQL to add the column.
+      zip_code: data.zip_code.replace(/\D/g, ""), 
+      
+      address: fullAddress,
+      
       is_active: true,
       is_open: true,
       primary_color: "#ea580c",
@@ -63,7 +105,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       logo_url: null,
       banner_url: null,
       whatsapp: null
-    }, {
+    } as any, { 
       onSuccess: () => {
         if (onSuccess) onSuccess();
       }
@@ -114,13 +156,43 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
               </div>
             </div>
 
+            {/* ZIP CODE FIELD - Essential for delivery logic */}
             <div className="space-y-2">
-              <Label htmlFor="address">Endereço</Label>
+              <Label htmlFor="zip_code">CEP da Loja</Label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input id="address" placeholder="Rua Exemplo, 123" className="pl-9" {...form.register("address")} />
+                <Input 
+                  id="zip_code" 
+                  placeholder="00000-000" 
+                  className="pl-9" 
+                  {...form.register("zip_code")} 
+                  onBlur={handleCepBlur}
+                />
+                {loadingCep && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-primary" />}
               </div>
+              {form.formState.errors.zip_code && <p className="text-sm text-red-500">{form.formState.errors.zip_code.message}</p>}
             </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+             <div className="space-y-2 col-span-2">
+                <Label>Rua</Label>
+                <Input {...form.register("address_street")} placeholder="Rua..." />
+             </div>
+             <div className="space-y-2">
+                <Label>Número</Label>
+                <Input {...form.register("address_number")} placeholder="123" />
+             </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+             <div className="space-y-2">
+                <Label>Bairro</Label>
+                <Input {...form.register("address_neighborhood")} placeholder="Bairro" />
+             </div>
+             <div className="space-y-2">
+                <Label>Cidade</Label>
+                <Input {...form.register("address_city")} placeholder="Cidade" />
+             </div>
           </div>
 
           <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={isPending}>

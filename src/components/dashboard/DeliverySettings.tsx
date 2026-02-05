@@ -11,9 +11,9 @@ interface DeliveryRule {
   id: string;
   max_km: number;
   price: number;
+  store_id: string; // Adicionei tipagem para garantir
 }
 
-// AQUI ESTAVA O ERRO: Removemos o 'default'
 export function DeliverySettings({ storeId }: { storeId: string }) {
   const [rules, setRules] = useState<DeliveryRule[]>([]);
   const [newKm, setNewKm] = useState("");
@@ -22,16 +22,19 @@ export function DeliverySettings({ storeId }: { storeId: string }) {
   const [pushEnabled, setPushEnabled] = useState(false);
 
   useEffect(() => {
-    fetchRules();
+    if (storeId) {
+      fetchRules();
+    }
     if ("Notification" in window) {
       setPushEnabled(Notification.permission === "granted");
     }
-  }, []);
+  }, [storeId]); // Adicionado storeId na dependência para recarregar se mudar a loja
 
   async function fetchRules() {
     const { data, error } = await supabase
       .from("delivery_rules" as any)
       .select("*")
+      .eq("store_id", storeId) // CORREÇÃO CRÍTICA: Filtra apenas regras desta loja
       .order("max_km", { ascending: true });
 
     if (error) {
@@ -50,22 +53,30 @@ export function DeliverySettings({ storeId }: { storeId: string }) {
       return;
     }
 
+    if (!storeId) {
+      toast.error("Erro: Loja não identificada.");
+      return;
+    }
+
     setLoadingRules(true);
     
     const kmValue = parseFloat(newKm.replace(",", "."));
     const priceValue = parseFloat(newPrice.replace(",", "."));
 
+    // CORREÇÃO CRÍTICA: Envia o store_id junto com a regra
     const { error } = await supabase
       .from("delivery_rules" as any)
       .insert({
+        store_id: storeId, 
         max_km: kmValue,
         price: priceValue
       });
 
     if (error) {
+      console.error(error);
       toast.error("Erro ao salvar regra.");
     } else {
-      toast.success("Regra adicionada!");
+      toast.success("Regra adicionada com sucesso!");
       setNewKm("");
       setNewPrice("");
       fetchRules();
@@ -140,7 +151,7 @@ export function DeliverySettings({ storeId }: { storeId: string }) {
             <CardTitle>Taxas de Entrega por Distância</CardTitle>
           </div>
           <CardDescription>
-            Configure quanto cobrar baseado na distância (raio em KM).
+            Configure quanto cobrar baseado na distância (raio em KM). O sistema usará estas regras automaticamente no checkout.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -166,15 +177,15 @@ export function DeliverySettings({ storeId }: { storeId: string }) {
                 className="bg-white"
               />
             </div>
-            <Button onClick={handleAddRule} disabled={loadingRules} className="bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={handleAddRule} disabled={loadingRules} className="bg-green-600 hover:bg-green-700 text-white shadow-sm">
               {loadingRules ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-              Adicionar
+              Adicionar Regra
             </Button>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-hidden shadow-sm">
             <Table>
-              <TableHeader className="bg-slate-100">
+              <TableHeader className="bg-slate-50">
                 <TableRow>
                   <TableHead>Raio de Entrega</TableHead>
                   <TableHead>Preço</TableHead>
@@ -184,23 +195,27 @@ export function DeliverySettings({ storeId }: { storeId: string }) {
               <TableBody>
                 {rules.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-slate-500 py-8">
-                      Nenhuma regra configurada.
+                    <TableCell colSpan={3} className="text-center text-slate-500 py-12">
+                      <div className="flex flex-col items-center gap-2">
+                        <Truck className="h-8 w-8 text-slate-200" />
+                        <p>Nenhuma regra configurada.</p>
+                        <p className="text-xs text-slate-400">Adicione uma regra acima para começar a vender.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   rules.map((rule, index) => (
-                    <TableRow key={rule.id}>
+                    <TableRow key={rule.id} className="hover:bg-slate-50/50">
                       <TableCell className="font-medium flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-slate-400" />
                         Até {rule.max_km} km
-                        {index === rules.length - 1 && <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2 rounded-full border border-red-100">MÁXIMO</span>}
+                        {index === rules.length - 1 && <span className="text-[10px] text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">LIMITE MÁXIMO</span>}
                       </TableCell>
-                      <TableCell className="font-bold text-green-700">
+                      <TableCell className="font-bold text-slate-700">
                         R$ {rule.price.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(rule.id)} className="text-red-500 hover:bg-red-50 h-8 w-8">
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRule(rule.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 transition-colors">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>

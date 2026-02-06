@@ -65,13 +65,16 @@ export function Header() {
             </div>
           </div>
 
-          {/* Cart Button */}
+
+{/* Cart Button */}
           <Button
+            id="cart-trigger"  // <--- ADICIONE ESTA LINHA
             onClick={() => setIsCartOpen(true)}
             className="relative bg-primary hover:bg-primary/90 text-primary-foreground button-shadow"
           >
             <ShoppingBag className="h-5 w-5" />
             <span className="hidden sm:inline ml-2">Carrinho</span>
+            
             {totalItems > 0 && (
               <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-food-red text-white text-xs flex items-center justify-center font-semibold animate-scale-in">
                 {totalItems}

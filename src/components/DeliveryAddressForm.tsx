@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Search, RefreshCw, AlertCircle, MapPin, History, ArrowRight } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox"; // <--- NOVO IMPORT
+import { Loader2, Search, RefreshCw, AlertCircle, MapPin, History, ArrowRight, ExternalLink } from "lucide-react";
 import { getDistance } from "geolib";
 import { useToast } from "@/components/ui/use-toast";
-import { useDevice } from "@/hooks/useDevice"; // Certifique-se que criou este hook no passo anterior
+import { useDevice } from "@/hooks/useDevice";
 
 interface DeliveryRule {
   max_km: number;
@@ -37,7 +38,7 @@ const DEFAULT_SYSTEM_RULES: DeliveryRule[] = [
 
 export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
   const { toast } = useToast();
-  const deviceId = useDevice(); // Identidade do dispositivo
+  const deviceId = useDevice();
   
   const [loading, setLoading] = useState(false);
   const [storeAddress, setStoreAddress] = useState<{
@@ -48,7 +49,10 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
   const [erroMsg, setErroMsg] = useState<string | null>(null);
   const [rules, setRules] = useState<DeliveryRule[]>([]);
   
-  const [savedAddresses, setSavedAddresses] = useState<any[]>([]); // Histórico local
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  
+  // ESTADO PARA CHECKBOX "SEM NÚMERO"
+  const [semNumero, setSemNumero] = useState(false);
 
   const [address, setAddress] = useState<AddressData>({
     cep: "", rua: "", numero: "", bairro: "", cidade: "", complemento: "", referencia: ""
@@ -56,11 +60,10 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
 
   const [freteCalculado, setFreteCalculado] = useState<number | null>(null);
 
-  // 1. CARREGAMENTO DOS DADOS DA LOJA E REGRAS
+  // 1. CARREGAMENTO LOJA
   useEffect(() => {
     async function loadData() {
       if (!storeId) return;
-
       try {
         let queryLoja = supabase.from("stores").select("zip_code, street_number, neighborhood, id");
         if (storeId) queryLoja = queryLoja.eq("id", storeId);
@@ -87,7 +90,6 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
                 });
             }
 
-            // CORREÇÃO ANTERIOR: Carrega regras vinculadas à loja
             const { data: rulesData } = await supabase
                 .from("delivery_rules" as any)
                 .select("max_km, price")
@@ -110,50 +112,53 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
     loadData();
   }, [storeId]);
 
-  // 2. CORREÇÃO DO ERRO: CARREGAR ENDEREÇOS SALVOS (Com "as any")
+  // 2. CARREGAR HISTÓRICO
   useEffect(() => {
     async function fetchSavedAddresses() {
         if (!deviceId) return;
-        
-        // "as any" resolve o erro de tipagem pois a tabela é nova
         const { data } = await supabase
             .from("customer_addresses" as any)
             .select("*")
             .eq("device_id", deviceId)
             .order("last_used_at", { ascending: false })
             .limit(3);
-        
         if (data) setSavedAddresses(data);
     }
     fetchSavedAddresses();
   }, [deviceId]);
 
-  // FUNÇÃO AUXILIAR: Salvar endereço novo no histórico
-// FUNÇÃO AUXILIAR: Salvar endereço novo no histórico
+  // 3. EFEITO PARA TRATAR O "SEM NÚMERO"
+  useEffect(() => {
+    if (semNumero) {
+        const novo = { ...address, numero: "S/N" };
+        setAddress(novo);
+        if (freteCalculado !== null) aplicarFrete(novo, freteCalculado);
+    } else if (address.numero === "S/N") {
+        const novo = { ...address, numero: "" };
+        setAddress(novo);
+        // Não aplica frete ainda pois numero ficou vazio
+    }
+  }, [semNumero]);
+
   const salvarNoHistorico = async (dados: AddressData) => {
     if (!deviceId || !dados.cep || !dados.numero) return;
-
     try {
-        // Verifica se já existe esse endereço para este device
         const { data } = await supabase
             .from("customer_addresses" as any)
             .select("id")
             .eq("device_id", deviceId)
             .eq("zip_code", dados.cep)
             .eq("number", dados.numero)
-            .maybeSingle(); // Use maybeSingle para evitar erros no console se não existir
+            .maybeSingle();
 
-        // FORÇA O TIPO 'ANY' PARA O TYPESCRIPT NÃO RECLAMAR DO ID
         const existing = data as any;
 
         if (existing && existing.id) {
-            // Atualiza data de uso
             await supabase
                 .from("customer_addresses" as any)
                 .update({ last_used_at: new Date().toISOString() })
                 .eq("id", existing.id);
         } else {
-            // Insere novo
             await supabase
                 .from("customer_addresses" as any)
                 .insert({
@@ -166,9 +171,7 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
                     complement: dados.complemento
                 });
         }
-    } catch (e) {
-        console.log("Erro silencioso ao salvar histórico:", e);
-    }
+    } catch (e) { console.log(e); }
   };
 
   async function buscarCoordenadasPorTexto(rua: string, numero: string, bairro: string, cidade: string) {
@@ -202,11 +205,9 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
     try {
       if (!storeAddress?.cep) throw new Error("LOJA_SEM_ENDERECO");
 
-      // Caso 1: Retirada no Local / Mesmo CEP
       if (cepLimpo === storeAddress.cep) {
           const res = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
           const dados = await res.json();
-          
           const novoEndereco = {
               ...address, 
               cep: cepParaBuscar,
@@ -215,15 +216,12 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
               cidade: dados.city || ""
           };
           setAddress(novoEndereco);
-          
           const taxaLocal = rules.length > 0 ? rules[0].price : 2.00;
           aplicarFrete(novoEndereco, taxaLocal);
-          
           setLoading(false);
           return;
       }
 
-      // Busca Dados do CEP
       const resCliente = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`);
       if (!resCliente.ok) throw new Error("CEP não encontrado.");
       const dadosEncontrados = await resCliente.json();
@@ -239,7 +237,6 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
       };
       setAddress(novoEnderecoBase);
 
-      // GPS e Cálculo
       let clienteCoords = null;
       if (dadosEncontrados.street) {
           clienteCoords = await buscarCoordenadasPorTexto(dadosEncontrados.street, "", dadosEncontrados.neighborhood, dadosEncontrados.city);
@@ -285,18 +282,17 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
       const regraAplicavel = rules.find(r => distKm <= r.max_km);
       
       if (!regraAplicavel) {
-        setErroMsg(`A rota exata para '${ruaDetectada || "seu endereço"}' encontra-se indisponível ou é inviável no momento (${distKm.toFixed(1)}km). Entre em contato pelo WhatsApp.`);
+        setErroMsg(`Indisponível para esta região (${distKm.toFixed(1)}km).`);
         setFreteCalculado(null);
       } else {
         aplicarFrete(novoEnderecoBase, regraAplicavel.price);
       }
 
     } catch (error: any) {
-      console.log("Erro cálculo:", error);
       if (error.message === "LOJA_SEM_ENDERECO") {
           setErroMsg("Erro na Loja: Endereço de origem não cadastrado.");
       } else {
-          setErroMsg(`A rota exata para '${ruaDetectada || "seu endereço"}' encontra-se indisponível ou é inviável no momento. Entre em contato pelo WhatsApp.`);
+          setErroMsg(`Rota indisponível para '${ruaDetectada}'.`);
       }
       setFreteCalculado(null);
     } finally {
@@ -308,15 +304,14 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
     setFreteCalculado(valor);
     setStep(2);
     onAddressComplete(dadosEndereco, valor);
-    
-    // Tenta salvar no histórico se tiver número (se for busca por card, já tem número)
-    if (dadosEndereco.numero) {
+    if (dadosEndereco.numero && dadosEndereco.numero !== "S/N") {
         salvarNoHistorico(dadosEndereco);
     }
   };
 
   const handleUseSavedAddress = (savedAddr: any) => {
-    // 1. Preenche o estado visualmente
+    const isSN = savedAddr.number === "S/N";
+    setSemNumero(isSN);
     setAddress({
         cep: savedAddr.zip_code,
         rua: savedAddr.street,
@@ -326,22 +321,19 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
         complemento: savedAddr.complement || "",
         referencia: "" 
     });
-
-    // 2. Dispara o cálculo (passando CEP direto)
     handleBuscarCep(savedAddr.zip_code);
   };
 
-  // Quando o usuário digita o número manualmente e sai do campo, salvamos também
   const handleNumeroBlur = () => {
-    if (address.cep && address.numero && step === 2) {
+    if (address.cep && address.numero && step === 2 && !semNumero) {
         salvarNoHistorico(address);
     }
   };
 
-  return (
+return (
     <div className="w-full space-y-4">
       
-      {/* SEÇÃO 1: ENDEREÇOS SALVOS (GLASS CARDS) */}
+      {/* SEÇÃO 1: ENDEREÇOS SALVOS */}
       {step === 1 && savedAddresses.length > 0 && (
         <div className="animate-in fade-in slide-in-from-top-4">
             <div className="flex items-center gap-2 mb-3 text-slate-500">
@@ -354,14 +346,11 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
                         key={addr.id}
                         onClick={() => handleUseSavedAddress(addr)}
                         disabled={loading}
-                        className="group relative flex items-center justify-between p-3 text-left w-full
-                                   bg-white/40 hover:bg-white/80 active:bg-white
-                                   border border-white/20 hover:border-slate-300
-                                   backdrop-blur-md rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
+                        className="group relative flex items-center justify-between p-3 text-left w-full bg-white/40 hover:bg-white/80 border border-white/20 hover:border-slate-300 backdrop-blur-md rounded-xl transition-all shadow-sm"
                     >
                         <div className="flex items-start gap-3">
                             <div className="mt-0.5 p-1.5 rounded-full bg-slate-100 group-hover:bg-slate-200 transition-colors">
-                                <MapPin className="h-3.5 w-3.5 text-slate-500 group-hover:text-slate-800" />
+                                <MapPin className="h-3.5 w-3.5 text-slate-500" />
                             </div>
                             <div>
                                 <p className="text-sm font-bold text-slate-800 leading-none mb-1">
@@ -372,68 +361,68 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
                                 </p>
                             </div>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                        <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-slate-600" />
                     </button>
                 ))}
             </div>
-            
             <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-slate-200/60" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-slate-50/50 px-2 text-slate-400 font-bold text-[10px]">Ou busque outro</span>
-                </div>
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200/60" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50/50 px-2 text-slate-400 font-bold text-[10px]">Ou busque outro</span></div>
             </div>
         </div>
       )}
 
-      {/* SEÇÃO 2: INPUT DE CEP E BUSCA */}
-      <div className="flex gap-2">
-            <div className="relative flex-1">
-                <Input 
-                    placeholder="Digite seu CEP" 
-                    value={address.cep}
-                    onChange={e => {
-                        let v = e.target.value.replace(/\D/g, "");
-                        if (v.length > 5) v = v.replace(/^(\d{5})(\d)/, "$1-$2");
-                        setAddress(prev => ({...prev, cep: v}));
-                    }}
-                    maxLength={9}
-                    className="bg-white border-slate-200 focus:bg-white text-slate-900 placeholder:text-slate-400 shadow-sm font-medium h-11"
-                    disabled={step === 2 || loading} 
-                />
+      {/* SEÇÃO 2: INPUT DE CEP */}
+      <div className="space-y-1.5"> 
+          <div className="flex gap-2">
+                <div className="relative flex-1">
+                    <Input 
+                        placeholder="Digite seu CEP" 
+                        value={address.cep}
+                        onChange={e => {
+                            let v = e.target.value.replace(/\D/g, "");
+                            if (v.length > 5) v = v.replace(/^(\d{5})(\d)/, "$1-$2");
+                            setAddress(prev => ({...prev, cep: v}));
+                        }}
+                        maxLength={9}
+                        className="bg-white border-slate-200 h-11"
+                        disabled={step === 2 || loading} 
+                    />
+                </div>
+                {step === 1 ? (
+                    <Button onClick={() => handleBuscarCep()} disabled={loading || address.cep.length < 9} size="icon" className="h-11 w-11 bg-slate-900 text-white rounded-lg">
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4"/>}
+                    </Button>
+                ) : (
+                    <Button variant="outline" size="icon" onClick={() => { setStep(1); setFreteCalculado(null); setErroMsg(null); }} className="h-11 w-11 border-red-200 text-red-500 bg-white rounded-lg">
+                        <RefreshCw className="h-4 w-4"/>
+                    </Button>
+                )}
+          </div>
+
+          {step === 1 && (
+            <div className="flex justify-end px-1">
+                <a 
+                    href="https://buscacepinter.correios.com.br/app/endereco/index.php" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-blue-500 hover:text-blue-700 underline font-medium flex items-center gap-1 transition-colors"
+                >
+                    Não sabe seu CEP? Clique aqui para descobrir
+                    <ExternalLink className="h-2.5 w-2.5" />
+                </a>
             </div>
-            {step === 1 && (
-                <Button 
-                    onClick={() => handleBuscarCep()} 
-                    disabled={loading || address.cep.length < 9} 
-                    size="icon" 
-                    className="h-11 w-11 bg-slate-900 hover:bg-slate-800 text-white shadow-md rounded-lg transition-all"
-                >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4"/>}
-                </Button>
-            )}
-            {step === 2 && (
-                <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={() => { setStep(1); setFreteCalculado(null); setErroMsg(null); setAddress(prev => ({...prev, cep: ""})); }} 
-                    className="h-11 w-11 border-red-200 text-red-500 hover:bg-red-50 bg-white rounded-lg"
-                >
-                    <RefreshCw className="h-4 w-4"/>
-                </Button>
-            )}
+          )}
       </div>
 
       {erroMsg && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg flex items-start gap-2">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>{erroMsg}</span>
           </div>
       )}
 
-      {/* SEÇÃO 3: FORMULÁRIO DE DETALHES (STEP 2) */}
+      {/* SEÇÃO 3: FORMULÁRIO DE DETALHES */}
       {step === 2 && freteCalculado !== null && (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-4 bg-white/60 backdrop-blur-md p-5 rounded-xl border border-white/50 shadow-sm">
           
@@ -442,49 +431,69 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Local de Entrega</p>
                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      Frete: R$ {freteCalculado.toFixed(2)}
+                      R$ {freteCalculado.toFixed(2)}
                  </span>
               </div>
-              
               {address.rua ? (
                   <p className="text-base font-bold text-slate-800 leading-tight">{address.rua}</p>
               ) : (
                   <Input value={address.rua} onChange={e => { const novo = {...address, rua: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} placeholder="Nome da Rua" className="bg-white h-8 text-sm mb-1 font-bold" />
               )}
-              
               <p className="text-xs text-slate-500 mt-1 font-medium">{address.bairro || "Bairro"} - {address.cidade || "Cidade"}</p>
           </div>
 
           <div className="flex gap-3">
-              <div className="w-1/3 space-y-1.5">
+              <div className="w-1/3 space-y-2">
                   <Label className="text-[11px] font-bold text-slate-600 uppercase">Número *</Label>
                   <Input 
                     value={address.numero} 
-                    onChange={e => { const novo = {...address, numero: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} 
-                    onBlur={handleNumeroBlur} // Salva no histórico ao sair do campo
-                    className="bg-white h-10 border-slate-200 focus:border-slate-400 text-slate-900 font-bold text-center" 
-                    autoFocus 
+                    onChange={e => { 
+                        const val = e.target.value.replace(/\D/g, ""); 
+                        const novo = {...address, numero: val}; 
+                        setAddress(novo); 
+                        aplicarFrete(novo, freteCalculado); 
+                    }} 
+                    onBlur={handleNumeroBlur} 
+                    disabled={semNumero}
+                    className="bg-white h-10 border-slate-200 font-bold text-center" 
                     placeholder="Nº" 
+                    inputMode="numeric"
                   />
+                  
+                  <div className="flex items-center space-x-2 pt-1">
+                    <Checkbox 
+                        id="semNumero" 
+                        checked={semNumero}
+                        onCheckedChange={(checked) => setSemNumero(checked === true)}
+                    />
+                    <label htmlFor="semNumero" className="text-[10px] font-medium leading-none text-slate-500 cursor-pointer">
+                        Sem número
+                    </label>
+                  </div>
               </div>
+
               <div className="w-2/3 space-y-1.5">
-                  <Label className="text-[11px] font-bold text-slate-600 uppercase">Complemento</Label>
+                  <Label className="text-[11px] font-bold text-slate-600 uppercase">
+                      Complemento {semNumero && <span className="text-red-500">*</span>}
+                  </Label>
                   <Input 
                     value={address.complemento} 
                     onChange={e => { const novo = {...address, complemento: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} 
-                    className="bg-white h-10 border-slate-200 focus:border-slate-400 text-slate-900" 
-                    placeholder="Apto, Bloco, Casa 2..." 
+                    className={`bg-white h-10 border-slate-200 ${semNumero && !address.complemento ? "border-red-300 bg-red-50" : ""}`}
+                    placeholder={semNumero ? "Obrigatório" : "Apto, Bloco..."} 
                   />
               </div>
           </div>
           
           <div className="space-y-1.5">
-              <Label className="text-[11px] font-bold text-slate-600 uppercase">Ponto de Referência</Label>
+              <Label className="text-[11px] font-bold text-slate-600 uppercase">
+                  Ponto de Referência {semNumero && <span className="text-red-500">*</span>}
+              </Label>
               <Input 
                 value={address.referencia} 
                 onChange={e => { const novo = {...address, referencia: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} 
-                className="bg-white h-10 border-slate-200 focus:border-slate-400 text-slate-900" 
-                placeholder="Ex: Portão cinza, ao lado da padaria..." 
+                className={`bg-white h-10 border-slate-200 ${semNumero && !address.referencia ? "border-red-300 bg-red-50" : ""}`}
+                placeholder={semNumero ? "Obrigatório" : "Ex: Ao lado da padaria..."} 
               />
           </div>
         </div>

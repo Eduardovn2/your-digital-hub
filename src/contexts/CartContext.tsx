@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import { toast } from "sonner"; // Mantive o sonner conforme seu código
+import { toast } from "sonner";
 
 // 1. Definição do Item
 export interface CartItem {
@@ -11,15 +11,18 @@ export interface CartItem {
   image_url?: string;
 }
 
-// 2. Definição do Contexto
+// 2. Definição do Contexto (Atualizada)
 interface CartContextType {
   items: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
   total: number;
+  totalItems: number; // <--- NOVO: Contagem total de itens para o badge
   storeId: string;
   setStoreId: (id: string) => void;
+  isCartOpen: boolean; // <--- NOVO: Estado para abrir/fechar o carrinho
+  setIsCartOpen: (open: boolean) => void; // <--- NOVO: Função para controlar o carrinho
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -27,9 +30,9 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [storeId, setStoreId] = useState<string>(""); 
+  const [isCartOpen, setIsCartOpen] = useState(false); // <--- NOVO: Estado da gaveta
 
   const addToCart = (newItem: CartItem) => {
-    // BLINDAGEM 1: Garante que os dados de entrada são números
     const safeItem = {
         ...newItem,
         price: Number(newItem.price) || 0,
@@ -37,7 +40,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
 
     setItems((currentItems) => {
-      // Verifica se já existe item igual (mesmo ID e mesma observação)
       const existingItem = currentItems.find(
         (item) => item.id === safeItem.id && item.observation === safeItem.observation
       );
@@ -52,7 +54,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...currentItems, safeItem];
     });
     
-    // Feedback visual
     toast.success("Item adicionado à sacola!");
   };
 
@@ -64,11 +65,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
   };
 
-  // BLINDAGEM 2: O cálculo do total global agora é à prova de falhas
+  // Cálculo do valor total (R$)
   const total = items.reduce((acc, item) => {
       const price = Number(item.price) || 0;
       const qtd = Number(item.quantity) || 1;
       return acc + (price * qtd);
+  }, 0);
+
+  // NOVO: Cálculo do total de itens (quantidade) para o badge vermelho
+  const totalItems = items.reduce((acc, item) => {
+      return acc + (Number(item.quantity) || 1);
   }, 0);
 
   return (
@@ -78,9 +84,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addToCart, 
         removeFromCart, 
         clearCart, 
-        total, 
+        total,
+        totalItems, // <--- Exportando
         storeId, 
-        setStoreId 
+        setStoreId,
+        isCartOpen, // <--- Exportando
+        setIsCartOpen // <--- Exportando
       }}
     >
       {children}

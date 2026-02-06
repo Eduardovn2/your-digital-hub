@@ -23,6 +23,19 @@ const parseCurrency = (value: string) => {
   return parseFloat(value.replace(",", ".")) || 0;
 };
 
+const formatPhoneNumber = (value: string) => {
+  // Remove tudo que não for número
+  const numbers = value.replace(/\D/g, "");
+  
+  // Limita tamanho (11 dígitos: DDD + 9 números)
+  const truncated = numbers.slice(0, 11);
+
+  // Aplica a máscara (XX) XXXXX-XXXX
+  if (truncated.length <= 2) return truncated;
+  if (truncated.length <= 7) return `(${truncated.slice(0, 2)}) ${truncated.slice(2)}`;
+  return `(${truncated.slice(0, 2)}) ${truncated.slice(2, 7)}-${truncated.slice(7)}`;
+};
+
 // --- TRADUTOR DE STATUS ---
 const normalizeStatus = (status: string | null | undefined) => {
   const s = (status || "").toLowerCase().trim();
@@ -89,10 +102,25 @@ export default function CartDrawer() {
   const [frete, setFrete] = useState<number | null>(null);
   const [enderecoCompleto, setEnderecoCompleto] = useState<AddressData | null>(null);
 
-  const subtotalReal = items.reduce((acc, item) => acc + (Number(item.price) * (item.quantity || 1)), 0);
+const subtotalReal = items.reduce((acc, item) => acc + (Number(item.price) * (item.quantity || 1)), 0);
   const totalFinal = subtotalReal + (frete || 0);
   
-  const isFormValid = items.length > 0 && nome.trim().length > 0 && telefone.trim().length > 0 && frete !== null && enderecoCompleto?.numero;
+  // --- FALTAVA ESTA LINHA (Cria a validação do telefone) ---
+  const isPhoneValid = telefone.replace(/\D/g, "").length === 11; 
+  // ---------------------------------------------------------
+
+  const isAddressValid = enderecoCompleto?.numero 
+    ? (enderecoCompleto.numero === "S/N" 
+        ? !!enderecoCompleto.complemento && !!enderecoCompleto.referencia // Se S/N, exige compl. e ref.
+        : true) 
+    : false;
+
+  const isFormValid = 
+    items.length > 0 && 
+    nome.trim().length > 0 && 
+    isPhoneValid && // Agora o código sabe o que é isso
+    frete !== null && 
+    isAddressValid;
 
   // Lógica do Banner
   const lastOrder = orderHistory[0];
@@ -130,8 +158,13 @@ export default function CartDrawer() {
   };
 
   const handleFinalizar = async () => {
-    if (!isFormValid) return;
-    setLoading(true);
+        if (!isFormValid) {
+                // Feedback visual se o usuário tentar forçar (opcional)
+                if (!isPhoneValid) toast({ title: "Telefone inválido", description: "Digite o DDD + 9 números.", variant: "destructive" });
+                else if (!isAddressValid) toast({ title: "Endereço incompleto", description: "Preencha o complemento e referência.", variant: "destructive" });
+                return;
+            }
+            setLoading(true);
 
     try {
       const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}, ${enderecoCompleto!.cidade}`;
@@ -139,7 +172,7 @@ export default function CartDrawer() {
       const orderPayload = {
         store_id: storeId,
         customer_name: nome,
-        customer_phone: telefone,
+        customer_phone: telefone.replace(/\D/g, ""), // <--- ALTERE ESTA LINHA (Remove a máscara)
         customer_address: addressString,
         delivery_fee: frete,
         total: totalFinal,
@@ -168,7 +201,11 @@ export default function CartDrawer() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button className="relative h-14 px-8 rounded-full bg-slate-900 text-white shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95">
+        {/* BOTÃO DA SACOLA (ALVO DA ANIMAÇÃO) */}
+        <Button 
+            id="cart-trigger" 
+            className="relative h-14 px-8 rounded-full bg-slate-900 text-white shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
+        >
           <div className="relative">
             <ShoppingBag className="h-5 w-5" />
             {activeOrder && (
@@ -185,7 +222,7 @@ export default function CartDrawer() {
       <SheetContent className="w-full sm:max-w-md flex flex-col h-[100dvh] bg-slate-50 p-0 border-l-0 shadow-2xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full overflow-hidden">
             
-      <SheetHeader className="px-5 pt-5 pb-3 bg-white/80 backdrop-blur-xl border-b border-white/40 shadow-sm z-20 flex-shrink-0 relative">
+            <SheetHeader className="px-5 pt-5 pb-3 bg-white/80 backdrop-blur-xl border-b border-white/40 shadow-sm z-20 flex-shrink-0 relative">
                 <SheetTitle className="sr-only">Carrinho</SheetTitle>
                 
                 {/* Botão de Fechar (Red Glass Theme) */}
@@ -251,7 +288,7 @@ export default function CartDrawer() {
                                 <span className="text-sm font-medium">Sua sacola está vazia</span>
                             </div>
                         )}
-                      {items.map(item => (
+                        {items.map(item => (
                             <div key={item.id} className="flex justify-between items-center bg-white/70 backdrop-blur-md p-3 rounded-xl border border-white/50 shadow-sm transition-all hover:bg-white/90">
                                 <div className="flex items-center gap-3">
                                     <div className="h-12 w-12 rounded-lg bg-white/50 flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/60">
@@ -272,7 +309,7 @@ export default function CartDrawer() {
                     </div>
 
                     {/* DADOS CLIENTE */}
-                      {/* DADOS DO CLIENTE (GLASS THEME SUAVE) */}
+{/* 2. DADOS CLIENTE (Com Validação Visual) */}
                     <div className="space-y-4 bg-white/70 backdrop-blur-md p-5 rounded-2xl border border-white/50 shadow-sm transition-all hover:bg-white/80">
                         <div className="flex items-center gap-2 mb-1">
                             <div className="bg-slate-100/80 p-1.5 rounded-full"><User className="h-3.5 w-3.5 text-slate-500" /></div>
@@ -283,9 +320,37 @@ export default function CartDrawer() {
                                 <Label className="text-xs font-bold text-slate-700">Nome Completo</Label>
                                 <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Eduardo Viana" className="bg-white/50 h-11 text-sm border-white/60 focus:bg-white focus:border-slate-200 transition-colors shadow-sm" />
                             </div>
+                            
+                            {/* CAMPO DE TELEFONE COM AVISO DE CARACTERES */}
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-700">WhatsApp / Celular</Label>
-                                <Input value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="(21) 99999-9999" className="bg-white/50 h-11 text-sm border-white/60 focus:bg-white focus:border-slate-200 transition-colors shadow-sm" />
+                                <Label className="text-xs font-bold text-slate-700 flex justify-between">
+                                    WhatsApp / Celular
+                                    {/* Contador visual no cantinho (Ex: 9/11) */}
+                                    <span className={`text-[12px] ${telefone.replace(/\D/g, "").length === 11 ? "text-emerald-600 font-black" : "text-slate-400 font-medium"}`}>
+                                        {telefone.replace(/\D/g, "").length}/11
+                                    </span>
+                                </Label>
+                                <Input 
+                                    value={telefone} 
+                                    onChange={e => setTelefone(formatPhoneNumber(e.target.value))} 
+                                    placeholder="(21) 99999-9999" 
+                                    inputMode="tel"
+                                    maxLength={15}
+                                    // Borda vermelha se começou a digitar e não terminou
+                                    className={`bg-white/50 h-11 text-sm border-white/60 focus:bg-white transition-colors shadow-sm ${
+                                        telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 
+                                        ? "border-red-300 focus:border-red-400 bg-red-50/30" 
+                                        : "focus:border-slate-200"
+                                    }`} 
+                                />
+                                
+                                {/* MENSAGEM DE ERRO DINÂMICA */}
+                                {telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 && (
+                                    <p className="text-[10px] text-red-500 font-bold animate-in slide-in-from-top-1 ml-1 flex items-center gap-1">
+                                        <XCircle className="h-3 w-3" />
+                                        Faltam {11 - telefone.replace(/\D/g, "").length} números (DDD + 9 dígitos)
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <Separator className="my-2 bg-slate-200/50" />

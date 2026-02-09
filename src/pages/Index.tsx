@@ -55,11 +55,11 @@ export default function Index() {
         </div>
       </header>
 
-      {/* HERO SECTION MODULARIZADA */}
+      {/* HERO SECTION */}
       <HeroSection />
 
-      {/* SECTION: Features com Glassmorphism */}
-      <section className="py-24 relative overflow-hidden">
+      {/* --- MUDANÇA AQUI: Adicionado id="demonstracao" --- */}
+      <section id="demonstracao" className="py-24 relative overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-slate-900">

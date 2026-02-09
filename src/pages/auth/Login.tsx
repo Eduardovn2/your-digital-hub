@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GlassCard } from "@/components/ui/GlassCard"; 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Loader2, Store, Lock, Mail, ArrowLeft } from "lucide-react";
+import { Loader2, Store, Lock, Mail, ArrowLeft, AlertCircle, Clock, ShieldAlert } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -14,16 +15,29 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Estados de Segurança e Erro
+  const [errorMsg, setErrorMsg] = useState<string | null>(null); // Mensagem de erro na tela
+  const [attempts, setAttempts] = useState(0); // Contador de tentativas erradas
+  const [lockoutTime, setLockoutTime] = useState(0); // Tempo de bloqueio em segundos
+
+  // Efeito do Cronômetro de Bloqueio
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (lockoutTime > 0) {
+      timer = setInterval(() => {
+        setLockoutTime((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [lockoutTime]);
+
   const handleGoogleLogin = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/admin`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
+          queryParams: { access_type: 'offline', prompt: 'consent' },
         },
       });
       if (error) throw error;
@@ -34,6 +48,14 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
+
+    // 1. Verifica se está bloqueado (Anti-Bot Simples)
+    if (lockoutTime > 0) {
+      toast.warning(`Aguarde ${lockoutTime} segundos para tentar novamente.`);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -44,17 +66,52 @@ export default function Login() {
 
       if (error) throw error;
 
+      // Sucesso! Limpa erros e tentativas
+      setAttempts(0);
       toast.success("Login realizado com sucesso!");
       
       const role = data.user?.user_metadata?.role;
       if (role === 'seller') {
         navigate("/admin");
       } else {
-        // Se por acaso um cliente antigo logar, manda pra home
         navigate("/");
       }
+
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer login");
+      console.error("Erro de login:", error);
+      
+      // Incrementa tentativas
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+
+      // LÓGICA DE TRATAMENTO DE ERRO (O que você pediu)
+      let displayMessage = "Ocorreu um erro ao tentar entrar.";
+      let isRateLimit = false;
+
+      // Tradução dos erros comuns
+      if (error.message.includes("Invalid login") || error.message.includes("invalid_credentials")) {
+        displayMessage = "E-mail ou senha incorretos.";
+      } else if (error.message.includes("Email not confirmed")) {
+        displayMessage = "Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada.";
+      } else if (error.status === 429 || error.message.includes("Too many requests")) {
+        displayMessage = "Muitas tentativas consecutivas. Por segurança, aguarde um momento.";
+        isRateLimit = true;
+      }
+
+      // Adiciona dicas úteis se não for erro de sistema
+      if (!isRateLimit && newAttempts >= 2) {
+        displayMessage += " (Dica: Verifique se o Caps Lock está ligado ou se há espaços no e-mail)";
+      }
+
+      // Aplica bloqueio se errar 3 vezes ou se for Rate Limit (429)
+      if (newAttempts >= 3 || isRateLimit) {
+        setLockoutTime(30 * (isRateLimit ? 2 : 1)); // 30s (ou 60s se for erro do servidor)
+        displayMessage = "Muitas tentativas falhas. Acesso temporariamente bloqueado.";
+      }
+
+      setErrorMsg(displayMessage);
+      toast.error(displayMessage); // Mostra no toast também
+
     } finally {
       setLoading(false);
     }
@@ -92,12 +149,32 @@ export default function Login() {
           </div>
 
           <div className="space-y-5">
+            
+            {/* --- NOVO: Área de Alerta de Erro --- */}
+            {errorMsg && (
+              <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 animate-fade-in">
+                <div className="flex gap-2 items-start">
+                  {lockoutTime > 0 ? <Clock className="h-4 w-4 mt-1" /> : <AlertCircle className="h-4 w-4 mt-1" />}
+                  <div>
+                    <AlertTitle className="font-bold">
+                      {lockoutTime > 0 ? `Bloqueado por ${lockoutTime}s` : "Atenção"}
+                    </AlertTitle>
+                    <AlertDescription className="text-xs mt-1 leading-relaxed">
+                      {errorMsg}
+                    </AlertDescription>
+                  </div>
+                </div>
+              </Alert>
+            )}
+            {/* ---------------------------------- */}
+
              {/* Google Button */}
             <Button 
               type="button"
               onClick={handleGoogleLogin}
               variant="outline"
-              className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:text-slate-900 flex items-center justify-center gap-2 bg-white shadow-sm"
+              disabled={lockoutTime > 0}
+              className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:text-slate-900 flex items-center justify-center gap-2 bg-white shadow-sm disabled:opacity-50"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -127,6 +204,7 @@ export default function Login() {
                         onChange={(e) => setEmail(e.target.value)} 
                         className="pl-12 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:ring-slate-900/10 rounded-xl transition-all shadow-sm"
                         placeholder="loja@exemplo.com"
+                        disabled={lockoutTime > 0} // Trava se estiver bloqueado
                     />
                 </div>
               </div>
@@ -134,7 +212,6 @@ export default function Login() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                     <Label htmlFor="password" className="text-slate-700 ml-1 text-xs uppercase font-bold tracking-wider">Senha</Label>
-                    {/* Link de esqueceu a senha poderia vir aqui */}
                 </div>
                 <div className="relative group">
                     <Lock className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
@@ -146,16 +223,27 @@ export default function Login() {
                         onChange={(e) => setPassword(e.target.value)} 
                         className="pl-12 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:ring-slate-900/10 rounded-xl transition-all shadow-sm"
                         placeholder="••••••••"
+                        disabled={lockoutTime > 0} // Trava se estiver bloqueado
                     />
                 </div>
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-bold bg-slate-900 hover:bg-black text-white rounded-xl shadow-lg shadow-slate-900/20 hover:shadow-xl hover:-translate-y-0.5 transition-all" 
-                disabled={loading}
+                className={`w-full h-12 text-base font-bold text-white rounded-xl shadow-lg transition-all ${
+                  lockoutTime > 0 
+                  ? "bg-slate-400 cursor-not-allowed" 
+                  : "bg-slate-900 hover:bg-black hover:shadow-xl hover:-translate-y-0.5 shadow-slate-900/20"
+                }`}
+                disabled={loading || lockoutTime > 0}
               >
-                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Acessar Painel"}
+                {loading ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : lockoutTime > 0 ? (
+                  <span className="flex items-center gap-2"><ShieldAlert className="h-4 w-4"/> Aguarde {lockoutTime}s</span>
+                ) : (
+                  "Acessar Painel"
+                )}
               </Button>
             </form>
           </div>

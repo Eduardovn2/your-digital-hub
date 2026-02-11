@@ -25,13 +25,12 @@ const App = () => (
             <Toaster />
             <BrowserRouter>
               <Routes>
-                {/* Rotas Públicas */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/payment" element={<PaymentMock />} />
 
-                {/* CORREÇÃO AQUI: Mudamos requiredRole para "admin" */}
+                {/* CORREÇÃO: requiredRole="admin" */}
                 <Route 
                   path="/admin" 
                   element={

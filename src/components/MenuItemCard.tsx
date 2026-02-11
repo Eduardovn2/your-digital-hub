@@ -18,6 +18,7 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // AÇÃO DE ADICIONAR (Com a Animação de Voo)
+// AÇÃO DE ADICIONAR (Com a Animação de Voo)
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation(); // Evita abrir o modal ao clicar no botão
     
@@ -25,6 +26,7 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
     flyToCart(e, item.image);
 
     // 2. Lógica do Carrinho
+    // (O toast de sucesso já será disparado dentro desta função pelo Contexto)
     addToCart({
       id: item.id,
       name: item.name,
@@ -32,12 +34,6 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
       quantity: 1,
       image_url: item.image,
       observation: ""
-    });
-
-    // 3. Feedback Visual (Toast Glass Theme)
-    toast.success(`${item.name} voou para a sacola!`, {
-      position: "bottom-center",
-      className: "bg-white/80 backdrop-blur-md border-white/20 text-slate-900 font-bold shadow-xl"
     });
   };
 

@@ -1,24 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SoundSettingsCard } from "./SoundSettingsCard"; // Nossa opção única e universal
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, MapPin, Truck, Bell, Save, Loader2, Search, BellOff } from "lucide-react";
+import { Store, MapPin, Truck, Bell, Save, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { DeliverySettings } from "./DeliverySettings"; 
-import { formatPhone } from "@/lib/utils"; // <--- Importe a função
+import { formatPhone } from "@/lib/utils"; 
 
 export function StoreSettings({ store }: { store: any }) {
   const [loading, setLoading] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(false);
   
   const [formData, setFormData] = useState({
     name: store?.name || "",
     description: store?.description || "",
-    phone: formatPhone(store?.phone || ""), // <--- Formata ao carregar
+    phone: formatPhone(store?.phone || ""),
     zip_code: store?.zip_code || "",
     street: store?.street || "",
     street_number: store?.street_number || "",
@@ -26,30 +26,8 @@ export function StoreSettings({ store }: { store: any }) {
     city: store?.city || "",
     complement: store?.complement || ""
   });
-
-  // ... (o restante dos useEffect e funções mantêm-se iguais até o return)
-  // Vou colocar apenas a parte alterada do INPUT de telefone
-
-  const handleEnableNotifications = async () => {
-    // ... (mesmo código anterior)
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        toast.error("O navegador não suporta notificações em standby.");
-        return;
-      }
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission === "granted") {
-          await navigator.serviceWorker.ready;
-          setPushEnabled(true);
-          toast.success("Notificações ativadas com sucesso!");
-        }
-      } catch (error) {
-        toast.error("Erro ao configurar notificações.");
-      }
-  };
   
   const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // ... (mesmo código anterior)
     let valor = e.target.value.replace(/\D/g, "");
     if (valor.length > 5) valor = valor.replace(/^(\d{5})(\d)/, "$1-$2");
     
@@ -82,7 +60,7 @@ export function StoreSettings({ store }: { store: any }) {
       .from("stores")
       .update({
         ...formData,
-        phone: formData.phone.replace(/\D/g, "") // Limpa antes de salvar no banco
+        phone: formData.phone.replace(/\D/g, "")
       })
       .eq("id", store.id);
 
@@ -126,7 +104,6 @@ export function StoreSettings({ store }: { store: any }) {
                   <Input className="bg-white/50 border-white/80 focus:bg-white transition-all rounded-xl" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                 </div>
                 
-                {/* 👇 AQUI ESTÁ O INPUT DE TELEFONE ATUALIZADO */}
                 <div className="space-y-2">
                   <Label>WhatsApp (com DDD)</Label>
                   <Input 
@@ -146,8 +123,6 @@ export function StoreSettings({ store }: { store: any }) {
             </CardContent>
           </Card>
 
-          {/* ... O RESTO DO CÓDIGO PERMANECE IGUAL AO SEU ORIGINAL ... */}
-          
           <Card className="bg-indigo-50/40 backdrop-blur-xl border-indigo-100/50 shadow-lg rounded-3xl">
             <CardHeader>
               <div className="flex items-center gap-2 text-indigo-900">
@@ -197,21 +172,9 @@ export function StoreSettings({ store }: { store: any }) {
           <DeliverySettings storeId={store.id} />
         </TabsContent>
 
-        <TabsContent value="notificacoes" className="outline-none">
-          <Card className="bg-orange-50/40 backdrop-blur-xl border-orange-200 shadow-lg rounded-3xl">
-            <CardHeader>
-              <div className="flex items-center gap-2 text-orange-800">
-                {pushEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
-                <CardTitle>Alertas de Sistema</CardTitle>
-              </div>
-              <CardDescription className="text-orange-700/70">Mantenha-se informado sobre novos pedidos em tempo real.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleEnableNotifications} variant={pushEnabled ? "outline" : "default"} className={`rounded-xl h-12 px-6 ${pushEnabled ? "bg-white text-green-600 border-green-200" : "bg-orange-600 hover:bg-orange-700 text-white"}`}>
-                {pushEnabled ? "Notificações Ativas ✓" : "Ativar Alertas Push"}
-              </Button>
-            </CardContent>
-          </Card>
+        <TabsContent value="notificacoes" className="space-y-6 outline-none">
+          {/* ÚNICA OPÇÃO DE NOTIFICAÇÃO: GLOBAL E UNIVERSAL */}
+          <SoundSettingsCard />
         </TabsContent>
       </Tabs>
     </div>

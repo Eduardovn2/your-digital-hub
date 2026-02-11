@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
 import { Order, OrderStatus } from "@/types/store";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -9,11 +9,10 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { 
   Clock, CheckCircle2, Truck, ChefHat, XCircle, 
-  Printer, MapPin, AlertCircle, Volume2, VolumeX
+  Printer, MapPin, AlertCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-// ... (Mantenha o objeto STATUS_CONFIG igual ao anterior) ...
 const STATUS_CONFIG: Record<string, { label: string, color: string, icon: any, next?: OrderStatus }> = {
   pending: { label: "Pendente", color: "bg-yellow-500/20 text-yellow-600 border-yellow-200", icon: AlertCircle, next: "confirmed" },
   confirmed: { label: "Na Fila", color: "bg-blue-500/20 text-blue-600 border-blue-200", icon: Clock, next: "preparing" },
@@ -28,54 +27,18 @@ export function OrdersList({ storeId }: { storeId: string }) {
   const { data: initialOrders, refetch } = useOrders(storeId);
   const { mutate: updateStatusMutation } = useUpdateOrderStatus();
   const [orders, setOrders] = useState<Order[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [soundEnabled, setSoundEnabled] = useState(false);
-
-  // Inicializa o áudio
-  useEffect(() => {
-    audioRef.current = new Audio("/notification.mp3");
-    // Tenta habilitar o som com um clique falso se possível, ou espera interação
-  }, []);
-
-  const playSound = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(error => {
-        console.warn("Autoplay bloqueado pelo navegador:", error);
-        toast.warning("Clique na página para habilitar sons de notificação.");
-        setSoundEnabled(false);
-      });
-    }
-  };
-
-  // Botão para ativar som manualmente (Hack para contornar bloqueio do navegador)
-  const enableSound = () => {
-    if (audioRef.current) {
-      audioRef.current.play().then(() => {
-        audioRef.current?.pause();
-        audioRef.current!.currentTime = 0;
-        setSoundEnabled(true);
-        toast.success("Sons ativados!");
-      }).catch(() => toast.error("Erro ao ativar som. Verifique se o arquivo existe."));
-    }
-  };
 
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders);
   }, [initialOrders]);
 
-  // Realtime Listener
+  // Realtime Listener (Apenas atualiza a lista, o som é tocado pelo Global no Admin.tsx)
   useEffect(() => {
     if (!storeId) return;
 
     const channel = supabase
-      .channel('orders-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` }, () => {
-        toast.info("Novo pedido recebido! 🔔");
-        playSound();
-        refetch();
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` }, () => {
+      .channel('orders-realtime-list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` }, () => {
         refetch();
       })
       .subscribe();
@@ -97,12 +60,12 @@ export function OrdersList({ storeId }: { storeId: string }) {
   };
 
   const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
-  const historyOrders = orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
+  // const historyOrders = orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
 
   return (
     <div className="space-y-8 animate-fade-in">
       
-      {/* HEADER */}
+      {/* HEADER LIMPO (Sem botão de som) */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -112,22 +75,14 @@ export function OrdersList({ storeId }: { storeId: string }) {
           <p className="text-slate-500">Gerencie os pedidos em tempo real.</p>
         </div>
         <div className="flex items-center gap-2">
-           <Button 
-             variant="ghost" 
-             size="sm" 
-             onClick={enableSound}
-             className={soundEnabled ? "text-green-600" : "text-slate-400"}
-           >
-             {soundEnabled ? <Volume2 className="h-5 w-5 mr-2" /> : <VolumeX className="h-5 w-5 mr-2" />}
-             {soundEnabled ? "Som Ativo" : "Ativar Som"}
-           </Button>
+           {/* Botão de Som removido daqui */}
            <Badge variant="outline" className="px-4 py-2 text-base bg-white shadow-sm">
              {activeOrders.length} Pedidos Ativos
            </Badge>
         </div>
       </div>
 
-      {/* GRID KANBAN (Mantenha o código do Grid igual ao anterior, apenas copiei o início para contexto) */}
+      {/* GRID KANBAN */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {activeOrders.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-300">
@@ -182,7 +137,7 @@ export function OrdersList({ storeId }: { storeId: string }) {
                       )}
                       <div className="pt-2 border-t border-dashed">
                         <p className="text-sm font-bold text-slate-800 text-right">
-                          Total: {order.total?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          Total: {Number(order.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </p>
                       </div>
                    </div>
@@ -218,7 +173,6 @@ export function OrdersList({ storeId }: { storeId: string }) {
       </div>
 
       <Separator className="my-8" />
-      {/* (Mantenha o histórico aqui igual ao anterior) */}
     </div>
   );
 }

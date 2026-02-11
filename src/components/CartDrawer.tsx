@@ -41,6 +41,7 @@ const normalizeStatus = (status: string | null | undefined) => {
   const s = (status || "").toLowerCase().trim();
   if (!s) return "pending";
   
+  if (['saiu', 'entrega', 'caminho', 'moto', 'delivery', 'delivering', 'ready'].some(k => s.includes(k))) return "delivering";
   if (['cancel', 'recusado'].some(k => s.includes(k))) return "cancelled";
   if (['complet', 'conclui', 'finaliza', 'entregue', 'delivered', 'done'].some(k => s.includes(k))) return "completed";
   if (['saiu', 'entrega', 'caminho', 'moto', 'delivery', 'delivering'].some(k => s.includes(k))) return "delivering";
@@ -158,68 +159,69 @@ const subtotalReal = items.reduce((acc, item) => acc + (Number(item.price) * (it
   };
 
 const handleFinalizar = async () => {
-    if (!isFormValid) return;
-    setLoading(true);
+  if (!isFormValid) return;
+  setLoading(true);
 
-    try {
-      const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}`;
-      
-      // Criamos o objeto APENAS com o que o banco espera receber
-      const orderPayload = {
-        store_id: storeId,
-        customer_name: nome,
-        customer_phone: telefone.replace(/\D/g, ""),
-        customer_address: addressString,
-        delivery_fee: frete,
-        total_amount: totalFinal, // Certifique-se que o nome no banco é este
-        payment_method: pagamento,
-        change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
-        status: "pending" as "pending",
-        device_id: deviceId
-      };
+  try {
+    const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}`;
+    
+    // 1. Criamos os dados do pedido (Payload)
+    const orderPayload = {
+      store_id: storeId,
+      customer_name: nome,
+      customer_phone: telefone.replace(/\D/g, ""),
+      customer_address: addressString,
+      delivery_fee: frete,
+      subtotal: subtotalReal, // Envia o subtotal (obrigatório)
+      total: totalFinal,      // Envia o total (obrigatório)
+      payment_method: pagamento,
+      change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
+      status: "pending" as "pending",
+      device_id: deviceId
+    };
 
-      // Inserção do pedido
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert(orderPayload)
-        .select()
-        .single();
+    // 2. Insere na tabela 'orders' e captura o 'orderData'
+    const { data: orderData, error: orderError } = await supabase
+      .from("orders")
+      .insert(orderPayload)
+      .select()
+      .single();
 
-      if (orderError) {
-        console.error("Erro detalhado do Supabase:", orderError);
-        throw orderError;
-      }
+    if (orderError) throw orderError;
 
-      // Se o pedido foi criado, agora inserimos os itens
-      if (orderData && items.length > 0) {
-        const itemsPayload = items.map((item) => ({
-          order_id: orderData.id,
-          product_name: item.name,
-          product_price: Number(item.price),
-          quantity: item.quantity,
-          subtotal: Number(item.price) * (item.quantity || 1)
-        }));
+    // 3. Agora que o 'orderData' existe, inserimos os itens
+    if (orderData && items.length > 0) {
+      const itemsPayload = items.map((item) => ({
+        order_id: orderData.id,
+        product_id: item.id,
+        product_name: item.name,
+        product_price: Number(item.price),
+        quantity: item.quantity,
+        subtotal: Number(item.price) * (item.quantity || 1)
+      }));
 
-        const { error: itemsError } = await supabase
-          .from("order_items")
-          .insert(itemsPayload);
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(itemsPayload);
 
-        if (itemsError) throw itemsError;
-      }
-
-      toast({ title: "Sucesso!", description: "Pedido enviado com sucesso." });
-      clearCart();
-      setActiveTab("orders");
-
-    } catch (error: any) {
-      toast({ 
-        title: "Erro no envio", 
-        description: "Verifique o console para detalhes técnicos.", 
-        variant: "destructive" 
-      });
-    } finally {
-      setLoading(false);
+      if (itemsError) throw itemsError;
     }
+
+    // 4. Sucesso total
+    toast({ title: "Sucesso!", description: "Pedido enviado com sucesso." });
+    clearCart();
+    setActiveTab("orders");
+
+  } catch (error: any) {
+    console.error("Erro no Supabase:", error);
+    toast({ 
+      title: "Erro no envio", 
+      description: error.message || "Verifique o console para detalhes.", 
+      variant: "destructive" 
+    });
+  } finally {
+    setLoading(false);
+  }
 };
   return (
     <Sheet open={open} onOpenChange={setOpen}>

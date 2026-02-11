@@ -3,17 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Printer, Check, Bike, CheckCircle2 } from "lucide-react"; // Importe 'Bike' aqui
+// O erro era aqui: mude de 'lucide-center' para 'lucide-react'
+import { Loader2, Printer, Check, Bike, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-
-// Definimos os status exatos que o seu processo de hamburgueria segue
-type OrderStatus = "pending" | "preparing" | "shipped" | "delivered" | "cancelled";
+// CORREÇÃO: Alinhado com o Enum do banco de dados (substituído 'shipped' por 'ready')
+type OrderStatus = "pending" | "preparing" | "ready" | "delivered" | "cancelled";
 
 export default function OrdersList({ storeId }: { storeId: string }) {
   const queryClient = useQueryClient();
 
-  // 1. Busca de Pedidos em tempo real
   const { data: orders, isLoading } = useQuery({
     queryKey: ["orders", storeId],
     queryFn: async () => {
@@ -24,11 +23,10 @@ export default function OrdersList({ storeId }: { storeId: string }) {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data as any[]; // 'any' ajuda a lidar com colunas novas no banco sem travar o TS
+      return data as any[]; 
     },
   });
 
-  // --- FUNÇÃO DE MUDANÇA DE STATUS (PASSO 2) ---
   const updateStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
       const { error } = await supabase
@@ -40,7 +38,6 @@ export default function OrdersList({ storeId }: { storeId: string }) {
 
       toast.success(`Pedido movido para: ${newStatus}`);
       
-      // Isso força o dashboard e a lista a se atualizarem na hora
       queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats", storeId] });
     } catch (error: any) {
@@ -48,7 +45,6 @@ export default function OrdersList({ storeId }: { storeId: string }) {
     }
   };
 
-  // Função de Impressão para Maquininha/Térmica
   const handlePrint = (order: any) => {
     const printWindow = window.open('', '_blank');
     printWindow?.document.write(`
@@ -91,7 +87,6 @@ export default function OrdersList({ storeId }: { storeId: string }) {
                 <Printer className="h-4 w-4" />
               </Button>
               
-              {/* Botões de Ação Baseados no Status Atual */}
               {order.status === 'pending' && (
                 <Button className="bg-green-600 hover:bg-green-700" onClick={() => updateStatus(order.id, 'preparing')}>
                   <Check className="mr-2 h-4 w-4" /> Aceitar
@@ -101,13 +96,14 @@ export default function OrdersList({ storeId }: { storeId: string }) {
               {order.status === 'preparing' && (
                   <Button 
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold" 
-                    onClick={() => updateStatus(order.id, 'shipped')}
+                    onClick={() => updateStatus(order.id, 'ready')} // CORREÇÃO: Enviando 'ready'
                   >
                     <Bike className="mr-2 h-5 w-5" /> Despachar
                   </Button>
                 )}
 
-              {order.status === 'shipped' && (
+              {/* CORREÇÃO: Verificando status 'ready' para exibir o botão de concluir */}
+              {order.status === 'ready' && (
                 <Button className="bg-slate-800 hover:bg-slate-900 text-white" onClick={() => updateStatus(order.id, 'delivered')}>
                   <CheckCircle2 className="mr-2 h-4 w-4" /> Concluir
                 </Button>

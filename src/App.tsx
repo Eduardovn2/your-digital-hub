@@ -2,14 +2,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster"; 
-
-// 1. IMPORTAÇÕES DE SEGURANÇA E CONTEXTO
 import { AuthProvider } from "@/contexts/AuthContext"; 
 import { CartProvider } from "@/contexts/CartContext"; 
 import { ProtectedRoute } from "@/pages/auth/ProtectedRoute";
 import { AdminSettingsProvider } from "@/contexts/AdminSettingsContext"; 
 
-// 2. IMPORTS DAS PÁGINAS
 import Index from "./pages/Index";
 import StorePage from "./pages/StorePage";
 import PaymentMock from "./pages/subscription/PaymentMock";
@@ -22,13 +19,8 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      {/* 3. O AuthProvider envolve a autenticação do lojista */}
-      <AuthProvider>
-        
-        {/* --- ADICIONEI AQUI O PROVIDER DE CONFIGURAÇÕES --- */}
+      <AuthProvider> 
         <AdminSettingsProvider>
-          
-          {/* 4. O CartProvider envolve as rotas para permitir pedidos na StorePage */}
           <CartProvider>
             <Toaster />
             <BrowserRouter>
@@ -39,24 +31,21 @@ const App = () => (
                 <Route path="/register" element={<Register />} />
                 <Route path="/payment" element={<PaymentMock />} />
 
-                {/* Rota Protegida (Admin) */}
+                {/* CORREÇÃO AQUI: Mudamos requiredRole para "admin" */}
                 <Route 
                   path="/admin" 
                   element={
-                    <ProtectedRoute requiredRole="admin"> 
+                    <ProtectedRoute requiredRole="admin">
                       <Admin />
                     </ProtectedRoute>
                   } 
                 />
                 
-                {/* Rota da Loja Pública (Slug) - Deve ficar por último para não atrapalhar as outras */}
                 <Route path="/:slug" element={<StorePage />} />
               </Routes>
             </BrowserRouter>
           </CartProvider>
-          
         </AdminSettingsProvider>
-
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

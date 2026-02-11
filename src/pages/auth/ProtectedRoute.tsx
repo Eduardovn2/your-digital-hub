@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
-// 👇 AQUI ESTÁ A CORREÇÃO: Adicionamos "admin" na tipagem
+// Adicionamos "admin" aqui para o TypeScript não reclamar
 type AllowedRole = "seller" | "customer" | "admin"; 
 
 interface ProtectedRouteProps {
@@ -28,9 +28,14 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   const userRole = user.user_metadata?.role;
 
-  // Lógica simplificada: Se for admin, libera tudo. Se não, verifica o papel específico.
+  // CORREÇÃO DO LOOP:
+  // Se o papel exigido for diferente do papel do usuário
   if (requiredRole && userRole !== requiredRole) {
-    if (userRole === 'admin') return <>{children}</>;
+    // TRUQUE: Se o usuário for "admin", ele pode acessar áreas de "seller"
+    if (userRole === 'admin') {
+        return <>{children}</>;
+    }
+    // Caso contrário, manda para home
     return <Navigate to="/" replace />;
   }
 

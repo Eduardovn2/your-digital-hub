@@ -8,7 +8,19 @@ export interface Store {
   banner_url: string | null;
   phone: string | null;
   whatsapp: string | null;
+  
+  // Endereço Completo (String única - Mantido para compatibilidade)
   address: string | null;
+  
+  // 👇 NOVOS CAMPOS DE ENDEREÇO (Adicionei aqui)
+  zip_code: string | null;
+  street: string | null;
+  street_number: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  complement: string | null;
+
+  // Estilização
   primary_color: string;
   secondary_color: string;
   accent_color: string;
@@ -18,6 +30,8 @@ export interface Store {
   layout_style: string;
   show_banner: boolean;
   show_categories: boolean;
+  
+  // Status
   is_active: boolean;
   is_open: boolean;
   created_at: string;
@@ -27,6 +41,8 @@ export interface Store {
 export type StoreInsert = Omit<Store, "id" | "created_at" | "updated_at">;
 
 export type StoreUpdate = Partial<Omit<StoreInsert, "owner_id">>;
+
+// --- O RESTANTE DO SEU CÓDIGO PERMANECE IGUAL (MANTIVE PARA NÃO QUEBRAR NADA) ---
 
 export interface Order {
   id: string;
@@ -44,7 +60,6 @@ export interface Order {
   items?: OrderItem[];
 }
 
-// AQUI ESTÁ O SEGREDO: Adicionamos 'delivering'
 export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
 
 export interface OrderItem {
@@ -67,7 +82,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   confirmed: 'Confirmado',
   preparing: 'Preparando',
   ready: 'Pronto',
-  delivering: 'Em entrega', // Novo status
+  delivering: 'Em entrega',
   delivered: 'Concluído',
   cancelled: 'Cancelado'
 };
@@ -77,7 +92,7 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   confirmed: 'bg-blue-100 text-blue-800',
   preparing: 'bg-orange-100 text-orange-800',
   ready: 'bg-green-100 text-green-800',
-  delivering: 'bg-indigo-100 text-indigo-800', // Cor nova
+  delivering: 'bg-indigo-100 text-indigo-800',
   delivered: 'bg-gray-100 text-gray-800',
   cancelled: 'bg-red-100 text-red-800'
 };

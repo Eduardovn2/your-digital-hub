@@ -81,8 +81,12 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
     }
   };
 
+// ... imports e setup do form ...
+
   const onSubmit = (data: StoreFormData) => {
     if (!userId) return;
+    
+    // Mantemos o fullAddress por compatibilidade visual
     const fullAddress = `${data.address_street}, ${data.address_number} - ${data.address_neighborhood}, ${data.address_city}`;
 
     createStore({
@@ -90,11 +94,17 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       name: data.name,
       slug: data.slug,
       description: data.description || null,
-      phone: data.phone, // Já validado e limpo pelo Zod
+      phone: data.phone,
       
-      // zip_code: data.zip_code.replace(/\D/g, ""), // <--- COMENTE SE AINDA NÃO CRIOU A COLUNA NO BANCO
+      // SALVANDO OS CAMPOS SEPARADOS (AQUI ESTÁ A CORREÇÃO)
+      zip_code: data.zip_code.replace(/\D/g, ""), 
+      street: data.address_street,
+      street_number: data.address_number,
+      neighborhood: data.address_neighborhood,
+      city: data.address_city,
       
-      address: fullAddress,
+      address: fullAddress, // Também salvamos o completo
+      
       is_active: true,
       is_open: true,
       primary_color: "#ea580c",
@@ -111,11 +121,8 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       whatsapp: null
     } as any, { 
       onSuccess: async () => {
-        // 👇 AQUI GARANTE QUE O PAINEL ATUALIZE
         await queryClient.invalidateQueries({ queryKey: ["my-store"] });
-        
         toast.success("Loja criada com sucesso!");
-        
         if (onSuccess) onSuccess();
       },
       onError: (error) => {
@@ -123,6 +130,8 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       }
     });
   };
+
+  // ... resto do componente ...
 
   return (
     <Card className="border-none shadow-none bg-transparent">

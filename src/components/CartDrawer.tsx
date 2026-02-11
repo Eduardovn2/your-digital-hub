@@ -85,7 +85,7 @@ const OrderStatusBadge = ({ status }: { status: string }) => {
 };
 
 export default function CartDrawer() {
-  const { items, removeFromCart, clearCart, storeId } = useCart();
+    const { items, total, storeId, clearCart, removeFromCart, customerId } = useCart();
   const { toast } = useToast();
   const deviceId = useDevice();
 
@@ -157,47 +157,70 @@ const subtotalReal = items.reduce((acc, item) => acc + (Number(item.price) * (it
     setFrete(valorFrete);
   };
 
-  const handleFinalizar = async () => {
-        if (!isFormValid) {
-                // Feedback visual se o usuário tentar forçar (opcional)
-                if (!isPhoneValid) toast({ title: "Telefone inválido", description: "Digite o DDD + 9 números.", variant: "destructive" });
-                else if (!isAddressValid) toast({ title: "Endereço incompleto", description: "Preencha o complemento e referência.", variant: "destructive" });
-                return;
-            }
-            setLoading(true);
+const handleFinalizar = async () => {
+    if (!isFormValid) return;
+    setLoading(true);
 
     try {
-      const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}, ${enderecoCompleto!.cidade}`;
+      const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}`;
       
+      // Criamos o objeto APENAS com o que o banco espera receber
       const orderPayload = {
         store_id: storeId,
         customer_name: nome,
-        customer_phone: telefone.replace(/\D/g, ""), // <--- ALTERE ESTA LINHA (Remove a máscara)
+        customer_phone: telefone.replace(/\D/g, ""),
         customer_address: addressString,
         delivery_fee: frete,
-        total: totalFinal,
-        total_amount: totalFinal,
+        total_amount: totalFinal, // Certifique-se que o nome no banco é este
         payment_method: pagamento,
         change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
-        status: "pending",
-        device_id: deviceId, 
-        items: items
+        status: "pending" as "pending",
+        device_id: deviceId
       };
 
-      const { data, error } = await supabase.from("orders" as any).insert([orderPayload]).select().single();
-      if (error) throw error;
+      // Inserção do pedido
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert(orderPayload)
+        .select()
+        .single();
 
-      toast({ title: "Pedido Enviado!", description: "Acompanhe tudo na aba Meus Pedidos." });
+      if (orderError) {
+        console.error("Erro detalhado do Supabase:", orderError);
+        throw orderError;
+      }
+
+      // Se o pedido foi criado, agora inserimos os itens
+      if (orderData && items.length > 0) {
+        const itemsPayload = items.map((item) => ({
+          order_id: orderData.id,
+          product_name: item.name,
+          product_price: Number(item.price),
+          quantity: item.quantity,
+          subtotal: Number(item.price) * (item.quantity || 1)
+        }));
+
+        const { error: itemsError } = await supabase
+          .from("order_items")
+          .insert(itemsPayload);
+
+        if (itemsError) throw itemsError;
+      }
+
+      toast({ title: "Sucesso!", description: "Pedido enviado com sucesso." });
       clearCart();
-      setActiveTab("orders"); 
-      fetchOrderHistory();
+      setActiveTab("orders");
+
     } catch (error: any) {
-      toast({ title: "Erro", description: "Tente novamente.", variant: "destructive" });
+      toast({ 
+        title: "Erro no envio", 
+        description: "Verifique o console para detalhes técnicos.", 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
-  };
-
+};
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>

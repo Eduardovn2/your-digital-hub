@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { toast } from "sonner";
 
 // 1. Definição do Item
@@ -11,18 +11,19 @@ export interface CartItem {
   image_url?: string;
 }
 
-// 2. Definição do Contexto (Atualizada)
+// 2. Definição do Contexto
 interface CartContextType {
   items: CartItem[];
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
   total: number;
-  totalItems: number; // <--- NOVO: Contagem total de itens para o badge
+  totalItems: number;
   storeId: string;
   setStoreId: (id: string) => void;
-  isCartOpen: boolean; // <--- NOVO: Estado para abrir/fechar o carrinho
-  setIsCartOpen: (open: boolean) => void; // <--- NOVO: Função para controlar o carrinho
+  isCartOpen: boolean;
+  setIsCartOpen: (open: boolean) => void;
+  customerId: string; // <--- 1. ADICIONEI O ID NA TIPAGEM
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -30,7 +31,10 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [storeId, setStoreId] = useState<string>(""); 
-  const [isCartOpen, setIsCartOpen] = useState(false); // <--- NOVO: Estado da gaveta
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // <--- 2. INICIALIZA O ID DO CLIENTE (Roda apenas 1 vez ao carregar a página)
+  const [customerId] = useState(() => getOrCreateCustomerId());
 
   const addToCart = (newItem: CartItem) => {
     const safeItem = {
@@ -65,14 +69,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
   };
 
-  // Cálculo do valor total (R$)
   const total = items.reduce((acc, item) => {
       const price = Number(item.price) || 0;
       const qtd = Number(item.quantity) || 1;
       return acc + (price * qtd);
   }, 0);
 
-  // NOVO: Cálculo do total de itens (quantidade) para o badge vermelho
   const totalItems = items.reduce((acc, item) => {
       return acc + (Number(item.quantity) || 1);
   }, 0);
@@ -85,11 +87,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         removeFromCart, 
         clearCart, 
         total,
-        totalItems, // <--- Exportando
+        totalItems,
         storeId, 
         setStoreId,
-        isCartOpen, // <--- Exportando
-        setIsCartOpen // <--- Exportando
+        isCartOpen,
+        setIsCartOpen,
+        customerId // <--- 3. EXPORTANDO O ID PARA O APP USAR
       }}
     >
       {children}
@@ -103,4 +106,22 @@ export const useCart = () => {
     throw new Error("useCart must be used within a CartProvider");
   }
   return context;
+};
+
+// <--- 4. FUNÇÃO AUXILIAR NO FINAL DO ARQUIVO
+const getOrCreateCustomerId = () => {
+  // Verifica se estamos no navegador para evitar erro de build (Next.js/SSR)
+  if (typeof window === "undefined") return "";
+
+  let id = localStorage.getItem("viana_customer_id");
+  if (!id) {
+    // Fallback simples caso crypto.randomUUID não exista em navegadores muito antigos
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        id = crypto.randomUUID();
+    } else {
+        id = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    }
+    localStorage.setItem("viana_customer_id", id);
+  }
+  return id;
 };

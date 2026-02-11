@@ -51,8 +51,17 @@ export default function Admin() {
           </div>
           
           <GlassCard className="p-8">
-             <StoreSetupForm userId={user?.id} onSuccess={() => window.location.reload()} />
-          </GlassCard>
+                      <StoreSetupForm 
+                        userId={user?.id} 
+                        onSuccess={() => {
+                          // Opção 1: Força bruta (Recarrega a página) - Mais seguro
+                          window.location.href = "/admin"; 
+                          
+                          // Opção 2: Se você quiser algo mais suave (React Query), precisaria invalidar a query
+                          // mas o window.location.href resolve 100% dos casos de estado preso.
+                        }} 
+                      />
+            </GlassCard>
         </div>
       </div>
     );

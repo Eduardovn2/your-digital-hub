@@ -16,9 +16,9 @@ export default function Login() {
   const navigate = useNavigate();
 
   // Estados de Segurança e Erro
-  const [errorMsg, setErrorMsg] = useState<string | null>(null); // Mensagem de erro na tela
-  const [attempts, setAttempts] = useState(0); // Contador de tentativas erradas
-  const [lockoutTime, setLockoutTime] = useState(0); // Tempo de bloqueio em segundos
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState(0);
 
   // Efeito do Cronômetro de Bloqueio
   useEffect(() => {
@@ -50,7 +50,6 @@ export default function Login() {
     e.preventDefault();
     setErrorMsg(null);
 
-    // 1. Verifica se está bloqueado (Anti-Bot Simples)
     if (lockoutTime > 0) {
       toast.warning(`Aguarde ${lockoutTime} segundos para tentar novamente.`);
       return;
@@ -66,12 +65,11 @@ export default function Login() {
 
       if (error) throw error;
 
-      // Sucesso! Limpa erros e tentativas
       setAttempts(0);
       toast.success("Login realizado com sucesso!");
       
       const role = data.user?.user_metadata?.role;
-      if (role === 'seller') {
+      if (role === 'admin' || role === 'seller') {
         navigate("/admin");
       } else {
         navigate("/");
@@ -80,15 +78,12 @@ export default function Login() {
     } catch (error: any) {
       console.error("Erro de login:", error);
       
-      // Incrementa tentativas
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
 
-      // LÓGICA DE TRATAMENTO DE ERRO (O que você pediu)
       let displayMessage = "Ocorreu um erro ao tentar entrar.";
       let isRateLimit = false;
 
-      // Tradução dos erros comuns
       if (error.message.includes("Invalid login") || error.message.includes("invalid_credentials")) {
         displayMessage = "E-mail ou senha incorretos.";
       } else if (error.message.includes("Email not confirmed")) {
@@ -98,48 +93,48 @@ export default function Login() {
         isRateLimit = true;
       }
 
-      // Adiciona dicas úteis se não for erro de sistema
       if (!isRateLimit && newAttempts >= 2) {
         displayMessage += " (Dica: Verifique se o Caps Lock está ligado ou se há espaços no e-mail)";
       }
 
-      // Aplica bloqueio se errar 3 vezes ou se for Rate Limit (429)
       if (newAttempts >= 3 || isRateLimit) {
-        setLockoutTime(30 * (isRateLimit ? 2 : 1)); // 30s (ou 60s se for erro do servidor)
+        setLockoutTime(30 * (isRateLimit ? 2 : 1)); 
         displayMessage = "Muitas tentativas falhas. Acesso temporariamente bloqueado.";
       }
 
       setErrorMsg(displayMessage);
-      toast.error(displayMessage); // Mostra no toast também
-
+      toast.error(displayMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-primary/20 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-primary/20 relative overflow-hidden items-center justify-center p-4">
       
-      {/* Background Effects */}
-      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[100px] pointer-events-none translate-x-1/3 translate-y-1/3" />
+      {/* Background Decorativo (Igual ao Admin) */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px] animate-pulse" />
+        <div className="absolute top-[20%] -left-[10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px]" />
+      </div>
 
       {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
-        <Link to="/" className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-2 font-medium bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white border border-transparent hover:border-slate-200">
+        <Link to="/" className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-2 font-medium bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white border border-transparent hover:border-slate-200 shadow-sm">
             <ArrowLeft className="h-4 w-4" />
             Voltar
         </Link>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-4 z-10">
+      <div className="w-full max-w-md z-10">
         <GlassCard 
           intensity="light" 
-          className="w-full max-w-md p-8 border-white/60 bg-white/70 shadow-2xl backdrop-blur-xl rounded-[2rem]"
+          gradientBorder={true}
+          className="w-full p-8 md:p-10 shadow-2xl shadow-primary/5"
         >
           <div className="text-center mb-8">
-            <div className="bg-slate-900 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-slate-900/20">
-              <Store className="h-7 w-7 text-white" />
+            <div className="bg-gradient-to-br from-primary/20 to-primary/5 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/20 backdrop-blur-sm">
+              <Store className="h-7 w-7 text-primary drop-shadow-sm" />
             </div>
             
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Área do Lojista</h1>
@@ -148,11 +143,10 @@ export default function Login() {
             </p>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-6">
             
-            {/* --- NOVO: Área de Alerta de Erro --- */}
             {errorMsg && (
-              <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 animate-fade-in">
+              <Alert variant="destructive" className="bg-red-50/80 border-red-200 text-red-800 animate-fade-in backdrop-blur-sm">
                 <div className="flex gap-2 items-start">
                   {lockoutTime > 0 ? <Clock className="h-4 w-4 mt-1" /> : <AlertCircle className="h-4 w-4 mt-1" />}
                   <div>
@@ -166,15 +160,13 @@ export default function Login() {
                 </div>
               </Alert>
             )}
-            {/* ---------------------------------- */}
 
-             {/* Google Button */}
             <Button 
               type="button"
               onClick={handleGoogleLogin}
               variant="outline"
               disabled={lockoutTime > 0}
-              className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:text-slate-900 flex items-center justify-center gap-2 bg-white shadow-sm disabled:opacity-50"
+              className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:text-slate-900 flex items-center justify-center gap-2 bg-white/80 shadow-sm disabled:opacity-50 transition-all"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -193,7 +185,7 @@ export default function Login() {
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700 ml-1 text-xs uppercase font-bold tracking-wider">E-mail</Label>
+                <Label htmlFor="email" className="text-slate-600 ml-1 text-xs uppercase font-bold tracking-wider">E-mail</Label>
                 <div className="relative group">
                     <Mail className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
                     <Input 
@@ -202,16 +194,16 @@ export default function Login() {
                         required 
                         value={email} 
                         onChange={(e) => setEmail(e.target.value)} 
-                        className="pl-12 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:ring-slate-900/10 rounded-xl transition-all shadow-sm"
+                        className="pl-12 h-12 bg-white/60 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-primary/10 rounded-xl transition-all shadow-sm backdrop-blur-sm"
                         placeholder="loja@exemplo.com"
-                        disabled={lockoutTime > 0} // Trava se estiver bloqueado
+                        disabled={lockoutTime > 0} 
                     />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                    <Label htmlFor="password" className="text-slate-700 ml-1 text-xs uppercase font-bold tracking-wider">Senha</Label>
+                    <Label htmlFor="password" className="text-slate-600 ml-1 text-xs uppercase font-bold tracking-wider">Senha</Label>
                 </div>
                 <div className="relative group">
                     <Lock className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
@@ -221,9 +213,9 @@ export default function Login() {
                         required 
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
-                        className="pl-12 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:ring-slate-900/10 rounded-xl transition-all shadow-sm"
+                        className="pl-12 h-12 bg-white/60 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-primary/10 rounded-xl transition-all shadow-sm backdrop-blur-sm"
                         placeholder="••••••••"
-                        disabled={lockoutTime > 0} // Trava se estiver bloqueado
+                        disabled={lockoutTime > 0} 
                     />
                 </div>
               </div>

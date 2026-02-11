@@ -11,18 +11,16 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp"; 
-import { Store, Loader2, ArrowLeft, Mail, Lock, User, CheckCircle2, ShieldAlert, AlertCircle, Clock } from "lucide-react";
+import { Store, Loader2, ArrowLeft, Mail, Lock, User, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Register() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
-  // Estados de Fluxo
   const [step, setStep] = useState<"register" | "verify">("register"); 
   const [otpCode, setOtpCode] = useState(""); 
   
-  // Estados de Erro e Segurança
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [lockoutTime, setLockoutTime] = useState(0);
 
@@ -32,7 +30,6 @@ export default function Register() {
     fullName: "",
   });
 
-  // Efeito do Cronômetro de Bloqueio (Anti-Spam)
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (lockoutTime > 0) {
@@ -43,7 +40,6 @@ export default function Register() {
     return () => clearInterval(timer);
   }, [lockoutTime]);
 
-  // Passo 1: Criar a conta
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -62,14 +58,13 @@ export default function Register() {
         options: {
           data: {
             full_name: formData.fullName,
-            role: "admin", // <--- CORREÇÃO: Mudamos de "seller" para "admin"
+            role: "admin", 
           },
         },
       });
 
       if (error) throw error;
 
-      // Se deu certo, vai para o passo 2 (Verificar Código)
       if (data.user && !data.session) {
         toast.success("Código enviado para seu e-mail!");
         setStep("verify"); 
@@ -84,9 +79,8 @@ export default function Register() {
       
       let displayMessage = "Ocorreu um erro ao criar a conta.";
       
-      // Tratamento aprimorado de erros
       if (error.message.includes("User already registered") || error.status === 400) {
-        displayMessage = "Erro no cadastro. Verifique se este e-mail já está em uso.";
+        displayMessage = "Este e-mail já está cadastrado. Tente fazer login.";
       } else if (error.status === 429 || error.message.includes("Too many requests")) {
         displayMessage = "Muitas tentativas. Aguarde um momento.";
         setLockoutTime(60); 
@@ -101,7 +95,6 @@ export default function Register() {
     }
   };
 
-  // Passo 2: Verificar o Código
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -144,28 +137,31 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-primary/20 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-primary/20 relative overflow-hidden items-center justify-center p-4">
       
-      {/* Background Effects */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none translate-x-1/4 -translate-y-1/4" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[100px] pointer-events-none -translate-x-1/4 translate-y-1/4" />
+      {/* Background Decorativo (Igual ao Admin) */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px] animate-pulse" />
+        <div className="absolute top-[20%] -left-[10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px]" />
+      </div>
 
       {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
-        <Link to="/" className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-2 font-medium bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white border border-transparent hover:border-slate-200">
+        <Link to="/" className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-2 font-medium bg-white/50 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white border border-transparent hover:border-slate-200 shadow-sm">
             <ArrowLeft className="h-4 w-4" />
             Voltar
         </Link>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-4 z-10 py-12">
+      <div className="w-full max-w-lg z-10">
         <GlassCard 
           intensity="light" 
-          className="w-full max-w-lg p-10 border-white/60 bg-white/70 shadow-2xl backdrop-blur-xl rounded-[2rem]"
+          gradientBorder={true}
+          className="w-full p-8 md:p-10 shadow-2xl shadow-primary/5"
         >
           <div className="text-center mb-8">
-            <div className="bg-slate-900 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-slate-900/20">
-              <Store className="h-8 w-8 text-white" />
+            <div className="bg-gradient-to-br from-primary/20 to-primary/5 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/20 backdrop-blur-sm">
+              <Store className="h-8 w-8 text-primary drop-shadow-sm" />
             </div>
             
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
@@ -181,7 +177,7 @@ export default function Register() {
           <div className="space-y-6">
             
             {errorMsg && (
-              <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 animate-fade-in">
+              <Alert variant="destructive" className="bg-red-50/80 border-red-200 text-red-800 animate-fade-in backdrop-blur-sm">
                 <div className="flex gap-2 items-start">
                   {lockoutTime > 0 ? <Clock className="h-4 w-4 mt-1" /> : <AlertCircle className="h-4 w-4 mt-1" />}
                   <div>
@@ -204,7 +200,7 @@ export default function Register() {
                   onClick={handleGoogleSignup}
                   variant="outline"
                   disabled={lockoutTime > 0}
-                  className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:text-slate-900 flex items-center justify-center gap-2 bg-white shadow-sm disabled:opacity-50"
+                  className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:text-slate-900 flex items-center justify-center gap-2 bg-white/80 shadow-sm disabled:opacity-50 transition-all"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -223,45 +219,45 @@ export default function Register() {
 
                 <form onSubmit={handleRegister} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nome do Responsável</Label>
+                    <Label htmlFor="name" className="text-slate-600 ml-1 text-xs uppercase font-bold tracking-wider">Nome do Responsável</Label>
                     <div className="relative group">
                         <User className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
                         <Input 
                             id="name" required value={formData.fullName} 
                             onChange={(e) => setFormData({...formData, fullName: e.target.value})} 
-                            className="pl-12 h-12 bg-white border-slate-200 rounded-xl"
+                            className="pl-12 h-12 bg-white/60 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-primary/10 rounded-xl transition-all shadow-sm backdrop-blur-sm"
                             placeholder="Ex: Eduardo Viana" disabled={lockoutTime > 0}
                         />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email">E-mail Profissional</Label>
+                    <Label htmlFor="email" className="text-slate-600 ml-1 text-xs uppercase font-bold tracking-wider">E-mail Profissional</Label>
                     <div className="relative group">
                         <Mail className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
                         <Input 
                             id="email" type="email" required value={formData.email} 
                             onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                            className="pl-12 h-12 bg-white border-slate-200 rounded-xl"
+                            className="pl-12 h-12 bg-white/60 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-primary/10 rounded-xl transition-all shadow-sm backdrop-blur-sm"
                             placeholder="loja@exemplo.com" disabled={lockoutTime > 0}
                         />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password">Senha de Acesso</Label>
+                    <Label htmlFor="password" className="text-slate-600 ml-1 text-xs uppercase font-bold tracking-wider">Senha de Acesso</Label>
                     <div className="relative group">
                         <Lock className="absolute left-4 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
                         <Input 
                             id="password" type="password" required value={formData.password} 
                             onChange={(e) => setFormData({...formData, password: e.target.value})} 
-                            className="pl-12 h-12 bg-white border-slate-200 rounded-xl"
+                            className="pl-12 h-12 bg-white/60 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary focus:ring-primary/10 rounded-xl transition-all shadow-sm backdrop-blur-sm"
                             placeholder="••••••••" disabled={lockoutTime > 0}
                         />
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full h-14 font-bold bg-slate-900 text-white rounded-xl shadow-xl hover:bg-black transition-all mt-6" disabled={loading || lockoutTime > 0}>
+                  <Button type="submit" className="w-full h-14 font-bold bg-slate-900 text-white rounded-xl shadow-xl hover:bg-black transition-all mt-6 hover:shadow-primary/20" disabled={loading || lockoutTime > 0}>
                     {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Criar Conta e Receber Código"}
                   </Button>
                 </form>
@@ -276,31 +272,30 @@ export default function Register() {
                     Digite o código de 8 dígitos enviado para seu e-mail
                   </Label>
                   
-                  {/* CONFIGURADO PARA 8 DÍGITOS */}
                   <InputOTP maxLength={8} value={otpCode} onChange={(val) => setOtpCode(val)}>
                     <InputOTPGroup>
-                      {/* Grupo 1: Primeiros 4 números */}
-                      <InputOTPSlot index={0} className="h-12 w-10 text-lg border-slate-300" />
-                      <InputOTPSlot index={1} className="h-12 w-10 text-lg border-slate-300" />
-                      <InputOTPSlot index={2} className="h-12 w-10 text-lg border-slate-300" />
-                      <InputOTPSlot index={3} className="h-12 w-10 text-lg border-slate-300" />
+                      {/* Grupo 1 */}
+                      <InputOTPSlot index={0} className="h-12 w-10 text-lg border-slate-300 bg-white/50 backdrop-blur-sm" />
+                      <InputOTPSlot index={1} className="h-12 w-10 text-lg border-slate-300 bg-white/50 backdrop-blur-sm" />
+                      <InputOTPSlot index={2} className="h-12 w-10 text-lg border-slate-300 bg-white/50 backdrop-blur-sm" />
+                      <InputOTPSlot index={3} className="h-12 w-10 text-lg border-slate-300 bg-white/50 backdrop-blur-sm" />
                     </InputOTPGroup>
                     <div className="mx-2 text-slate-400">-</div>
                     <InputOTPGroup>
-                      {/* Grupo 2: Últimos 4 números */}
-                      <InputOTPSlot index={4} className="h-12 w-10 text-lg border-slate-300" />
-                      <InputOTPSlot index={5} className="h-12 w-10 text-lg border-slate-300" />
-                      <InputOTPSlot index={6} className="h-12 w-10 text-lg border-slate-300" />
-                      <InputOTPSlot index={7} className="h-12 w-10 text-lg border-slate-300" />
+                      {/* Grupo 2 */}
+                      <InputOTPSlot index={4} className="h-12 w-10 text-lg border-slate-300 bg-white/50 backdrop-blur-sm" />
+                      <InputOTPSlot index={5} className="h-12 w-10 text-lg border-slate-300 bg-white/50 backdrop-blur-sm" />
+                      <InputOTPSlot index={6} className="h-12 w-10 text-lg border-slate-300 bg-white/50 backdrop-blur-sm" />
+                      <InputOTPSlot index={7} className="h-12 w-10 text-lg border-slate-300 bg-white/50 backdrop-blur-sm" />
                     </InputOTPGroup>
                   </InputOTP>
                 </div>
 
-                <Button type="submit" className="w-full h-14 font-bold bg-primary text-white rounded-xl shadow-xl hover:bg-primary/90 transition-all" disabled={loading || otpCode.length < 8}>
+                <Button type="submit" className="w-full h-14 font-bold bg-primary text-white rounded-xl shadow-xl hover:bg-primary/90 transition-all hover:shadow-primary/20" disabled={loading || otpCode.length < 8}>
                    {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Confirmar Código"}
                 </Button>
 
-                <Button type="button" variant="ghost" className="w-full text-slate-500" onClick={() => setStep("register")}>
+                <Button type="button" variant="ghost" className="w-full text-slate-500 hover:bg-white/30" onClick={() => setStep("register")}>
                   Voltar e corrigir e-mail
                 </Button>
               </form>
@@ -309,7 +304,7 @@ export default function Register() {
           </div>
 
           {step === "register" && (
-            <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center gap-4">
+            <div className="mt-8 pt-6 border-t border-slate-200/50 flex flex-col items-center gap-4">
               <div className="flex gap-4 text-xs text-slate-500 font-medium">
                 <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> 7 dias grátis</span>
               </div>

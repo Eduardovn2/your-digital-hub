@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Store, MapPin, Truck, Bell, Save, Loader2, Search, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { DeliverySettings } from "./DeliverySettings"; 
+import { formatPhone } from "@/lib/utils"; // <--- Importe a função
 
 export function StoreSettings({ store }: { store: any }) {
   const [loading, setLoading] = useState(false);
@@ -17,7 +18,7 @@ export function StoreSettings({ store }: { store: any }) {
   const [formData, setFormData] = useState({
     name: store?.name || "",
     description: store?.description || "",
-    phone: store?.phone || "",
+    phone: formatPhone(store?.phone || ""), // <--- Formata ao carregar
     zip_code: store?.zip_code || "",
     street: store?.street || "",
     street_number: store?.street_number || "",
@@ -26,30 +27,29 @@ export function StoreSettings({ store }: { store: any }) {
     complement: store?.complement || ""
   });
 
-  useEffect(() => {
-    if ("Notification" in window) {
-      setPushEnabled(Notification.permission === "granted");
-    }
-  }, []);
+  // ... (o restante dos useEffect e funções mantêm-se iguais até o return)
+  // Vou colocar apenas a parte alterada do INPUT de telefone
 
   const handleEnableNotifications = async () => {
+    // ... (mesmo código anterior)
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      toast.error("O navegador não suporta notificações em standby.");
-      return;
-    }
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        await navigator.serviceWorker.ready;
-        setPushEnabled(true);
-        toast.success("Notificações ativadas com sucesso!");
+        toast.error("O navegador não suporta notificações em standby.");
+        return;
       }
-    } catch (error) {
-      toast.error("Erro ao configurar notificações.");
-    }
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          await navigator.serviceWorker.ready;
+          setPushEnabled(true);
+          toast.success("Notificações ativadas com sucesso!");
+        }
+      } catch (error) {
+        toast.error("Erro ao configurar notificações.");
+      }
   };
-
+  
   const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // ... (mesmo código anterior)
     let valor = e.target.value.replace(/\D/g, "");
     if (valor.length > 5) valor = valor.replace(/^(\d{5})(\d)/, "$1-$2");
     
@@ -80,7 +80,10 @@ export function StoreSettings({ store }: { store: any }) {
     setLoading(true);
     const { error } = await supabase
       .from("stores")
-      .update(formData)
+      .update({
+        ...formData,
+        phone: formData.phone.replace(/\D/g, "") // Limpa antes de salvar no banco
+      })
       .eq("id", store.id);
 
     if (error) {
@@ -122,10 +125,19 @@ export function StoreSettings({ store }: { store: any }) {
                   <Label>Nome Comercial</Label>
                   <Input className="bg-white/50 border-white/80 focus:bg-white transition-all rounded-xl" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                 </div>
+                
+                {/* 👇 AQUI ESTÁ O INPUT DE TELEFONE ATUALIZADO */}
                 <div className="space-y-2">
-                  <Label>Contacto (WhatsApp)</Label>
-                  <Input className="bg-white/50 border-white/80 focus:bg-white transition-all rounded-xl" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                  <Label>WhatsApp (com DDD)</Label>
+                  <Input 
+                    className="bg-white/50 border-white/80 focus:bg-white transition-all rounded-xl" 
+                    value={formData.phone} 
+                    onChange={e => setFormData({...formData, phone: formatPhone(e.target.value)})} 
+                    placeholder="(11) 99999-9999"
+                    maxLength={15}
+                  />
                 </div>
+
               </div>
               <div className="space-y-2">
                 <Label>Descrição da Loja</Label>
@@ -134,6 +146,8 @@ export function StoreSettings({ store }: { store: any }) {
             </CardContent>
           </Card>
 
+          {/* ... O RESTO DO CÓDIGO PERMANECE IGUAL AO SEU ORIGINAL ... */}
+          
           <Card className="bg-indigo-50/40 backdrop-blur-xl border-indigo-100/50 shadow-lg rounded-3xl">
             <CardHeader>
               <div className="flex items-center gap-2 text-indigo-900">

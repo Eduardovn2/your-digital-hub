@@ -7,17 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateStore } from "@/hooks/useStores";
-import { Store, MapPin, Phone, Loader2 } from "lucide-react";
+import { Store, MapPin, Phone, Loader2, AlertCircle } from "lucide-react"; // Adicionei AlertCircle
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { formatPhone } from "@/lib/utils"; 
 
-// Schema definition remains the same as your original, but ensure zip_code is there
+// SCHEMA DE VALIDAÇÃO (A Regra que "Barra")
 const storeSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
   slug: z.string().min(3, "O link deve ter pelo menos 3 caracteres").regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e traços"),
   description: z.string().optional(),
-  phone: z.string().optional(),
-  zip_code: z.string().min(8, "CEP inválido"), // Ensure this is present
+  
+  // VALIDAÇÃO RÍGIDA DO WHATSAPP
+  phone: z.string()
+    .transform(val => val.replace(/\D/g, "")) // Remove tudo que não é número
+    .refine(val => val.length === 11, {
+        message: "O número precisa ter DDD (2 dígitos) + 9 dígitos. Ex: (11) 91234-5678"
+    }),
+
+  zip_code: z.string().min(8, "CEP inválido"),
   address_number: z.string().min(1, "Número obrigatório"),
   address_street: z.string().optional(),
   address_neighborhood: z.string().optional(),
@@ -73,8 +81,6 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
 
   const onSubmit = (data: StoreFormData) => {
     if (!userId) return;
-
-    // Construct full address for legacy support
     const fullAddress = `${data.address_street}, ${data.address_number} - ${data.address_neighborhood}, ${data.address_city}`;
 
     createStore({
@@ -82,15 +88,9 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       name: data.name,
       slug: data.slug,
       description: data.description || null,
-      phone: data.phone || null,
-      
-      // Save zip_code cleanly. This is crucial for the delivery calculation to work.
-      // We are casting to 'any' to bypass TS check if types are outdated, 
-      // but you MUST run the SQL to add the column.
+      phone: data.phone, // Já está limpo pelo Zod
       zip_code: data.zip_code.replace(/\D/g, ""), 
-      
       address: fullAddress,
-      
       is_active: true,
       is_open: true,
       primary_color: "#ea580c",
@@ -128,7 +128,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
                 <Store className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input id="name" placeholder="Ex: Viana Burguer" className="pl-9" {...form.register("name")} />
               </div>
-              {form.formState.errors.name && <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>}
+              {form.formState.errors.name && <p className="text-xs text-red-500 font-medium">{form.formState.errors.name.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -138,7 +138,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
                 <Input id="slug" placeholder="viana-burguer" className="pl-6" {...form.register("slug")} />
               </div>
               <p className="text-[10px] text-slate-500">Seu site será: seusite.com/seu-link</p>
-              {form.formState.errors.slug && <p className="text-sm text-red-500">{form.formState.errors.slug.message}</p>}
+              {form.formState.errors.slug && <p className="text-xs text-red-500 font-medium">{form.formState.errors.slug.message}</p>}
             </div>
           </div>
 
@@ -147,16 +147,38 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
             <Textarea id="description" placeholder="O melhor hambúrguer da cidade..." {...form.register("description")} />
           </div>
 
+          {/* ----- SEÇÃO DO WHATSAPP COM AVISO E TRAVA ----- */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone / WhatsApp</Label>
+              <Label htmlFor="phone">WhatsApp (com DDD)</Label>
               <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input id="phone" placeholder="(00) 00000-0000" className="pl-9" {...form.register("phone")} />
+                <Phone className={`absolute left-3 top-3 h-4 w-4 ${form.formState.errors.phone ? "text-red-400" : "text-slate-400"}`} />
+                <Input 
+                  id="phone" 
+                  placeholder="(11) 99999-9999" 
+                  className={`pl-9 ${form.formState.errors.phone ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  maxLength={15} // Limite visual para impedir excessos
+                  {...form.register("phone", {
+                    onChange: (e) => {
+                      e.target.value = formatPhone(e.target.value);
+                    }
+                  })} 
+                />
               </div>
+              
+              {/* MENSAGEM DE ERRO OU AVISO EXPLICATIVO */}
+              {form.formState.errors.phone ? (
+                 <p className="text-xs font-bold text-red-500 flex items-center gap-1 animate-pulse">
+                   <AlertCircle className="h-3 w-3" />
+                   {form.formState.errors.phone.message}
+                 </p>
+              ) : (
+                 <p className="text-[11px] text-slate-500 font-medium">
+                   Obrigatório: DDD + 9 dígitos. Ex: (21) 91234-5678
+                 </p>
+              )}
             </div>
 
-            {/* ZIP CODE FIELD - Essential for delivery logic */}
             <div className="space-y-2">
               <Label htmlFor="zip_code">CEP da Loja</Label>
               <div className="relative">
@@ -167,10 +189,11 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
                   className="pl-9" 
                   {...form.register("zip_code")} 
                   onBlur={handleCepBlur}
+                  maxLength={9}
                 />
                 {loadingCep && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-primary" />}
               </div>
-              {form.formState.errors.zip_code && <p className="text-sm text-red-500">{form.formState.errors.zip_code.message}</p>}
+              {form.formState.errors.zip_code && <p className="text-xs text-red-500 font-medium">{form.formState.errors.zip_code.message}</p>}
             </div>
           </div>
 
@@ -182,6 +205,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
              <div className="space-y-2">
                 <Label>Número</Label>
                 <Input {...form.register("address_number")} placeholder="123" />
+                {form.formState.errors.address_number && <p className="text-xs text-red-500 font-medium">Obrigatório</p>}
              </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">

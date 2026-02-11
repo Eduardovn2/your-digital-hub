@@ -1,39 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyStore } from "@/hooks/useStores";
 import { Button } from "@/components/ui/button";
-import { Store, LayoutDashboard, UtensilsCrossed, Settings, LogOut, PlusCircle, ShoppingBag, Rocket } from "lucide-react";
+import { Store, LayoutDashboard, UtensilsCrossed, Settings, LogOut, PlusCircle, ShoppingBag, Rocket, RefreshCw } from "lucide-react";
 import { StoreSetupForm } from "@/components/dashboard/StoreSetupForm";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { useQueryClient } from "@tanstack/react-query";
 
-// Placeholders seguros para evitar tela branca se o componente não existir
-const PlaceholderComponent = ({ title }: { title: string }) => (
-  <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white/50">
-    <h3 className="text-lg font-bold text-slate-700">{title}</h3>
-    <p className="text-slate-500">Este módulo está em desenvolvimento.</p>
-  </div>
-);
-
-// Tenta importar, se falhar, não quebra (No React padrão isso requer Lazy, mas vamos simplificar usando importação direta e condicional visual)
+// Imports condicionais seguros
 import { OrdersList } from "@/components/dashboard/OrdersList";
 import { StoreProducts } from "@/components/dashboard/StoreProducts";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 
 export default function Admin() {
   const { user, signOut } = useAuth();
-  const { data: store, isLoading } = useMyStore(user?.id);
+  const queryClient = useQueryClient();
+  
+  // Busca a loja do usuário
+  const { 
+    data: store, 
+    isLoading, 
+    refetch, 
+    isError 
+  } = useMyStore(user?.id);
+  
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  // Força uma atualização dos dados sempre que entrar na página
+  useEffect(() => {
+    if (user?.id) {
+      refetch();
+    }
+  }, [user?.id, refetch]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="text-slate-500 animate-pulse">Carregando sua loja...</p>
       </div>
     );
   }
 
-  // --- TELA DE CRIAÇÃO (Se user não tem loja) ---
+  // --- TELA DE CRIAÇÃO (Se user realmente não tem loja) ---
   if (!store) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-50">
@@ -47,27 +57,33 @@ export default function Admin() {
               <Rocket className="h-10 w-10 text-primary" />
             </div>
             <h1 className="text-3xl font-bold text-slate-900">Bem-vindo ao VianaHub</h1>
-            <p className="text-slate-500">Vamos configurar sua loja digital.</p>
+            <p className="text-slate-500">Parece que você ainda não tem uma loja ativa.</p>
+            
+            {/* Botão de segurança caso seja apenas um erro de carregamento */}
+            <Button variant="ghost" size="sm" onClick={() => refetch()} className="text-primary hover:bg-primary/10">
+                <RefreshCw className="h-4 w-4 mr-2" /> Verificar novamente
+            </Button>
           </div>
           
           <GlassCard className="p-8">
-                      <StoreSetupForm 
-                        userId={user?.id} 
-                        onSuccess={() => {
-                          // Opção 1: Força bruta (Recarrega a página) - Mais seguro
-                          window.location.href = "/admin"; 
-                          
-                          // Opção 2: Se você quiser algo mais suave (React Query), precisaria invalidar a query
-                          // mas o window.location.href resolve 100% dos casos de estado preso.
-                        }} 
-                      />
-            </GlassCard>
+             <StoreSetupForm 
+               userId={user?.id} 
+               onSuccess={async () => {
+                 // 1. Invalida cache
+                 await queryClient.invalidateQueries({ queryKey: ["my-store"] });
+                 // 2. Tenta buscar de novo imediatamente
+                 await refetch();
+                 // 3. Força reload se necessário (último recurso)
+                 window.location.reload();
+               }} 
+             />
+          </GlassCard>
         </div>
       </div>
     );
   }
 
-  // --- DASHBOARD PRINCIPAL ---
+  // --- DASHBOARD PRINCIPAL (Só chega aqui se 'store' existir) ---
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
       <aside className="md:w-72 bg-slate-900 text-white flex-shrink-0 flex flex-col">
@@ -78,7 +94,9 @@ export default function Admin() {
              </div>
              <div>
                <h1 className="font-bold text-lg leading-none truncate w-32">{store.name}</h1>
-               <p className="text-xs text-slate-400 mt-1">Online</p>
+               <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Online
+               </p>
              </div>
           </div>
         </div>
@@ -106,7 +124,7 @@ export default function Admin() {
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <Button variant="ghost" className="w-full justify-start text-red-400" onClick={() => signOut()}>
+          <Button variant="ghost" className="w-full justify-start text-red-400 hover:bg-red-900/10 hover:text-red-300" onClick={() => signOut()}>
             <LogOut className="h-4 w-4 mr-2" /> Sair
           </Button>
         </div>
@@ -116,10 +134,12 @@ export default function Admin() {
         <div className="max-w-6xl mx-auto space-y-6">
           <header className="flex justify-between items-center mb-8">
              <h2 className="text-2xl font-bold text-slate-900 capitalize">
-                {activeTab === 'dashboard' ? 'Visão Geral' : activeTab}
+                {activeTab === 'dashboard' ? 'Visão Geral' : 
+                 activeTab === 'orders' ? 'Pedidos' :
+                 activeTab === 'menu' ? 'Cardápio' : 'Configurações'}
              </h2>
              <Button variant="outline" onClick={() => window.open(`/${store.slug}`, '_blank')}>
-                <Store className="h-4 w-4 mr-2" /> Ver Loja
+                <Store className="h-4 w-4 mr-2" /> Ver Loja Online
              </Button>
           </header>
 

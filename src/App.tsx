@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/AuthContext"; 
 import { CartProvider } from "@/contexts/CartContext"; 
 import { ProtectedRoute } from "@/pages/auth/ProtectedRoute";
-import { AdminSettingsProvider } from "@/contexts/AdminSettingsContext"; // <--- Já estava importado aqui
+import { AdminSettingsProvider } from "@/contexts/AdminSettingsContext"; 
 
 // 2. IMPORTS DAS PÁGINAS
 import Index from "./pages/Index";
@@ -23,7 +23,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       {/* 3. O AuthProvider envolve a autenticação do lojista */}
-      <AuthProvider> 
+      <AuthProvider>
         
         {/* --- ADICIONEI AQUI O PROVIDER DE CONFIGURAÇÕES --- */}
         <AdminSettingsProvider>
@@ -43,20 +43,19 @@ const App = () => (
                 <Route 
                   path="/admin" 
                   element={
-                    <ProtectedRoute requiredRole="seller">
+                    <ProtectedRoute requiredRole="admin"> 
                       <Admin />
                     </ProtectedRoute>
                   } 
                 />
                 
-                {/* Rota da Loja Pública (Slug) */}
+                {/* Rota da Loja Pública (Slug) - Deve ficar por último para não atrapalhar as outras */}
                 <Route path="/:slug" element={<StorePage />} />
               </Routes>
             </BrowserRouter>
           </CartProvider>
           
         </AdminSettingsProvider>
-        {/* -------------------------------------------------- */}
 
       </AuthProvider>
     </TooltipProvider>

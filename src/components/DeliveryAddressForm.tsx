@@ -342,27 +342,28 @@ return (
             </div>
             <div className="grid gap-2">
                 {savedAddresses.map((addr) => (
-                    <button
-                        key={addr.id}
-                        onClick={() => handleUseSavedAddress(addr)}
-                        disabled={loading}
-                        className="group relative flex items-center justify-between p-3 text-left w-full bg-white/40 hover:bg-white/80 border border-white/20 hover:border-slate-300 backdrop-blur-md rounded-xl transition-all shadow-sm"
-                    >
-                        <div className="flex items-start gap-3">
-                            <div className="mt-0.5 p-1.5 rounded-full bg-slate-100 group-hover:bg-slate-200 transition-colors">
-                                <MapPin className="h-3.5 w-3.5 text-slate-500" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold text-slate-800 leading-none mb-1">
-                                    {addr.street}, {addr.number}
-                                </p>
-                                <p className="text-[11px] text-slate-500 font-medium">
-                                    {addr.neighborhood}
-                                </p>
-                            </div>
+
+                <button
+                    key={addr.id}
+                    onClick={() => handleUseSavedAddress(addr)}
+                    disabled={loading}
+                    className="group relative flex items-center justify-between p-3 text-left w-full bg-white/40 dark:bg-slate-800/40 hover:bg-white/80 dark:hover:bg-slate-800/60 border border-white/20 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 backdrop-blur-md rounded-xl transition-all shadow-sm"
+                >
+                    <div className="flex items-start gap-3">
+                        <div className="mt-0.5 p-1.5 rounded-full bg-slate-100 dark:bg-slate-700 group-hover:bg-slate-200 dark:group-hover:bg-slate-600 transition-colors">
+                            <MapPin className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
                         </div>
-                        <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-slate-600" />
-                    </button>
+                        <div>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-none mb-1">
+                                {addr.street}, {addr.number}
+                            </p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                                {addr.neighborhood}
+                            </p>
+                        </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-600 dark:group-hover:text-slate-400" />
+                </button>
                 ))}
             </div>
             <div className="relative py-2">
@@ -385,7 +386,7 @@ return (
                             setAddress(prev => ({...prev, cep: v}));
                         }}
                         maxLength={9}
-                        className="bg-white border-slate-200 h-11"
+                        className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:text-white h-11 focus:ring-1 focus:ring-primary transition-all"
                         disabled={step === 2 || loading} 
                     />
                 </div>
@@ -406,7 +407,7 @@ return (
                     href="https://buscacepinter.correios.com.br/app/endereco/index.php" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-[10px] text-blue-500 hover:text-blue-700 underline font-medium flex items-center gap-1 transition-colors"
+                    className="text-[10px] text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline font-medium flex items-center gap-1 transition-colors"
                 >
                     Não sabe seu CEP? Clique aqui para descobrir
                     <ExternalLink className="h-2.5 w-2.5" />
@@ -423,29 +424,35 @@ return (
       )}
 
       {/* SEÇÃO 3: FORMULÁRIO DE DETALHES */}
-      {step === 2 && freteCalculado !== null && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-top-4 bg-white/60 backdrop-blur-md p-5 rounded-xl border border-white/50 shadow-sm">
-          
-          <div className="border-b border-slate-100 pb-3 mb-2">
-              <div className="flex justify-between items-start mb-1">
-                 <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Local de Entrega</p>
-                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      R$ {freteCalculado.toFixed(2)}
-                 </span>
-              </div>
-              {address.rua ? (
-                  <p className="text-base font-bold text-slate-800 leading-tight">{address.rua}</p>
-              ) : (
-                  <Input value={address.rua} onChange={e => { const novo = {...address, rua: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} placeholder="Nome da Rua" className="bg-white h-8 text-sm mb-1 font-bold" />
-              )}
-              <p className="text-xs text-slate-500 mt-1 font-medium">{address.bairro || "Bairro"} - {address.cidade || "Cidade"}</p>
-          </div>
+{/* SEÇÃO 3: FORMULÁRIO DE DETALHES */}
+{step === 2 && freteCalculado !== null && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-top-4 bg-white/60 dark:bg-slate-800/40 backdrop-blur-md p-5 rounded-xl border border-white/50 dark:border-white/5 shadow-sm">
+            
+            <div className="border-b border-slate-100 dark:border-slate-700/50 pb-3 mb-2">
+                <div className="flex justify-between items-start mb-1">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">Local de Entrega</p>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1 shadow-sm">
+                        <MapPin className="h-3 w-3" />
+                        R$ {freteCalculado.toFixed(2)}
+                    </span>
+                </div>
+                {address.rua ? (
+                    <p className="text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">{address.rua}</p>
+                ) : (
+                    <Input 
+                    value={address.rua} 
+                    onChange={e => { const novo = {...address, rua: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} 
+                    placeholder="Nome da Rua" 
+                    className="bg-white dark:bg-slate-800 h-10 text-sm mb-1 font-bold dark:text-white border-slate-200 dark:border-slate-700" 
+                    />
+                )}
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">{address.bairro || "Bairro"} - {address.cidade || "Cidade"}</p>
+            </div>
 
-          <div className="flex gap-3">
-              <div className="w-1/3 space-y-2">
-                  <Label className="text-[11px] font-bold text-slate-600 uppercase">Número *</Label>
-                  <Input 
+            <div className="flex gap-3">
+                <div className="w-1/3 space-y-2">
+                    <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-200 uppercase">Número *</Label>
+                    <Input 
                     value={address.numero} 
                     onChange={e => { 
                         const val = e.target.value.replace(/\D/g, ""); 
@@ -455,49 +462,50 @@ return (
                     }} 
                     onBlur={handleNumeroBlur} 
                     disabled={semNumero}
-                    className="bg-white h-10 border-slate-200 font-bold text-center" 
+                    className="bg-white dark:bg-slate-800 h-11 border-slate-200 dark:border-slate-700 font-bold text-center dark:text-white placeholder:dark:text-slate-500 focus:dark:bg-slate-700 transition-all shadow-sm" 
                     placeholder="Nº" 
                     inputMode="numeric"
-                  />
-                  
-                  <div className="flex items-center space-x-2 pt-1">
+                    />
+                    
+                    <div className="flex items-center space-x-2 pt-1">
                     <Checkbox 
                         id="semNumero" 
                         checked={semNumero}
                         onCheckedChange={(checked) => setSemNumero(checked === true)}
+                        className="dark:border-slate-500 dark:data-[state=checked]:bg-primary dark:data-[state=checked]:border-primary"
                     />
-                    <label htmlFor="semNumero" className="text-[10px] font-medium leading-none text-slate-500 cursor-pointer">
+                    <label htmlFor="semNumero" className="text-[10px] font-medium leading-none text-slate-500 dark:text-slate-400 cursor-pointer">
                         Sem número
                     </label>
-                  </div>
-              </div>
+                    </div>
+                </div>
 
-              <div className="w-2/3 space-y-1.5">
-                  <Label className="text-[11px] font-bold text-slate-600 uppercase">
-                      Complemento {semNumero && <span className="text-red-500">*</span>}
-                  </Label>
-                  <Input 
+                <div className="w-2/3 space-y-1.5">
+                    <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-200 uppercase">
+                        Complemento {semNumero && <span className="text-red-500">*</span>}
+                    </Label>
+                    <Input 
                     value={address.complemento} 
                     onChange={e => { const novo = {...address, complemento: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} 
-                    className={`bg-white h-10 border-slate-200 ${semNumero && !address.complemento ? "border-red-300 bg-red-50" : ""}`}
+                    className={`bg-white dark:bg-slate-800 h-11 border-slate-200 dark:border-slate-700 dark:text-white placeholder:dark:text-slate-500 focus:dark:bg-slate-700 transition-all shadow-sm ${semNumero && !address.complemento ? "border-red-300 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20" : ""}`}
                     placeholder={semNumero ? "Obrigatório" : "Apto, Bloco..."} 
-                  />
-              </div>
-          </div>
-          
-          <div className="space-y-1.5">
-              <Label className="text-[11px] font-bold text-slate-600 uppercase">
-                  Ponto de Referência {semNumero && <span className="text-red-500">*</span>}
-              </Label>
-              <Input 
+                    />
+                </div>
+            </div>
+            
+            <div className="space-y-1.5">
+                <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-200 uppercase">
+                    Ponto de Referência {semNumero && <span className="text-red-500">*</span>}
+                </Label>
+                <Input 
                 value={address.referencia} 
                 onChange={e => { const novo = {...address, referencia: e.target.value}; setAddress(novo); aplicarFrete(novo, freteCalculado); }} 
-                className={`bg-white h-10 border-slate-200 ${semNumero && !address.referencia ? "border-red-300 bg-red-50" : ""}`}
+                className={`bg-white dark:bg-slate-800 h-11 border-slate-200 dark:border-slate-700 dark:text-white placeholder:dark:text-slate-500 focus:dark:bg-slate-700 transition-all shadow-sm ${semNumero && !address.referencia ? "border-red-300 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20" : ""}`}
                 placeholder={semNumero ? "Obrigatório" : "Ex: Ao lado da padaria..."} 
-              />
-          </div>
+                />
+            </div>
         </div>
-      )}
+        )}
     </div>
   );
 }

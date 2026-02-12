@@ -354,8 +354,10 @@ const handleFinalizar = async () => {
                         </div>
                         <div className="grid gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Nome Completo</Label>
-                                <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Eduardo Viana" className="bg-white/50 h-11 text-sm border-white/60 focus:bg-white focus:border-slate-200 transition-colors shadow-sm" />
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                                    Nome Completo
+                                </Label>
+                                <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Eduardo Viana" className="bg-white/50 dark:bg-slate-800 h-11 text-sm border-white/60 dark:border-slate-700 dark:text-white placeholder:dark:text-slate-500 focus:bg-white dark:focus:bg-slate-700 focus:ring-1 focus:ring-primary transition-all shadow-sm"></Input>
                             </div>
                             
                             {/* CAMPO DE TELEFONE COM AVISO DE CARACTERES */}
@@ -472,13 +474,13 @@ const handleFinalizar = async () => {
                                 <Button 
                                     onClick={handleFinalizar} 
                                     disabled={loading || !isFormValid} 
-                                    className={`w-full h-12 text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 border ${
+                                    className={`w-full h-14 text-base font-black rounded-2xl shadow-2xl transition-all active:scale-95 border ${
                                         !isFormValid 
-                                            ? "bg-slate-200 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 border-transparent cursor-not-allowed" 
-                                            : "bg-slate-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white border-transparent dark:border-white/10 shadow-xl"
+                                            ? "bg-slate-200 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-transparent" 
+                                            : "bg-slate-900 dark:bg-slate-100 hover:bg-black dark:hover:bg-white text-white dark:text-slate-900 border-transparent shadow-white/5"
                                     }`}
                                 >
-                                    {loading ? <Loader2 className="animate-spin h-4 w-4" /> : "Finalizar Pedido"}
+                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "FINALIZAR PEDIDO"}
                                 </Button>
                             </div>
             </TabsContent>
@@ -490,7 +492,7 @@ const handleFinalizar = async () => {
                         {orderHistory.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-60">
                                 <Activity className="h-10 w-10 text-slate-300" />
-                                <p className="text-sm font-bold text-slate-500">Histórico vazio</p>
+                                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-100 line-clamp-1">Histórico vazio</p>
                             </div>
                         ) : (
                             orderHistory.map((order) => (

@@ -151,8 +151,6 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
             email: userEmail,
             options: {
                 shouldCreateUser: false,
-                // Tenta forçar o envio de um email que contenha o token, se configurado
-                // data: { type: 'recovery' } // Opcional, dependendo da config
             }
         });
 
@@ -169,8 +167,9 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
   };
 
   const handleVerifyRecoveryCode = async () => {
+    // CORREÇÃO: Aceita códigos maiores que 6 dígitos
     if (!recoveryCode || recoveryCode.length < 6) {
-        toast.error("Digite o código completo de 6 dígitos.");
+        toast.error("Digite o código completo recebido no e-mail.");
         return;
     }
 
@@ -179,12 +178,11 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         const { error } = await supabase.auth.verifyOtp({
             email: userEmail,
             token: recoveryCode,
-            type: 'magiclink', // Tente 'email' ou 'magiclink' dependendo da versão do Supabase
+            type: 'magiclink', 
         });
         
-        // NOTA: Se o verifyOtp falhar com 'magiclink', o Supabase pode estar esperando 'email'
-        // Se der erro, vamos tentar o outro tipo automaticamente
         if (error) {
+            // Tenta o tipo 'email' caso 'magiclink' falhe
             const { error: error2 } = await supabase.auth.verifyOtp({
                 email: userEmail,
                 token: recoveryCode,
@@ -200,8 +198,6 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         setIsRecoveryMode(false);
         setRecoveryCode("");
         
-        // Reabre o modal no modo "Criar PIN"
-        // Pequeno timeout para a transição de UI ficar suave
         setTimeout(() => {
             setIsPinDialogOpen(true);
             toast.success("Sucesso! Crie seu novo PIN.");
@@ -293,7 +289,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
                             <span className="font-bold text-slate-900 block mt-1 bg-slate-100 py-1 rounded">{userEmail}</span>
                             <span className="block mt-2 text-amber-600 text-[10px] bg-amber-50 p-1 rounded border border-amber-100">
                                 <AlertCircle className="h-3 w-3 inline mr-1" />
-                                Se recebeu um link, use os números dele.
+                                Digite o código recebido (6 a 8 dígitos).
                             </span>
                         </DialogDescription>
                     </DialogHeader>
@@ -302,11 +298,13 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
                         <Input 
                             type="text" 
                             inputMode="numeric"
-                            maxLength={6}
-                            placeholder="123456"
+                            // CORREÇÃO: Aumentado para 8 dígitos
+                            maxLength={8}
+                            placeholder="Código"
                             value={recoveryCode}
                             onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, ''))}
-                            className="text-center text-2xl tracking-[0.3em] font-bold w-full h-12 border-2 focus-visible:ring-0 focus-visible:border-primary"
+                            // Ajustado tracking para caber códigos maiores
+                            className="text-center text-xl tracking-[0.2em] font-bold w-full h-12 border-2 focus-visible:ring-0 focus-visible:border-primary"
                             autoFocus
                         />
                     </div>
@@ -350,7 +348,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
                             autoFocus
                         />
 
-                        {/* Botão de Esqueci a Senha REPOSICIONADO AQUI DENTRO */}
+                        {/* Botão de Esqueci a Senha REPOSICIONADO */}
                         {hasStoredPin && (
                             <button 
                                 onClick={handleStartRecovery}
@@ -372,7 +370,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         </DialogContent>
       </Dialog>
 
-      {/* --- CARTÕES DE KPI (Valores mascarados visualmente) --- */}
+      {/* --- CARTÕES DE KPI --- */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -412,7 +410,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         </Card>
       </div>
 
-      {/* --- GRÁFICOS (Protegidos) --- */}
+      {/* GRÁFICOS */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="col-span-1 relative overflow-hidden group">
           {!areValuesVisible && (

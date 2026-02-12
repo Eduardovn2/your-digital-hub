@@ -31,7 +31,7 @@ const App = () => (
               <Routes>
                 {/* Rotas Públicas */}
                 <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
+                <Route path="/auth" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 
                 {/* Área do Admin (Protegida) */}

@@ -34,9 +34,11 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         setIsLoading(true);
         console.log("Buscando estatísticas para loja:", storeId);
 
-        // Chamada RPC alinhada com a função SQL que aceita TEXT (p_store_id)
-        const { data, error } = await supabase.rpc('get_dashboard_stats' as any, { 
-          p_store_id: storeId 
+        // --- MUDANÇA CRUCIAL AQUI ---
+        // Usamos o nome NOVO da função: 'fetch_admin_kpis'
+        // Usamos o nome NOVO do parâmetro: 'store_id_param'
+        const { data, error } = await supabase.rpc('fetch_admin_kpis' as any, { 
+          store_id_param: storeId 
         });
 
         if (error) {
@@ -71,7 +73,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
     );
   }
 
-  // Se não houver dados, não renderiza nada (ou poderia renderizar um estado vazio)
+  // Se não houver dados, não renderiza nada
   if (!data) return null;
 
   return (

@@ -28,22 +28,21 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
 useEffect(() => {
     async function loadStats() {
       try {
-        // MUDANÇA AQUI:
-        // Não passamos { p_store_id: storeId } como objeto de argumentos nomeados do RPC.
-        // Passamos o storeId direto como o VALOR do argumento, mas tipado como JSON.
-        
+        // MUDANÇA: Voltamos ao básico. Enviamos o storeId como parâmetro nomeado.
+        // O Supabase vai enviar isso como string, e nossa nova função SQL aceita string.
         const { data, error } = await supabase.rpc('get_dashboard_stats', { 
           p_store_id: storeId 
         });
 
         if (error) throw error;
         
-        // Se vier null (caso raro), definimos um padrão
+        // Proteção contra retorno nulo
         if (!data) {
-           setData({ total_revenue: 0, total_count: 0, average_ticket: 0, daily_stats: [] });
-           return;
+             console.log("Dados vazios retornados");
+             return;
         }
 
+        // O cast 'as unknown as StatsData' resolve o tipo do TypeScript
         setData(data as unknown as StatsData);
       } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);

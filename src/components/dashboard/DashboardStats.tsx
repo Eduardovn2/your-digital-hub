@@ -35,7 +35,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         console.log("Buscando estatísticas para loja:", storeId);
 
         // Chamada RPC alinhada com a função SQL que aceita TEXT (p_store_id)
-        const { data, error } = await supabase.rpc('get_dashboard_stats', { 
+        const { data, error } = await supabase.rpc('get_dashboard_stats' as any, { 
           p_store_id: storeId 
         });
 

@@ -56,14 +56,14 @@ const normalizeStatus = (status: string | null | undefined) => {
 const OrderStatusBadge = ({ status }: { status: string }) => {
   const statusKey = normalizeStatus(status);
 
-  const styles = {
-    pending: { bg: "bg-slate-100", text: "text-slate-600", icon: Clock, label: "Pendente" },
-    accepted: { bg: "bg-blue-50", text: "text-blue-700", icon: ClipboardList, label: "Na Fila" },
-    preparing: { bg: "bg-amber-50", text: "text-amber-700", icon: UtensilsCrossed, label: "Preparando" },
-    ready: { bg: "bg-purple-50", text: "text-purple-700", icon: PackageCheck, label: "Pronto p/ Entrega" },
-    delivering: { bg: "bg-orange-50", text: "text-orange-700", icon: Bike, label: "Em Entrega" },
-    completed: { bg: "bg-green-50", text: "text-green-700", icon: CheckCircle2, label: "Concluído" },
-    cancelled: { bg: "bg-red-50", text: "text-red-700", icon: XCircle, label: "Cancelado" },
+const styles = {
+    pending: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-400", icon: Clock, label: "Pendente" },
+    accepted: { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-700 dark:text-blue-400", icon: ClipboardList, label: "Na Fila" },
+    preparing: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", icon: UtensilsCrossed, label: "Preparando" },
+    ready: { bg: "bg-purple-50 dark:bg-purple-900/20", text: "text-purple-700 dark:text-purple-400", icon: PackageCheck, label: "Pronto p/ Entrega" },
+    delivering: { bg: "bg-orange-50 dark:bg-orange-900/20", text: "text-orange-700 dark:text-orange-400", icon: Bike, label: "Em Entrega" },
+    completed: { bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-700 dark:text-green-400", icon: CheckCircle2, label: "Concluído" },
+    cancelled: { bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-700 dark:text-red-400", icon: XCircle, label: "Cancelado" },
   };
 
   const current = styles[statusKey as keyof typeof styles] || styles.pending;
@@ -223,10 +223,10 @@ const handleFinalizar = async () => {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         {/* BOTÃO DA SACOLA (ALVO DA ANIMAÇÃO) */}
-        <Button 
-            id="cart-trigger" 
-            className="relative h-14 px-8 rounded-full bg-slate-900 text-white shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
-        >
+            <Button 
+                id="cart-trigger" 
+                className="relative h-14 px-8 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-none"
+            >
           <div className="relative">
             <ShoppingBag className="h-5 w-5" />
             {activeOrder && (
@@ -240,10 +240,10 @@ const handleFinalizar = async () => {
         </Button>
       </SheetTrigger>
       
-      <SheetContent className="w-full sm:max-w-md flex flex-col h-[100dvh] bg-slate-50 p-0 border-l-0 shadow-2xl">
+      <SheetContent className="w-full sm:max-w-md flex flex-col h-[100dvh] bg-slate-50 dark:bg-slate-950 p-0 border-l-0 dark:border-slate-800 shadow-2xl transition-colors duration-300">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full overflow-hidden">
             
-            <SheetHeader className="px-5 pt-5 pb-3 bg-white/80 backdrop-blur-xl border-b border-white/40 shadow-sm z-20 flex-shrink-0 relative">
+            <SheetHeader className="px-5 pt-5 pb-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-white/40 dark:border-white/10 shadow-sm z-20 flex-shrink-0 relative">
                 <SheetTitle className="sr-only">Carrinho</SheetTitle>
                 
                 {/* Botão de Fechar (Red Glass Theme) */}
@@ -259,8 +259,8 @@ const handleFinalizar = async () => {
                     </Button>
                 </div>
 
-                <TabsList className="grid w-full grid-cols-2 bg-slate-100/80 backdrop-blur-sm p-1 rounded-xl h-12 mt-6 md:mt-0">
-                    <TabsTrigger value="cart" className="rounded-lg text-xs font-bold data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all shadow-sm">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-xl h-12 mt-6 md:mt-0">
+                    <TabsTrigger value="cart" className="rounded-lg text-xs font-bold data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-100 data-[state=active]:text-white dark:data-[state=active]:text-slate-900 transition-all shadow-sm">
                         Sacola
                     </TabsTrigger>
                     <TabsTrigger value="orders" className="rounded-lg text-xs font-bold data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all shadow-sm">
@@ -310,14 +310,14 @@ const handleFinalizar = async () => {
                             </div>
                         )}
                         {items.map(item => (
-                            <div key={item.id} className="flex justify-between items-center bg-white/70 backdrop-blur-md p-3 rounded-xl border border-white/50 shadow-sm transition-all hover:bg-white/90">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-lg bg-white/50 flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/60">
-                                        {item.image_url ? <img src={item.image_url} className="h-full w-full object-cover" /> : <ImageOff className="text-slate-300 h-5 w-5" />}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-800 line-clamp-1">{item.name}</p>
-                                        <p className="text-[11px] text-slate-500 font-bold bg-white/50 px-1.5 py-0.5 rounded w-fit mt-0.5">
+                                <div key={item.id} className="flex justify-between items-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-3 rounded-xl border border-white/50 dark:border-slate-800/50 shadow-sm transition-all hover:bg-white/90 dark:hover:bg-slate-900">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-12 w-12 rounded-lg bg-white/50 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/60 dark:border-slate-700">
+                                                {item.image_url ? <img src={item.image_url} className="h-full w-full object-cover" /> : <ImageOff className="text-slate-300 dark:text-slate-600 h-5 w-5" />}
+                                            </div>
+                                            <div>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.name}</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold bg-white/50 dark:bg-slate-800/50 px-1.5 py-0.5 rounded w-fit mt-0.5">{item.quantity}x R$ {Number(item.price).toFixed(2)}
                                             {item.quantity}x R$ {Number(item.price).toFixed(2)}
                                         </p>
                                     </div>
@@ -331,14 +331,14 @@ const handleFinalizar = async () => {
 
                     {/* DADOS CLIENTE */}
 {/* 2. DADOS CLIENTE (Com Validação Visual) */}
-                    <div className="space-y-4 bg-white/70 backdrop-blur-md p-5 rounded-2xl border border-white/50 shadow-sm transition-all hover:bg-white/80">
+                    <div className="space-y-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 rounded-2xl border border-white/50 dark:border-white/10 shadow-sm transition-all">
                         <div className="flex items-center gap-2 mb-1">
                             <div className="bg-slate-100/80 p-1.5 rounded-full"><User className="h-3.5 w-3.5 text-slate-500" /></div>
                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dados do Cliente</Label>
                         </div>
                         <div className="grid gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-700">Nome Completo</Label>
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Nome Completo</Label>
                                 <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Eduardo Viana" className="bg-white/50 h-11 text-sm border-white/60 focus:bg-white focus:border-slate-200 transition-colors shadow-sm" />
                             </div>
                             
@@ -358,7 +358,7 @@ const handleFinalizar = async () => {
                                     inputMode="tel"
                                     maxLength={15}
                                     // Borda vermelha se começou a digitar e não terminou
-                                    className={`bg-white/50 h-11 text-sm border-white/60 focus:bg-white transition-colors shadow-sm ${
+                                    className={`bg-white/50 dark:bg-slate-800/50 h-11 text-sm border-white/60 dark:border-slate-700/60 dark:text-white transition-colors shadow-sm ${
                                         telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 
                                         ? "border-red-300 focus:border-red-400 bg-red-50/30" 
                                         : "focus:border-slate-200"
@@ -394,10 +394,10 @@ const handleFinalizar = async () => {
                                     onClick={() => setPagamento(m as any)} 
                                     className={`relative overflow-hidden p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all duration-200 group border ${
                                         pagamento === m 
-                                        ? 'bg-slate-900 border-slate-900 text-white shadow-lg scale-[1.02]' 
-                                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300'
+                                        ? 'bg-slate-900 dark:bg-slate-100 border-slate-900 dark:border-slate-100 text-white dark:text-slate-900 shadow-lg scale-[1.02]' 
+                                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                                     }`}
-                                >
+                                    >
                                     {m === 'pix' && <Banknote className="h-5 w-5" />}
                                     {m === 'cartão' && <CreditCard className="h-5 w-5" />}
                                     {m === 'dinheiro' && <Coins className="h-5 w-5" />}
@@ -453,15 +453,12 @@ const handleFinalizar = async () => {
                 </div>
                 </ScrollArea>
 
-                <div className="absolute bottom-0 w-full p-5 bg-white/95 backdrop-blur-md border-t border-slate-100 z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-                    <Button 
-                        onClick={handleFinalizar} 
-                        disabled={loading || !isFormValid} 
-                        className={`w-full h-12 text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 ${!isFormValid ? "bg-slate-200 text-slate-400" : "bg-slate-900 hover:bg-black text-white"}`}
-                    >
-                        {loading ? <Loader2 className="animate-spin h-4 w-4" /> : "Finalizar Pedido"}
-                    </Button>
-                </div>
+                        <div className="absolute bottom-0 w-full p-5 bg-white/95 dark:bg-slate-900/98 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 z-30 shadow-2xl">
+                            <Button onClick={handleFinalizar} disabled={loading || !isFormValid} 
+                                className={`w-full h-12 text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 ${!isFormValid ? "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600" : "bg-slate-900 dark:bg-slate-100 hover:bg-black dark:hover:bg-white text-white dark:text-slate-900"}`}>
+                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : "Finalizar Pedido"}
+                            </Button>
+                        </div>
             </TabsContent>
 
             {/* ABA 2: MEUS PEDIDOS */}
@@ -475,16 +472,15 @@ const handleFinalizar = async () => {
                             </div>
                         ) : (
                             orderHistory.map((order) => (
-                                <div key={order.id} className={`bg-white p-5 rounded-2xl border transition-all duration-300 ${activeOrder?.id === order.id ? 'border-slate-800 shadow-xl shadow-slate-200/50 scale-[1.01]' : 'border-slate-100 shadow-sm'}`}>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="space-y-0.5">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PEDIDO #{order.id.slice(0, 4)}</span>
-                                            <p className="text-xs font-bold text-slate-700 capitalize">{new Date(order.created_at).toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: 'short' })} • {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                                        </div>
-                                        <OrderStatusBadge status={order.status} />
-                                    </div>
-                                    
-                                    <div className="bg-slate-50 rounded-xl p-3 mb-4 space-y-2 border border-slate-100/50">
+                                        <div key={order.id} className={`bg-white dark:bg-slate-900 p-5 rounded-2xl border transition-all duration-300 ${activeOrder?.id === order.id ? 'border-slate-800 dark:border-slate-100 shadow-xl' : 'border-slate-100 dark:border-slate-800'}`}>
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="space-y-0.5">
+                                                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">PEDIDO #{order.id.slice(0, 4)}</span>
+                                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize"> ... </p>
+                                                </div>
+                                                <OrderStatusBadge status={order.status} />
+                                            </div>
+                                            <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-3 mb-4 space-y-2 border border-slate-100/50 dark:border-slate-800/50">
                                         {(order.items || []).slice(0, 3).map((item: any, idx: number) => (
                                             <div key={idx} className="flex justify-between text-xs text-slate-600">
                                                 <span className="flex gap-2">

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
-import { Loader2, DollarSign, ShoppingBag, TrendingUp, Eye, EyeOff, Lock, ShieldCheck, Mail } from "lucide-react";
+import { Loader2, DollarSign, ShoppingBag, TrendingUp, Eye, EyeOff, Lock, ShieldCheck, Mail, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -54,6 +54,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
 
       try {
         setIsLoading(true);
+        // Estratégia B: Frontend Puro
         const { data: orders, error } = await supabase
           .from('orders')
           .select('total, created_at')
@@ -94,7 +95,6 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
 
         setData({ total_revenue, total_count, average_ticket, daily_stats });
 
-        // Busca o email do usuário para exibir na recuperação
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.email) setUserEmail(user.email);
 
@@ -139,7 +139,6 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
     setPinInput("");
   };
 
-  // --- LÓGICA DE RECUPERAÇÃO VIA EMAIL ---
   const handleStartRecovery = async () => {
     if (!userEmail) {
         toast.error("Erro ao identificar seu e-mail.");
@@ -148,11 +147,12 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
 
     setIsSendingEmail(true);
     try {
-        // Envia um OTP (One-Time Password) para o email
         const { error } = await supabase.auth.signInWithOtp({
             email: userEmail,
             options: {
-                shouldCreateUser: false, // Só envia se o usuário já existir
+                shouldCreateUser: false,
+                // Tenta forçar o envio de um email que contenha o token, se configurado
+                // data: { type: 'recovery' } // Opcional, dependendo da config
             }
         });
 
@@ -162,7 +162,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         toast.success(`Código enviado para ${userEmail}`);
     } catch (error) {
         console.error("Erro ao enviar código:", error);
-        toast.error("Erro ao enviar e-mail. Tente novamente.");
+        toast.error("Erro ao enviar e-mail. Verifique sua conexão.");
     } finally {
         setIsSendingEmail(false);
     }
@@ -174,41 +174,47 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         return;
     }
 
-    setIsSendingEmail(true); // Reutilizando estado de loading
+    setIsSendingEmail(true); 
     try {
-        // Verifica o token OTP
         const { error } = await supabase.auth.verifyOtp({
             email: userEmail,
             token: recoveryCode,
-            type: 'email',
+            type: 'magiclink', // Tente 'email' ou 'magiclink' dependendo da versão do Supabase
         });
-
+        
+        // NOTA: Se o verifyOtp falhar com 'magiclink', o Supabase pode estar esperando 'email'
+        // Se der erro, vamos tentar o outro tipo automaticamente
         if (error) {
-            toast.error("Código inválido ou expirado.");
-            return;
+            const { error: error2 } = await supabase.auth.verifyOtp({
+                email: userEmail,
+                token: recoveryCode,
+                type: 'email', 
+            });
+            if (error2) throw error2;
         }
 
-        // Se verificado com sucesso:
         localStorage.removeItem("@vianahub-admin-pin");
         setHasStoredPin(false);
         setAreValuesVisible(false);
         setPinInput("");
         setIsRecoveryMode(false);
-        setIsPinDialogOpen(true); // Reabre o modal, agora em modo "Criar PIN"
         setRecoveryCode("");
         
-        toast.success("PIN resetado! Crie um novo agora.");
+        // Reabre o modal no modo "Criar PIN"
+        // Pequeno timeout para a transição de UI ficar suave
+        setTimeout(() => {
+            setIsPinDialogOpen(true);
+            toast.success("Sucesso! Crie seu novo PIN.");
+        }, 100);
 
     } catch (error) {
         console.error("Erro na verificação:", error);
-        toast.error("Erro ao verificar código.");
+        toast.error("Código inválido ou expirado.");
     } finally {
         setIsSendingEmail(false);
     }
   };
 
-
-  // --- BLINDAGEM CONTRA INSPEÇÃO ---
   const safeChartData = data?.daily_stats.map(item => ({
     ...item,
     revenue: areValuesVisible ? item.revenue : 0, 
@@ -228,13 +234,17 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
   return (
     <div className="space-y-6 animate-fade-in relative">
       
-      {/* Botão de Controle */}
+      {/* Cabeçalho de Privacidade */}
       <div className="flex justify-between items-center mb-2">
         <div className="text-sm text-slate-500">
           {areValuesVisible ? (
-             <span className="flex items-center gap-1 text-emerald-600"><ShieldCheck className="h-3 w-3"/> Modo Visível</span>
+             <span className="flex items-center gap-1 text-emerald-600 font-medium">
+               <ShieldCheck className="h-3 w-3"/> Modo Visível
+             </span>
           ) : (
-             <span className="flex items-center gap-1"><Lock className="h-3 w-3"/> Modo Privado</span>
+             <span className="flex items-center gap-1 font-medium">
+               <Lock className="h-3 w-3"/> Modo Privado
+             </span>
           )}
         </div>
         <Button 
@@ -247,7 +257,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
                     setIsPinDialogOpen(true); 
                 }
             }}
-            className={areValuesVisible ? "text-slate-500" : "bg-slate-900 text-white hover:bg-slate-800 border-none"}
+            className={areValuesVisible ? "text-slate-500" : "bg-slate-900 text-white hover:bg-slate-800 border-none shadow-md"}
         >
             {areValuesVisible ? (
                 <><EyeOff className="h-4 w-4 mr-2" /> Ocultar</>
@@ -257,11 +267,11 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         </Button>
       </div>
 
-      {/* Modal PIN / Recuperação */}
+      {/* MODAL DE PIN / RECUPERAÇÃO */}
       <Dialog open={isPinDialogOpen} onOpenChange={(open) => {
         if (!open) {
             setPinInput(""); 
-            setIsRecoveryMode(false); // Reseta modo se fechar
+            setIsRecoveryMode(false);
             setRecoveryCode("");
         }
         setIsPinDialogOpen(open);
@@ -272,9 +282,19 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
             {isRecoveryMode ? (
                 <>
                     <DialogHeader>
-                        <DialogTitle className="text-center">Verifique seu E-mail</DialogTitle>
-                        <DialogDescription className="text-center text-xs">
-                            Enviamos um código de 6 dígitos para <br/><span className="font-bold text-slate-900">{userEmail}</span>
+                        <DialogTitle className="text-center flex flex-col items-center gap-2">
+                           <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mb-1">
+                             <Mail className="h-5 w-5" />
+                           </div>
+                           Verifique seu E-mail
+                        </DialogTitle>
+                        <DialogDescription className="text-center text-xs px-2">
+                            Enviamos um código para:<br/>
+                            <span className="font-bold text-slate-900 block mt-1 bg-slate-100 py-1 rounded">{userEmail}</span>
+                            <span className="block mt-2 text-amber-600 text-[10px] bg-amber-50 p-1 rounded border border-amber-100">
+                                <AlertCircle className="h-3 w-3 inline mr-1" />
+                                Se recebeu um link, use os números dele.
+                            </span>
                         </DialogDescription>
                     </DialogHeader>
                     
@@ -286,75 +306,73 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
                             placeholder="123456"
                             value={recoveryCode}
                             onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, ''))}
-                            className="text-center text-2xl tracking-[0.5em] font-bold w-48 h-12"
+                            className="text-center text-2xl tracking-[0.3em] font-bold w-full h-12 border-2 focus-visible:ring-0 focus-visible:border-primary"
                             autoFocus
                         />
                     </div>
 
-                    <DialogFooter className="flex-col gap-2 sm:gap-0">
+                    <div className="flex flex-col gap-2">
                         <Button className="w-full" onClick={handleVerifyRecoveryCode} disabled={isSendingEmail}>
-                            {isSendingEmail ? <Loader2 className="h-4 w-4 animate-spin"/> : "Verificar Código"}
+                            {isSendingEmail ? <Loader2 className="h-4 w-4 animate-spin"/> : "Confirmar Código"}
                         </Button>
                         <Button variant="ghost" className="w-full text-xs" onClick={() => setIsRecoveryMode(false)}>
-                            Voltar para o PIN
+                            Cancelar e Voltar
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </>
             ) : (
                 /* TELA DE PIN PADRÃO */
                 <>
                     <DialogHeader>
                         <DialogTitle className="text-center">
-                        {hasStoredPin ? "Digite seu PIN" : "Crie um PIN de Acesso"}
+                        {hasStoredPin ? "Digite seu PIN" : "Crie um PIN"}
                         </DialogTitle>
                         <DialogDescription className="text-center">
                         {hasStoredPin 
-                            ? "Informe os 4 números para visualizar." 
-                            : "Defina 4 números para proteger seus dados."}
+                            ? "Proteção ativa. Informe os 4 dígitos." 
+                            : "Defina 4 números para proteger a visualização."}
                         </DialogDescription>
                     </DialogHeader>
                     
-                    <div className="flex justify-center py-4">
+                    <div className="flex flex-col items-center gap-4 py-4">
                         <Input 
                             type="password" 
                             inputMode="numeric"
                             maxLength={4}
-                            placeholder="0000"
+                            placeholder="••••"
                             value={pinInput}
                             onChange={(e) => {
                             const val = e.target.value.replace(/\D/g, '');
                             setPinInput(val);
                             }}
                             onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
-                            className="text-center text-3xl tracking-[1em] font-bold w-40 h-14"
+                            className="text-center text-3xl tracking-[0.5em] font-bold w-48 h-16 border-2 focus-visible:ring-0 focus-visible:border-slate-900 rounded-xl"
                             autoFocus
                         />
+
+                        {/* Botão de Esqueci a Senha REPOSICIONADO AQUI DENTRO */}
+                        {hasStoredPin && (
+                            <button 
+                                onClick={handleStartRecovery}
+                                disabled={isSendingEmail}
+                                className="text-xs text-slate-400 hover:text-primary underline decoration-dotted transition-colors flex items-center gap-1"
+                            >
+                                {isSendingEmail ? <Loader2 className="h-3 w-3 animate-spin"/> : null}
+                                Esqueci meu PIN (Enviar código)
+                            </button>
+                        )}
                     </div>
 
-                    <DialogFooter className="flex-col gap-2 sm:gap-0">
-                        <Button className="w-full" onClick={handlePinSubmit}>
-                            {hasStoredPin ? "Desbloquear" : "Salvar PIN"}
-                        </Button>
-                        
-                        {hasStoredPin && (
-                        <Button 
-                            variant="ghost" 
-                            className="w-full text-xs text-muted-foreground mt-2 hover:text-red-500" 
-                            onClick={handleStartRecovery}
-                            disabled={isSendingEmail}
-                        >
-                            {isSendingEmail ? <Loader2 className="h-3 w-3 animate-spin mr-2"/> : <Mail className="h-3 w-3 mr-1"/>}
-                            Esqueci meu PIN (Enviar Código)
-                        </Button>
-                        )}
-                    </DialogFooter>
+                    <Button className="w-full h-12 text-md font-medium" onClick={handlePinSubmit}>
+                        {hasStoredPin ? "Desbloquear" : "Salvar PIN"}
+                    </Button>
                 </>
             )}
 
         </DialogContent>
       </Dialog>
 
-      {/* KPIs */}
+      {/* --- CARTÕES DE KPI (Valores mascarados visualmente) --- */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -394,7 +412,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         </Card>
       </div>
 
-      {/* GRÁFICOS */}
+      {/* --- GRÁFICOS (Protegidos) --- */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="col-span-1 relative overflow-hidden group">
           {!areValuesVisible && (

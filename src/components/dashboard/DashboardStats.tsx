@@ -25,25 +25,34 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
   const [data, setData] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-useEffect(() => {
+  useEffect(() => {
     async function loadStats() {
+      // Evita chamadas desnecessárias se não tiver ID
+      if (!storeId) return;
+
       try {
-        // MUDANÇA: Voltamos ao básico. Enviamos o storeId como parâmetro nomeado.
-        // O Supabase vai enviar isso como string, e nossa nova função SQL aceita string.
+        setIsLoading(true);
+        console.log("Buscando estatísticas para loja:", storeId);
+
+        // Chamada RPC alinhada com a função SQL que aceita TEXT (p_store_id)
         const { data, error } = await supabase.rpc('get_dashboard_stats', { 
           p_store_id: storeId 
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Erro Supabase RPC:", error);
+          throw error;
+        }
         
-        // Proteção contra retorno nulo
+        // Proteção contra retorno nulo ou vazio
         if (!data) {
-             console.log("Dados vazios retornados");
-             return;
+           console.warn("Dados vazios retornados do dashboard");
+           return;
         }
 
-        // O cast 'as unknown as StatsData' resolve o tipo do TypeScript
+        // Conversão de tipo segura
         setData(data as unknown as StatsData);
+
       } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
       } finally {
@@ -51,9 +60,7 @@ useEffect(() => {
       }
     }
 
-    if (storeId) {
-      loadStats();
-    }
+    loadStats();
   }, [storeId]);
 
   if (isLoading) {
@@ -64,6 +71,7 @@ useEffect(() => {
     );
   }
 
+  // Se não houver dados, não renderiza nada (ou poderia renderizar um estado vazio)
   if (!data) return null;
 
   return (
@@ -127,6 +135,10 @@ useEffect(() => {
                     tickLine={false} 
                     axisLine={false}
                     minTickGap={30}
+                    tickFormatter={(val) => {
+                      const date = new Date(val);
+                      return `${date.getDate()}/${date.getMonth()+1}`;
+                    }}
                   />
                   <YAxis 
                     stroke="#888888" 
@@ -170,6 +182,10 @@ useEffect(() => {
                     tickLine={false} 
                     axisLine={false}
                     minTickGap={30}
+                    tickFormatter={(val) => {
+                      const date = new Date(val);
+                      return `${date.getDate()}/${date.getMonth()+1}`;
+                    }}
                   />
                   <YAxis 
                     stroke="#888888" 

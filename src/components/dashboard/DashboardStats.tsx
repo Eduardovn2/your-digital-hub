@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
-import { Loader2, DollarSign, ShoppingBag, TrendingUp, Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
+import { Loader2, DollarSign, ShoppingBag, TrendingUp, Eye, EyeOff, Lock, ShieldCheck, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,6 +41,12 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [hasStoredPin, setHasStoredPin] = useState(false);
+
+  // --- Estados de Recuperação de PIN ---
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
     async function loadStats() {
@@ -88,6 +94,10 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
 
         setData({ total_revenue, total_count, average_ticket, daily_stats });
 
+        // Busca o email do usuário para exibir na recuperação
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) setUserEmail(user.email);
+
       } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
       } finally {
@@ -129,37 +139,80 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
     setPinInput("");
   };
 
-  const handleResetPin = () => {
-    if (confirm("Deseja redefinir seu PIN? Os valores serão ocultados.")) {
-      localStorage.removeItem("@vianahub-admin-pin");
-      setHasStoredPin(false);
-      setAreValuesVisible(false);
-      setPinInput("");
-      toast.info("Crie um novo PIN.");
+  // --- LÓGICA DE RECUPERAÇÃO VIA EMAIL ---
+  const handleStartRecovery = async () => {
+    if (!userEmail) {
+        toast.error("Erro ao identificar seu e-mail.");
+        return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+        // Envia um OTP (One-Time Password) para o email
+        const { error } = await supabase.auth.signInWithOtp({
+            email: userEmail,
+            options: {
+                shouldCreateUser: false, // Só envia se o usuário já existir
+            }
+        });
+
+        if (error) throw error;
+
+        setIsRecoveryMode(true);
+        toast.success(`Código enviado para ${userEmail}`);
+    } catch (error) {
+        console.error("Erro ao enviar código:", error);
+        toast.error("Erro ao enviar e-mail. Tente novamente.");
+    } finally {
+        setIsSendingEmail(false);
     }
   };
+
+  const handleVerifyRecoveryCode = async () => {
+    if (!recoveryCode || recoveryCode.length < 6) {
+        toast.error("Digite o código completo de 6 dígitos.");
+        return;
+    }
+
+    setIsSendingEmail(true); // Reutilizando estado de loading
+    try {
+        // Verifica o token OTP
+        const { error } = await supabase.auth.verifyOtp({
+            email: userEmail,
+            token: recoveryCode,
+            type: 'email',
+        });
+
+        if (error) {
+            toast.error("Código inválido ou expirado.");
+            return;
+        }
+
+        // Se verificado com sucesso:
+        localStorage.removeItem("@vianahub-admin-pin");
+        setHasStoredPin(false);
+        setAreValuesVisible(false);
+        setPinInput("");
+        setIsRecoveryMode(false);
+        setIsPinDialogOpen(true); // Reabre o modal, agora em modo "Criar PIN"
+        setRecoveryCode("");
+        
+        toast.success("PIN resetado! Crie um novo agora.");
+
+    } catch (error) {
+        console.error("Erro na verificação:", error);
+        toast.error("Erro ao verificar código.");
+    } finally {
+        setIsSendingEmail(false);
+    }
+  };
+
 
   // --- BLINDAGEM CONTRA INSPEÇÃO ---
-  // Se não estiver visível, retorna string fixa "••••"
-  // O número real NÃO É RENDERIZADO no DOM
-  const formatValue = (value: number, type: 'currency' | 'number') => {
-    if (areValuesVisible) {
-      if (type === 'currency') {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-      }
-      return value;
-    }
-    return "••••";
-  };
-
-  // --- PREPARAÇÃO DOS DADOS DO GRÁFICO ---
-  // Aqui está a segurança real dos gráficos:
-  // Se estiver bloqueado, passamos revenue = 0. 
-  // Assim, o SVG gerado terá paths zerados. O inspecionar elemento não achará nada.
   const safeChartData = data?.daily_stats.map(item => ({
     ...item,
-    revenue: areValuesVisible ? item.revenue : 0, // DADO FALSO SE BLOQUEADO
-    count: item.count // Pedidos geralmente não são sensíveis, mas pode zerar também se quiser: (areValuesVisible ? item.count : 0)
+    revenue: areValuesVisible ? item.revenue : 0, 
+    count: item.count 
   })) || [];
 
   if (isLoading) {
@@ -204,48 +257,100 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         </Button>
       </div>
 
-      {/* Modal PIN */}
+      {/* Modal PIN / Recuperação */}
       <Dialog open={isPinDialogOpen} onOpenChange={(open) => {
-        if (!open) setPinInput(""); 
+        if (!open) {
+            setPinInput(""); 
+            setIsRecoveryMode(false); // Reseta modo se fechar
+            setRecoveryCode("");
+        }
         setIsPinDialogOpen(open);
       }}>
         <DialogContent className="sm:max-w-xs">
-            <DialogHeader>
-                <DialogTitle className="text-center">
-                  {hasStoredPin ? "Digite seu PIN" : "Crie um PIN de Acesso"}
-                </DialogTitle>
-                <DialogDescription className="text-center">
-                  {hasStoredPin 
-                    ? "Informe os 4 números para visualizar." 
-                    : "Defina 4 números para proteger seus dados."}
-                </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-center py-4">
-                <Input 
-                    type="password" 
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder="0000"
-                    value={pinInput}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, '');
-                      setPinInput(val);
-                    }}
-                    onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
-                    className="text-center text-3xl tracking-[1em] font-bold w-40 h-14"
-                    autoFocus
-                />
-            </div>
-            <DialogFooter className="flex-col gap-2 sm:gap-0">
-                <Button className="w-full" onClick={handlePinSubmit}>
-                    {hasStoredPin ? "Desbloquear" : "Salvar PIN"}
-                </Button>
-                {hasStoredPin && (
-                  <Button variant="ghost" className="w-full text-xs text-muted-foreground mt-2" onClick={handleResetPin}>
-                    Esqueci meu PIN
-                  </Button>
-                )}
-            </DialogFooter>
+            
+            {/* TELA DE RECUPERAÇÃO (CÓDIGO EMAIL) */}
+            {isRecoveryMode ? (
+                <>
+                    <DialogHeader>
+                        <DialogTitle className="text-center">Verifique seu E-mail</DialogTitle>
+                        <DialogDescription className="text-center text-xs">
+                            Enviamos um código de 6 dígitos para <br/><span className="font-bold text-slate-900">{userEmail}</span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="flex justify-center py-4">
+                        <Input 
+                            type="text" 
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="123456"
+                            value={recoveryCode}
+                            onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, ''))}
+                            className="text-center text-2xl tracking-[0.5em] font-bold w-48 h-12"
+                            autoFocus
+                        />
+                    </div>
+
+                    <DialogFooter className="flex-col gap-2 sm:gap-0">
+                        <Button className="w-full" onClick={handleVerifyRecoveryCode} disabled={isSendingEmail}>
+                            {isSendingEmail ? <Loader2 className="h-4 w-4 animate-spin"/> : "Verificar Código"}
+                        </Button>
+                        <Button variant="ghost" className="w-full text-xs" onClick={() => setIsRecoveryMode(false)}>
+                            Voltar para o PIN
+                        </Button>
+                    </DialogFooter>
+                </>
+            ) : (
+                /* TELA DE PIN PADRÃO */
+                <>
+                    <DialogHeader>
+                        <DialogTitle className="text-center">
+                        {hasStoredPin ? "Digite seu PIN" : "Crie um PIN de Acesso"}
+                        </DialogTitle>
+                        <DialogDescription className="text-center">
+                        {hasStoredPin 
+                            ? "Informe os 4 números para visualizar." 
+                            : "Defina 4 números para proteger seus dados."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="flex justify-center py-4">
+                        <Input 
+                            type="password" 
+                            inputMode="numeric"
+                            maxLength={4}
+                            placeholder="0000"
+                            value={pinInput}
+                            onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            setPinInput(val);
+                            }}
+                            onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
+                            className="text-center text-3xl tracking-[1em] font-bold w-40 h-14"
+                            autoFocus
+                        />
+                    </div>
+
+                    <DialogFooter className="flex-col gap-2 sm:gap-0">
+                        <Button className="w-full" onClick={handlePinSubmit}>
+                            {hasStoredPin ? "Desbloquear" : "Salvar PIN"}
+                        </Button>
+                        
+                        {hasStoredPin && (
+                        <Button 
+                            variant="ghost" 
+                            className="w-full text-xs text-muted-foreground mt-2 hover:text-red-500" 
+                            onClick={handleStartRecovery}
+                            disabled={isSendingEmail}
+                        >
+                            {isSendingEmail ? <Loader2 className="h-3 w-3 animate-spin mr-2"/> : <Mail className="h-3 w-3 mr-1"/>}
+                            Esqueci meu PIN (Enviar Código)
+                        </Button>
+                        )}
+                    </DialogFooter>
+                </>
+            )}
+
         </DialogContent>
       </Dialog>
 
@@ -257,9 +362,8 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            {/* O valor real NUNCA é renderizado se estiver oculto */}
             <div className="text-2xl font-bold">
-              {formatValue(data.total_revenue, 'currency')}
+              {data ? (areValuesVisible ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.total_revenue) : "••••") : "..."}
             </div>
             <p className="text-xs text-muted-foreground">Total acumulado</p>
           </CardContent>
@@ -271,7 +375,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
             <ShoppingBag className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.total_count}</div>
+            <div className="text-2xl font-bold">{data?.total_count}</div>
             <p className="text-xs text-muted-foreground">Vendas concluídas</p>
           </CardContent>
         </Card>
@@ -283,7 +387,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatValue(data.average_ticket, 'currency')}
+              {data ? (areValuesVisible ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.average_ticket) : "••••") : "..."}
             </div>
             <p className="text-xs text-muted-foreground">Média por pedido</p>
           </CardContent>
@@ -292,9 +396,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
 
       {/* GRÁFICOS */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Gráfico de Faturamento */}
         <Card className="col-span-1 relative overflow-hidden group">
-          {/* O Overlay visual ainda existe para dar o feedback ao usuário */}
           {!areValuesVisible && (
             <div className="absolute inset-0 bg-white/60 backdrop-blur-md z-10 flex flex-col items-center justify-center text-slate-500 transition-all">
                 <div className="bg-white p-3 rounded-full shadow-sm mb-2">
@@ -310,11 +412,6 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
           <CardContent className="pl-2">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                {/* AQUI ESTÁ O SEGREDO: 
-                   Passamos 'safeChartData'. Se estiver bloqueado, 'revenue' é 0.
-                   O gráfico renderiza uma linha reta no zero.
-                   Mesmo tirando o blur, não há dados para ver.
-                */}
                 <LineChart data={safeChartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis 
@@ -354,7 +451,6 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
           </CardContent>
         </Card>
 
-        {/* Gráfico de Volume de Pedidos */}
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Volume de Pedidos</CardTitle>

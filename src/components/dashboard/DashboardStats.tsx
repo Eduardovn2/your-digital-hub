@@ -27,36 +27,79 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
 
   useEffect(() => {
     async function loadStats() {
-      // Evita chamadas desnecessárias se não tiver ID
       if (!storeId) return;
 
       try {
         setIsLoading(true);
-        console.log("Buscando estatísticas para loja:", storeId);
+        console.log("Estratégia B: Buscando pedidos brutos para cálculo local...");
 
-        // --- MUDANÇA CRÍTICA AQUI ---
-        // 1. Usamos o nome NOVO da função: 'fetch_admin_kpis'
-        // 2. Usamos o nome NOVO do parâmetro: 'store_id_param'
-        const { data, error } = await supabase.rpc('fetch_admin_kpis' as any, { 
-          store_id_param: storeId 
+        // 1. Buscamos TODOS os pedidos válidos da loja
+        const { data: orders, error } = await supabase
+          .from('orders')
+          .select('total, created_at')
+          .eq('store_id', storeId)
+          .neq('status', 'cancelled')
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        if (!orders || orders.length === 0) {
+          setData({
+            total_revenue: 0,
+            total_count: 0,
+            average_ticket: 0,
+            daily_stats: []
+          });
+          return;
+        }
+
+        // 2. Cálculo dos KPIs Gerais (Matemática simples no JS)
+        const total_revenue = orders.reduce((acc, order) => acc + Number(order.total), 0);
+        const total_count = orders.length;
+        const average_ticket = total_count > 0 ? total_revenue / total_count : 0;
+
+        // 3. Preparação dos Gráficos (Agrupamento por dia - Últimos 30 dias)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // Mapa para agrupar valores por data
+        const dailyMap = new Map<string, { revenue: number; count: number }>();
+
+        orders.forEach(order => {
+          const orderDate = new Date(order.created_at);
+          
+          // Só considera os últimos 30 dias para o gráfico
+          if (orderDate >= thirtyDaysAgo) {
+            // Formata data como YYYY-MM-DD para usar como chave
+            const dateKey = orderDate.toISOString().split('T')[0];
+            
+            const current = dailyMap.get(dateKey) || { revenue: 0, count: 0 };
+            
+            dailyMap.set(dateKey, {
+              revenue: current.revenue + Number(order.total),
+              count: current.count + 1
+            });
+          }
         });
 
-        if (error) {
-          console.error("Erro Supabase RPC:", error);
-          throw error;
-        }
-        
-        // Proteção contra retorno nulo ou vazio
-        if (!data) {
-           console.warn("Dados vazios retornados do dashboard");
-           return;
-        }
+        // Converte o Mapa em Array para o gráfico
+        const daily_stats = Array.from(dailyMap.entries())
+          .map(([date, values]) => ({
+            date,
+            revenue: values.revenue,
+            count: values.count
+          }))
+          .sort((a, b) => a.date.localeCompare(b.date)); // Ordena por data
 
-        // Conversão de tipo segura
-        setData(data as unknown as StatsData);
+        setData({
+          total_revenue,
+          total_count,
+          average_ticket,
+          daily_stats
+        });
 
       } catch (error) {
-        console.error("Erro ao carregar estatísticas:", error);
+        console.error("Erro ao carregar estatísticas (Estratégia B):", error);
       } finally {
         setIsLoading(false);
       }
@@ -73,12 +116,11 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
     );
   }
 
-  // Se não houver dados, não renderiza nada
   if (!data) return null;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* --- CARTÕES DE KPI (Métricas Principais) --- */}
+      {/* --- CARTÕES DE KPI --- */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -120,7 +162,6 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
 
       {/* --- GRÁFICOS --- */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Gráfico de Faturamento */}
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Faturamento (30 dias)</CardTitle>
@@ -167,7 +208,6 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
           </CardContent>
         </Card>
 
-        {/* Gráfico de Volume de Pedidos */}
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Volume de Pedidos</CardTitle>

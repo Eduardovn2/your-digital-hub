@@ -34,9 +34,9 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
         setIsLoading(true);
         console.log("Buscando estatísticas para loja:", storeId);
 
-        // --- MUDANÇA CRUCIAL AQUI ---
-        // Usamos o nome NOVO da função: 'fetch_admin_kpis'
-        // Usamos o nome NOVO do parâmetro: 'store_id_param'
+        // --- MUDANÇA CRÍTICA AQUI ---
+        // 1. Usamos o nome NOVO da função: 'fetch_admin_kpis'
+        // 2. Usamos o nome NOVO do parâmetro: 'store_id_param'
         const { data, error } = await supabase.rpc('fetch_admin_kpis' as any, { 
           store_id_param: storeId 
         });

@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { MenuItemCard } from "@/components/MenuItemCard";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Search, Star, AlertCircle, ArrowLeft } from "lucide-react";
+import { MapPin, Search, Star, AlertCircle } from "lucide-react"; // ArrowLeft removido
 import CartDrawer from "@/components/CartDrawer";
 import { useCart } from "@/contexts/CartContext";
 import { Input } from "@/components/ui/input";
@@ -171,13 +171,11 @@ export default function StorePage() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20 font-sans">
       
-      {/* Header Fixo */}
+      {/* Header Fixo (CORRIGIDO: Sem seta de voltar) */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm py-2" : "bg-transparent py-4"}`}>
         <div className="container mx-auto px-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Link to="/" className={`p-2 rounded-full transition-colors ${isScrolled ? "hover:bg-slate-100" : "bg-black/20 text-white hover:bg-black/30"}`}>
-              <ArrowLeft className={`h-5 w-5 ${isScrolled ? "text-slate-600" : "text-white"}`} />
-            </Link>
+          <div className="flex items-center">
+            {/* Seta de voltar removida deste bloco */}
             <h1 className={`font-bold text-lg transition-opacity duration-300 ${isScrolled ? "opacity-100 text-slate-800" : "opacity-0"}`}>
               {store.name}
             </h1>
@@ -213,7 +211,6 @@ export default function StorePage() {
                 <div>
                   <h1 className="text-xl md:text-3xl font-bold text-slate-900 truncate">{store.name}</h1>
                   
-                  {/* --- CORREÇÃO: DESCRIÇÃO ADICIONADA AQUI --- */}
                   {store.description && (
                     <p className="text-xs md:text-sm text-slate-500 mt-1 line-clamp-2 md:line-clamp-none italic max-w-xl">
                       {store.description}

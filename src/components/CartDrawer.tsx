@@ -129,18 +129,30 @@ const subtotalReal = items.reduce((acc, item) => acc + (Number(item.price) * (it
   const isFinished = ["completed", "cancelled"].includes(lastStatusKey);
   const activeOrder = lastOrder && !isFinished ? lastOrder : null;
 
-  useEffect(() => {
-    if (!deviceId || !open) return;
-    fetchOrderHistory();
-    const channel = supabase
-      .channel(`customer-orders-${deviceId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `device_id=eq.${deviceId}` }, () => {
-          fetchOrderHistory();
-          toast({ title: "🔔 Atualização", description: "O status do seu pedido mudou." });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [deviceId, open]);
+    useEffect(() => {
+        if (!deviceId || !open) return;
+
+        let channel: any = null;
+
+        // PERFORMANCE: Atrasamos a busca em 350ms.
+        // Isso deixa a animação de "abrir a gaveta" terminar suavemente antes de usar a CPU para buscar dados.
+        const timer = setTimeout(() => {
+            fetchOrderHistory();
+            
+            channel = supabase
+            .channel(`customer-orders-${deviceId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `device_id=eq.${deviceId}` }, () => {
+                fetchOrderHistory();
+                toast({ title: "🔔 Atualização", description: "O status do seu pedido mudou." });
+            })
+            .subscribe();
+        }, 350);
+
+        return () => { 
+            clearTimeout(timer); // Cancela se fechar rápido
+            if (channel) supabase.removeChannel(channel); 
+        };
+    }, [deviceId, open]);
 
   const fetchOrderHistory = async () => {
       if (!deviceId) return;
@@ -241,11 +253,15 @@ const handleFinalizar = async () => {
         </Button>
       </SheetTrigger>
       
-      <SheetContent className="w-full sm:max-w-md flex flex-col h-[100dvh] bg-slate-50 dark:bg-slate-950 p-0 border-l-0 dark:border-slate-800 shadow-2xl transition-colors duration-300">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full overflow-hidden">
-            
-            <SheetHeader className="px-5 pt-5 pb-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-white/40 dark:border-white/10 shadow-sm z-20 flex-shrink-0 relative">
-                <SheetTitle className="sr-only">Carrinho</SheetTitle>
+<SheetContent className="w-full sm:max-w-md flex flex-col h-[100dvh] bg-slate-50 dark:bg-slate-950 p-0 border-l-0 shadow-2xl">
+    
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full overflow-hidden">
+        
+        {/* MUDANÇAS NO HEADER:
+           1. Removido 'backdrop-blur-xl' (Muito pesado)
+           2. Usando bg-opacity sólida (95%)
+        */}
+        <SheetHeader className="px-5 pt-5 pb-3 bg-white/95 dark:bg-slate-900/95 border-b border-slate-100 dark:border-white/5 shadow-sm z-20 flex-shrink-0 relative">                <SheetTitle className="sr-only">Carrinho</SheetTitle>
                 
                 {/* Botão de Fechar (Red Glass Theme) */}
                 <div className="absolute top-2 right-2 md:hidden z-50">

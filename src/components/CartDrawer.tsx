@@ -18,6 +18,22 @@ import {
 } from "lucide-react";
 import { DeliveryAddressForm, AddressData } from "@/components/DeliveryAddressForm";
 
+const OrderSkeleton = () => (
+  <div className="p-5 rounded-2xl border border-slate-100 dark:border-white/5 bg-white/50 dark:bg-slate-900/40 mb-4 animate-pulse">
+    <div className="flex justify-between items-start mb-4">
+      <div className="space-y-2">
+        <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" />
+        <div className="h-3 w-12 bg-slate-200 dark:bg-slate-800 rounded-full" />
+      </div>
+      <div className="h-6 w-24 bg-slate-200 dark:bg-slate-800 rounded-full" />
+    </div>
+    <div className="space-y-2">
+      <div className="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded" />
+      <div className="h-4 w-2/3 bg-slate-200 dark:bg-slate-800 rounded" />
+    </div>
+  </div>
+);
+
 const parseCurrency = (value: string) => {
   if (!value) return 0;
   return parseFloat(value.replace(",", ".")) || 0;
@@ -89,6 +105,7 @@ export default function CartDrawer() {
     const { items, total, storeId, clearCart, removeFromCart, customerId } = useCart();
   const { toast } = useToast();
   const deviceId = useDevice();
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("cart");
@@ -129,30 +146,39 @@ const subtotalReal = items.reduce((acc, item) => acc + (Number(item.price) * (it
   const isFinished = ["completed", "cancelled"].includes(lastStatusKey);
   const activeOrder = lastOrder && !isFinished ? lastOrder : null;
 
-    useEffect(() => {
-        if (!deviceId || !open) return;
+useEffect(() => {
+    // Se não tiver ID ou a sacola estiver fechada, não faz nada
+    if (!deviceId || !open) return;
 
-        let channel: any = null;
+    // PASSO 1: Assim que abre, garante que o Skeleton está aparecendo
+    setIsInitialLoading(true);
 
-        // PERFORMANCE: Atrasamos a busca em 350ms.
-        // Isso deixa a animação de "abrir a gaveta" terminar suavemente antes de usar a CPU para buscar dados.
-        const timer = setTimeout(() => {
-            fetchOrderHistory();
-            
-            channel = supabase
-            .channel(`customer-orders-${deviceId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `device_id=eq.${deviceId}` }, () => {
-                fetchOrderHistory();
-                toast({ title: "🔔 Atualização", description: "O status do seu pedido mudou." });
-            })
-            .subscribe();
-        }, 350);
+    let channel: any = null;
 
-        return () => { 
-            clearTimeout(timer); // Cancela se fechar rápido
-            if (channel) supabase.removeChannel(channel); 
-        };
-    }, [deviceId, open]);
+    // PERFORMANCE: Atrasamos a busca em 350ms (tempo da animação da gaveta)
+    const timer = setTimeout(async () => {
+        
+        // PASSO 2: Busca os dados e ESPERA (await) eles chegarem
+        await fetchOrderHistory(); 
+        
+        // PASSO 3: Dados chegaram! Pode esconder o Skeleton e mostrar a lista real
+        setIsInitialLoading(false);
+        
+        // PASSO 4: Liga o canal de atualizações em tempo real (Realtime)
+        channel = supabase
+          .channel(`customer-orders-${deviceId}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `device_id=eq.${deviceId}` }, () => {
+              fetchOrderHistory();
+              toast({ title: "🔔 Atualização", description: "O status do seu pedido mudou." });
+          })
+          .subscribe();
+    }, 350);
+
+    return () => { 
+        clearTimeout(timer); // Cancela se fechar rápido (evita erros)
+        if (channel) supabase.removeChannel(channel); 
+    };
+  }, [deviceId, open]);
 
   const fetchOrderHistory = async () => {
       if (!deviceId) return;
@@ -505,7 +531,14 @@ const handleFinalizar = async () => {
             <TabsContent value="orders" className="flex-1 flex flex-col overflow-hidden m-0 bg-slate-50/50 dark:bg-slate-950/50 h-full data-[state=inactive]:hidden">
                 <ScrollArea className="flex-1 h-full w-full">
                     <div className="p-5 pb-10 space-y-4 flex flex-col justify-start min-h-full">
-                        {orderHistory.length === 0 ? (
+                        {/* 1. SE ESTIVER CARREGANDO, MOSTRA SKELETONS */}
+                        {isInitialLoading ? (
+                           <>
+                             <OrderSkeleton />
+                             <OrderSkeleton />
+                             <OrderSkeleton />
+                           </>
+                        ) : orderHistory.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-60">
                                 <Activity className="h-10 w-10 text-slate-300" />
                                 <p className="text-sm font-extrabold text-slate-800 dark:text-slate-100">Histórico vazio</p>

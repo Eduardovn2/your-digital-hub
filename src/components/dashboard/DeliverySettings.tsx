@@ -121,28 +121,6 @@ export function DeliverySettings({ storeId }: { storeId: string }) {
   return (
     <div className="space-y-6">
       
-      {/* CARD DE NOTIFICAÇÕES */}
-      <Card className="border-orange-200 bg-orange-50/30">
-        <CardHeader>
-          <div className="flex items-center gap-2 text-orange-700">
-            {pushEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
-            <CardTitle>Alertas em Tempo Real</CardTitle>
-          </div>
-          <CardDescription className="text-orange-600/80">
-            Ative para receber avisos sonoros de novos pedidos.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            onClick={handleEnableNotifications} 
-            variant={pushEnabled ? "outline" : "default"}
-            className={pushEnabled ? "bg-white" : "bg-orange-600 hover:bg-orange-700"}
-          >
-            {pushEnabled ? "Alertas Ativados" : "Ativar Alertas"}
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* CARD DE TAXAS DE ENTREGA */}
       <Card>
         <CardHeader>

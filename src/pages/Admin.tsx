@@ -12,13 +12,15 @@ import {
   LogOut, 
   ShoppingBag, 
   Rocket, 
-  RefreshCw 
+  RefreshCw, 
+  Printer
 } from "lucide-react";
 import { 
   Sheet, 
   SheetContent, 
   SheetTrigger 
 } from "@/components/ui/sheet";
+import { PrinterSettings } from "@/components/admin/PrinterSettings";
 import { StoreSetupForm } from "@/components/dashboard/StoreSetupForm";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -89,13 +91,13 @@ export default function Admin() {
   }
 
   // Definição dos itens de navegação
-  const navigationItems = [
-    { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
-    { id: "orders", label: "Pedidos", icon: ShoppingBag },
-    { id: "menu", label: "Cardápio", icon: UtensilsCrossed },
-    { id: "settings", label: "Configurações", icon: Settings },
-  ];
-
+const navigationItems = [
+  { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
+  { id: "orders", label: "Pedidos", icon: ShoppingBag },
+  { id: "menu", label: "Cardápio", icon: UtensilsCrossed },
+  { id: "printing", label: "Impressora", icon: Printer }, // <--- NOVO ITEM
+  { id: "settings", label: "Configurações", icon: Settings },
+];
   // Componente reutilizável para o conteúdo da barra lateral
   const SidebarContent = () => (
     <div className="flex flex-col h-full text-white"> {/* Adicionado text-white para garantir cor no mobile */}
@@ -210,6 +212,13 @@ export default function Admin() {
 
             {activeTab === "orders" && <OrdersList storeId={store!.id} />}
             {activeTab === "menu" && <StoreProducts storeId={store!.id} />}
+            {activeTab === "settings" && <StoreSettings store={store!} />}
+            {activeTab === "printing" && (
+              <div className="max-w-2xl mx-auto">
+                <PrinterSettings />
+              </div>
+            )}
+
             {activeTab === "settings" && <StoreSettings store={store!} />}
           </div>
         </div>

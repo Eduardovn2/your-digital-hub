@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useState } from "react";
 import { ProductDetailsModal } from "@/components/store/ProductDetailsModal"; 
-import { flyToCart } from "@/lib/animation"; 
+
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -15,10 +15,26 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
   const { addToCart } = useCart();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleQuickAdd = (e: React.MouseEvent) => {
+const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    flyToCart(e, item.image);
+    
+    // EFEITO DE PULO NA SACOLA (Feedback instantâneo)
+    const cartButton = document.getElementById('cart-trigger');
+    if (cartButton) {
+      // Cancela animações anteriores para garantir o "pop" a cada clique
+      cartButton.getAnimations().forEach(anim => anim.cancel());
+      
+      cartButton.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(1.15)' }, // Cresce 15%
+        { transform: 'scale(1)' }
+      ], {
+        duration: 300,
+        easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' // Efeito elástico suave
+      });
+    }
 
+    // Adiciona ao carrinho
     addToCart({
       id: item.id,
       name: item.name,

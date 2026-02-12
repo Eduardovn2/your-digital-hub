@@ -14,9 +14,8 @@ import { useProducts, productToMenuItem } from "@/hooks/useProducts";
 import { useStoreHours, isStoreCurrentlyOpen } from "@/hooks/useStoreHours";
 import { MenuItem } from "@/types/menu";
 
-// --- DICIONÁRIO DE TRADUÇÃO (AGORA COM "OTHER") ---
+// --- DICIONÁRIO DE TRADUÇÃO ---
 const CATEGORY_TRANSLATIONS: Record<string, string> = {
-  // Gerais & Categorias padrão
   "All": "Todos",
   "Popular": "Populares",
   "Featured": "Destaques",
@@ -27,10 +26,8 @@ const CATEGORY_TRANSLATIONS: Record<string, string> = {
   "Kids": "Infantil",
   "Vegan": "Vegano",
   "Vegetarian": "Vegetariano",
-  "Other": "Outros",    // <--- ADICIONADO
-  "Others": "Outros",   // <--- ADICIONADO
-  
-  // Lanches & Principais
+  "Other": "Outros",
+  "Others": "Outros",
   "Burger": "Hambúrgueres",
   "Burgers": "Hambúrgueres",
   "Sandwich": "Sanduíches",
@@ -54,8 +51,6 @@ const CATEGORY_TRANSLATIONS: Record<string, string> = {
   "Japanese": "Japonesa",
   "Sushi": "Sushi",
   "Acai": "Açaí",
-  
-  // Acompanhamentos & Bebidas
   "Side": "Acompanhamentos",
   "Sides": "Acompanhamentos",
   "Fries": "Batata Frita",
@@ -70,8 +65,6 @@ const CATEGORY_TRANSLATIONS: Record<string, string> = {
   "Beer": "Cervejas",
   "Water": "Água",
   "Coffee": "Cafés",
-  
-  // Sobremesas
   "Dessert": "Sobremesas",
   "Desserts": "Sobremesas",
   "Ice Cream": "Sorvetes",
@@ -124,9 +117,7 @@ export default function StorePage() {
     }
 
     filtered.forEach(item => {
-      // Se vier vazio, vira "Outros". Se vier "Other" do banco, a tradução lá em cima pega.
       const categoryName = item.category || "Outros";
-      
       if (!groups[categoryName]) {
         groups[categoryName] = [];
       }
@@ -221,7 +212,15 @@ export default function StorePage() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4">
                 <div>
                   <h1 className="text-xl md:text-3xl font-bold text-slate-900 truncate">{store.name}</h1>
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600 mt-1">
+                  
+                  {/* --- CORREÇÃO: DESCRIÇÃO ADICIONADA AQUI --- */}
+                  {store.description && (
+                    <p className="text-xs md:text-sm text-slate-500 mt-1 line-clamp-2 md:line-clamp-none italic max-w-xl">
+                      {store.description}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600 mt-2">
                     <span className="flex items-center gap-1 font-medium"><Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /> 4.9</span>
                     
                     {isOpen ? (
@@ -251,7 +250,6 @@ export default function StorePage() {
       </div>
 
       <div className="container mx-auto px-4 max-w-6xl">
-        {/* Barra de Busca e Filtros */}
         <div className="sticky top-16 z-40 bg-slate-50/95 backdrop-blur-sm py-4 space-y-4">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
@@ -280,7 +278,6 @@ export default function StorePage() {
           )}
         </div>
 
-        {/* Lista de Produtos */}
         <div className="mt-6 pb-20 space-y-12">
           {categories.length > 0 ? (
             categories.map((category) => (

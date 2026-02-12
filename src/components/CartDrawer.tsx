@@ -225,7 +225,8 @@ const handleFinalizar = async () => {
         {/* BOTÃO DA SACOLA (ALVO DA ANIMAÇÃO) */}
             <Button 
                 id="cart-trigger" 
-                className="relative h-14 px-8 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-none"
+                // Substitua a className do Button no SheetTrigger por esta:
+                className="relative h-14 px-8 rounded-full bg-slate-900 dark:bg-slate-800/90 text-white shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border border-transparent dark:border-white/10 backdrop-blur-md"
             >
           <div className="relative">
             <ShoppingBag className="h-5 w-5" />
@@ -251,7 +252,7 @@ const handleFinalizar = async () => {
                     <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-full backdrop-blur-md border border-red-200/20 transition-all active:scale-95" 
+                        className="h-8 w-8 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 rounded-full backdrop-blur-md border border-slate-200/50 dark:border-white/10 transition-all active:scale-95" 
                         onClick={() => setOpen(false)}
                     >
                         <X className="h-4 w-4" />
@@ -260,10 +261,25 @@ const handleFinalizar = async () => {
                 </div>
 
                 <TabsList className="grid w-full grid-cols-2 bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-xl h-12 mt-6 md:mt-0">
-                    <TabsTrigger value="cart" className="rounded-lg text-xs font-bold data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-100 data-[state=active]:text-white dark:data-[state=active]:text-slate-900 transition-all shadow-sm">
+                    <TabsTrigger 
+                        value="cart" 
+                        className="rounded-lg text-xs font-bold transition-all shadow-sm
+                                data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-800 
+                                data-[state=active]:text-white dark:data-[state=active]:text-slate-100
+                                dark:data-[state=active]:border dark:data-[state=active]:border-white/10
+                                dark:text-slate-500"
+                    >
                         Sacola
                     </TabsTrigger>
-                    <TabsTrigger value="orders" className="rounded-lg text-xs font-bold data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all shadow-sm">
+
+                    <TabsTrigger 
+                        value="orders" 
+                        className="rounded-lg text-xs font-bold transition-all shadow-sm
+                                data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-800 
+                                data-[state=active]:text-white dark:data-[state=active]:text-slate-100
+                                dark:data-[state=active]:border dark:data-[state=active]:border-white/10
+                                dark:text-slate-500"
+                    >
                         <div className="flex items-center gap-2">
                             Meus Pedidos
                             {activeOrder && <span className="h-2 w-2 bg-orange-500 rounded-full animate-pulse" />}
@@ -389,22 +405,22 @@ const handleFinalizar = async () => {
                         
                         <div className="relative grid grid-cols-3 gap-3">
                             {['pix', 'cartão', 'dinheiro'].map((m) => (
-                                <button 
-                                    key={m} 
-                                    onClick={() => setPagamento(m as any)} 
-                                    className={`relative overflow-hidden p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all duration-200 group border ${
-                                        pagamento === m 
-                                        ? 'bg-slate-900 dark:bg-slate-100 border-slate-900 dark:border-slate-100 text-white dark:text-slate-900 shadow-lg scale-[1.02]' 
-                                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                    }`}
-                                    >
-                                    {m === 'pix' && <Banknote className="h-5 w-5" />}
-                                    {m === 'cartão' && <CreditCard className="h-5 w-5" />}
-                                    {m === 'dinheiro' && <Coins className="h-5 w-5" />}
-                                    <span className="text-[9px] font-black uppercase tracking-wider">
-                                        {m === 'dinheiro' ? 'Dinheiro' : m === 'cartão' ? 'Cartão' : 'Pix'}
-                                    </span>
-                                </button>
+                            <button 
+                                key={m} 
+                                onClick={() => setPagamento(m as any)} 
+                                className={`relative overflow-hidden p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all duration-300 border ${
+                                    pagamento === m 
+                                        ? 'bg-slate-900 dark:bg-slate-800 border-slate-900 dark:border-white/20 text-white shadow-lg scale-[1.02]' 
+                                        : 'bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-500 hover:dark:border-white/10'
+                                }`}
+                            >
+                                {m === 'pix' && <Banknote className={`h-5 w-5 ${pagamento === m ? 'text-white' : 'text-slate-400'}`} />}
+                                {m === 'cartão' && <CreditCard className={`h-5 w-5 ${pagamento === m ? 'text-white' : 'text-slate-400'}`} />}
+                                {m === 'dinheiro' && <Coins className={`h-5 w-5 ${pagamento === m ? 'text-white' : 'text-slate-400'}`} />}
+                                <span className="text-[9px] font-black uppercase tracking-wider">
+                                    {m === 'dinheiro' ? 'Dinheiro' : m === 'cartão' ? 'Cartão' : 'Pix'}
+                                </span>
+                            </button>
                             ))}
                         </div>
                         
@@ -452,13 +468,19 @@ const handleFinalizar = async () => {
                     </div>
                 </div>
                 </ScrollArea>
-
-                        <div className="absolute bottom-0 w-full p-5 bg-white/95 dark:bg-slate-900/98 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 z-30 shadow-2xl">
-                            <Button onClick={handleFinalizar} disabled={loading || !isFormValid} 
-                                className={`w-full h-12 text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 ${!isFormValid ? "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600" : "bg-slate-900 dark:bg-slate-100 hover:bg-black dark:hover:bg-white text-white dark:text-slate-900"}`}>
-                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : "Finalizar Pedido"}
-                            </Button>
-                        </div>
+                            <div className="absolute bottom-0 w-full p-5 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-100 dark:border-white/5 z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]">
+                                <Button 
+                                    onClick={handleFinalizar} 
+                                    disabled={loading || !isFormValid} 
+                                    className={`w-full h-12 text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 border ${
+                                        !isFormValid 
+                                            ? "bg-slate-200 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 border-transparent cursor-not-allowed" 
+                                            : "bg-slate-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white border-transparent dark:border-white/10 shadow-xl"
+                                    }`}
+                                >
+                                    {loading ? <Loader2 className="animate-spin h-4 w-4" /> : "Finalizar Pedido"}
+                                </Button>
+                            </div>
             </TabsContent>
 
             {/* ABA 2: MEUS PEDIDOS */}

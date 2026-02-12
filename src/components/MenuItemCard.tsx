@@ -81,7 +81,8 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
           {/* BOTÃO DE ADICIONAR */}
           <Button
             onClick={handleQuickAdd}
-            className="relative w-full h-11 bg-slate-900 dark:bg-slate-100 hover:bg-black dark:hover:bg-white text-white dark:text-slate-900 shadow-lg shadow-slate-900/20 dark:shadow-black/40 hover:shadow-xl transition-all rounded-xl text-xs font-bold uppercase tracking-wider active:scale-95 group/btn overflow-hidden border-none"
+            // Substitua a className do Button por esta:
+            className="relative w-full h-11 bg-slate-900 dark:bg-slate-800/80 hover:bg-black dark:hover:bg-slate-700 text-white shadow-lg border border-transparent dark:border-white/10 transition-all rounded-xl text-xs font-bold uppercase tracking-wider active:scale-95 group/btn overflow-hidden"
           >
             <span className="relative z-10 flex items-center gap-2">
               Adicionar à Sacola

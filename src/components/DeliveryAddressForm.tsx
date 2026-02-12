@@ -368,7 +368,7 @@ return (
             </div>
             <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200/60" /></div>
-                <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50/50 px-2 text-slate-400 font-bold text-[10px]">Ou busque outro</span></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50/50 px-2 text-slate-400 font-bold text-[10px]"></span></div>
             </div>
         </div>
       )}

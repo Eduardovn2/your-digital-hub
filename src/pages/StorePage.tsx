@@ -49,8 +49,23 @@ export default function StorePage() {
     if (store) {
       setStoreId(store.id);
     }
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", handleScroll);
+
+    // Função otimizada
+    const handleScroll = () => {
+      const threshold = 50;
+      const isOverThreshold = window.scrollY > threshold;
+
+      // SÓ atualiza o estado se o valor REALMENTE mudou
+      setIsScrolled((prev) => {
+        if (prev !== isOverThreshold) return isOverThreshold;
+        return prev;
+      });
+    };
+
+    // O 'passive: true' avisa ao navegador que não vamos cancelar o scroll,
+    // o que libera a renderização da página para ser muito mais fluida no mobile.
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, [store, setStoreId]);
 

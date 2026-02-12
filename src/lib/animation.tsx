@@ -1,79 +1,59 @@
 export const flyToCart = (e: React.MouseEvent, imageSrc: string) => {
   const cart = document.getElementById('cart-trigger');
-  
   if (!cart) return;
 
-  // 1. Cria o clone
+  // 1. Criação Otimizada
   const flyer = document.createElement('img');
   flyer.src = imageSrc;
-  
+  flyer.className = 'fly-item'; // Classe CSS para will-change (adicione no global.css se puder)
+
   const startX = e.clientX;
   const startY = e.clientY;
 
-  // 2. ESTILO INICIAL (MAIOR E MAIS IMPONENTE)
+  // 2. ESTILO INICIAL (Sem sombras pesadas para não travar o mobile)
   Object.assign(flyer.style, {
     position: 'fixed',
     zIndex: '99999',
-    left: `${startX}px`,
-    top: `${startY}px`,
-    width: '80px',  // <--- AUMENTEI AQUI (Era 50px)
-    height: '80px', // <--- AUMENTEI AQUI
+    left: '0',
+    top: '0',
+    width: '80px',
+    height: '80px',
     borderRadius: '50%',
     objectFit: 'cover',
     pointerEvents: 'none',
-    
-    // Sombra Glass Theme forte
-    boxShadow: '0 15px 35px rgba(0, 0, 0, 0.4)',
-    border: '3px solid rgba(255, 255, 255, 0.9)',
-    
-    // Configuração da animação (0.7s é rápido e suave)
-    transition: 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease-in',
-    
-    transform: 'translate(-50%, -50%) scale(0.5)', // Começa pequeno (efeito pop)
-    opacity: '1'
+    // Usamos translate3d para iniciar na posição do clique sem mexer no layout
+    transform: `translate3d(${startX - 40}px, ${startY - 40}px, 0) scale(0.5)`,
+    // Sombra simples (sem spread radius grande) para performance
+    boxShadow: '0 5px 15px rgba(0,0,0,0.3)', 
+    border: '2px solid white',
+    opacity: '1',
+    transition: 'transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease-in'
   });
 
   document.body.appendChild(flyer);
 
-  // 3. MOVIMENTO
+  // 3. O VOO (Usando requestAnimationFrame para sincronia com a tela)
   requestAnimationFrame(() => {
-    // Efeito "Pop" inicial (cresce rápido antes de voar)
-    flyer.style.transform = 'translate(-50%, -50%) scale(1)';
+    // Força o navegador a reconhecer o elemento antes de animar
+    flyer.getBoundingClientRect();
 
-    setTimeout(() => {
-        const cartRect = cart.getBoundingClientRect();
-        
-        const targetX = cartRect.left + cartRect.width / 2;
-        const targetY = cartRect.top + cartRect.height / 2;
+    // Calcula o destino
+    const cartRect = cart.getBoundingClientRect();
+    const targetX = cartRect.left + cartRect.width / 2;
+    const targetY = cartRect.top + cartRect.height / 2;
 
-        const deltaX = targetX - startX;
-        const deltaY = targetY - startY;
-
-        // O VOO FINAL
-        // translate: move
-        // scale(0.2): diminui para caber na sacola
-        // rotate: gira
-        flyer.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px)) scale(0.2) rotate(360deg)`;
-        
-        // <--- CORREÇÃO DO "DELAY": Opacidade vai para 0 (some totalmente)
-        flyer.style.opacity = '0'; 
-    }, 50);
+    // Define o destino final com translate3d (GPU pura)
+    flyer.style.transform = `translate3d(${targetX - 40}px, ${targetY - 40}px, 0) scale(0.1)`;
+    flyer.style.opacity = '0.5'; // Desaparece suavemente no final
   });
 
-  // 4. LIMPEZA E IMPACTO (Sincronizado perfeitamente com 0.7s + 50ms)
+  // 4. LIMPEZA
   setTimeout(() => {
-    flyer.remove(); // Remove do DOM assim que a transição acaba
+    flyer.remove();
     
-    // Efeito "Geleia" na Sacola (Absorvendo o item)
-    cart.animate([
-        { transform: 'scale(1)' },
-        { transform: 'scale(0.9)' },  // Encolhe (recebeu impacto)
-        { transform: 'scale(1.15)' }, // Estica (energia)
-        { transform: 'scale(1)' }     // Normal
-    ], {
-        duration: 300,
-        easing: 'ease-out'
-    });
+    // Animação leve no carrinho (sem layout trashing)
+    cart.style.transform = 'scale(1.1)';
+    setTimeout(() => { cart.style.transform = 'scale(1)'; }, 150);
     
-  }, 750); // 700ms (transição) + 50ms (delay inicial) = 750ms exatos
+  }, 600); // Sincronizado com a transição de 0.6s
 };

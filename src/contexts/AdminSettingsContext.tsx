@@ -1,100 +1,77 @@
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface AdminSettingsContextType {
   soundEnabled: boolean;
   toggleSound: () => void;
   playNotificationSound: () => void;
-  testSound: () => void;
 }
 
 const AdminSettingsContext = createContext<AdminSettingsContextType | undefined>(undefined);
 
-export function AdminSettingsProvider({ children }: { children: ReactNode }) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  
-  // Estado inicial
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    const saved = localStorage.getItem("admin_sound_enabled");
-    return saved !== null ? JSON.parse(saved) : true;
-  });
+export const AdminSettingsProvider = ({ children }: { children: React.ReactNode }) => {
+  // 1. Declaração do estado do som
+// No início do seu Provider
+const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+  const saved = localStorage.getItem("admin_sound_enabled");
+  return saved ? JSON.parse(saved) : true;
+});
 
-  // Inicializa o áudio
-  useEffect(() => {
-    audioRef.current = new Audio("/notification.mp3");
-    audioRef.current.load();
-
-    // --- DESTRAVADOR DE SOM ---
-    // Adiciona um ouvinte no documento inteiro
-    const unlockAudio = () => {
-      if (audioRef.current) {
-        // Tenta tocar e pausar imediatamente só para liberar a permissão
-        audioRef.current.play().then(() => {
-          audioRef.current?.pause();
-          audioRef.current!.currentTime = 0;
-          console.log("🔓 Áudio desbloqueado pelo navegador!");
-        }).catch(() => {});
-        
-        // Remove o ouvinte após o primeiro clique (já conseguimos a permissão)
-        document.removeEventListener('click', unlockAudio);
-        document.removeEventListener('keydown', unlockAudio);
-      }
-    };
-
-    document.addEventListener('click', unlockAudio);
-    document.addEventListener('keydown', unlockAudio);
-
-    return () => {
-      document.removeEventListener('click', unlockAudio);
-      document.removeEventListener('keydown', unlockAudio);
-    };
-  }, []);
-
+  // Salva a preferência no navegador
   useEffect(() => {
     localStorage.setItem("admin_sound_enabled", JSON.stringify(soundEnabled));
   }, [soundEnabled]);
 
-  const toggleSound = () => {
-    setSoundEnabled((prev: boolean) => !prev);
-  };
-
-  const playAudio = (isTest = false) => {
-    if (!audioRef.current) return;
-
-    audioRef.current.currentTime = 0;
-    const playPromise = audioRef.current.play();
-
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          if (isTest) toast.success("Som funcionando!");
-        })
-        .catch((error) => {
-          console.error("Erro áudio:", error);
-          if (error.name === "NotAllowedError") {
-            toast.error("Clique em qualquer lugar da tela para ativar o som dos pedidos!");
-          }
-        });
+  // 2. Função interna para manipular o arquivo de áudio
+  const playAudio = () => {
+    try {
+      const audio = new Audio("/notification.mp3");
+      audio.play().catch(err => {
+        console.warn("Reprodução automática bloqueada pelo navegador. Interaja com a página primeiro.", err);
+      });
+    } catch (error) {
+      console.error("Erro ao carregar arquivo de áudio:", error);
     }
   };
 
+  // 3. Função que o sistema chama para notificar
   const playNotificationSound = () => {
-    if (soundEnabled) playAudio(false);
+    if (soundEnabled) {
+      playAudio();
+    } else {
+      console.log("Notificação visual emitida, mas som está desativado.");
+    }
   };
 
-  const testSound = () => {
-    playAudio(true);
-  };
+  // 4. Função para alternar o som (usada no botão de configurações)
+const toggleSound = () => {
+  setSoundEnabled((prev: boolean) => {
+    const newState = !prev;
+    
+    // Usamos newState aqui para o toast mostrar a mensagem correta
+    toast.info(newState ? "Som ativado" : "Som desativado");
+    
+    return newState;
+  });
+};
 
+  // Retorna o provedor com todos os valores declarados
   return (
-    <AdminSettingsContext.Provider value={{ soundEnabled, toggleSound, playNotificationSound, testSound }}>
+    <AdminSettingsContext.Provider value={{ 
+      soundEnabled, 
+      toggleSound, 
+      playNotificationSound 
+    }}>
       {children}
     </AdminSettingsContext.Provider>
   );
-}
+};
 
+// Hook customizado para usar o contexto
 export const useAdminSettings = () => {
   const context = useContext(AdminSettingsContext);
-  if (!context) throw new Error("useAdminSettings deve ser usado dentro de um AdminSettingsProvider");
+  if (context === undefined) {
+    throw new Error("useAdminSettings deve ser usado dentro de um AdminSettingsProvider");
+  }
   return context;
 };

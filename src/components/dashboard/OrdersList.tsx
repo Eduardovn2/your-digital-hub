@@ -28,25 +28,31 @@ export function OrdersList({ storeId }: { storeId: string }) {
   const { mutate: updateStatusMutation } = useUpdateOrderStatus();
   const [orders, setOrders] = useState<Order[]>([]);
 
+  // Sincroniza o estado local com os dados do banco
   useEffect(() => {
     if (initialOrders) setOrders(initialOrders);
   }, [initialOrders]);
 
-  // Realtime Listener (Apenas atualiza a lista, o som é tocado pelo Global no Admin.tsx)
+  // Realtime Listener para atualizar a lista automaticamente
   useEffect(() => {
     if (!storeId) return;
 
     const channel = supabase
       .channel('orders-realtime-list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` }, () => {
-        refetch();
-      })
+      .on(
+        'postgres_changes', 
+        { event: '*', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` }, 
+        () => {
+          refetch(); // Força a atualização dos dados quando algo mudar
+        }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [storeId, refetch]);
 
   const handleUpdateStatus = (orderId: string, newStatus: OrderStatus) => {
+    // Update otimista na UI
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     
     updateStatusMutation({ orderId, status: newStatus }, {
@@ -54,18 +60,16 @@ export function OrdersList({ storeId }: { storeId: string }) {
         toast.success(`Pedido movido para: ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
       },
       onError: () => {
-        refetch();
+        toast.error("Erro ao atualizar status");
+        refetch(); // Reverte para o estado do banco em caso de erro
       }
     });
   };
 
   const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
-  // const historyOrders = orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
 
   return (
     <div className="space-y-8 animate-fade-in">
-      
-      {/* HEADER LIMPO (Sem botão de som) */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -75,14 +79,12 @@ export function OrdersList({ storeId }: { storeId: string }) {
           <p className="text-slate-500">Gerencie os pedidos em tempo real.</p>
         </div>
         <div className="flex items-center gap-2">
-           {/* Botão de Som removido daqui */}
            <Badge variant="outline" className="px-4 py-2 text-base bg-white shadow-sm">
              {activeOrders.length} Pedidos Ativos
            </Badge>
         </div>
       </div>
 
-      {/* GRID KANBAN */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {activeOrders.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-300">
@@ -111,36 +113,38 @@ export function OrdersList({ storeId }: { storeId: string }) {
                 </div>
 
                 <div className="px-4 py-3 bg-slate-50/50 text-sm space-y-1">
-                   <div className="font-medium text-slate-800 flex items-center gap-2">
-                     <span className="truncate">{order.customer_name}</span>
-                   </div>
-                   {order.customer_address && (
-                     <div className="text-slate-500 text-xs flex items-start gap-1">
-                       <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                       <span className="line-clamp-2">{order.customer_address}</span>
-                     </div>
-                   )}
+                    <div className="font-medium text-slate-800 flex items-center gap-2">
+                      <span className="truncate">{order.customer_name}</span>
+                    </div>
+                    {order.customer_address && (
+                      <div className="text-slate-500 text-xs flex items-start gap-1">
+                        <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <span className="line-clamp-2">{order.customer_address}</span>
+                      </div>
+                    )}
                 </div>
 
                 <ScrollArea className="flex-1 h-32 px-4 py-2">
-                   <div className="space-y-2">
-                      {order.items && order.items.length > 0 ? (
-                        order.items.map((item: any, i: number) => (
-                          <div key={i} className="flex justify-between text-sm">
-                             <span className="text-slate-700 font-medium">
-                               {item.quantity}x {item.product_name || "Item"}
-                             </span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">Carregando itens...</p>
-                      )}
-                      <div className="pt-2 border-t border-dashed">
-                        <p className="text-sm font-bold text-slate-800 text-right">
-                          Total: {Number(order.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </p>
-                      </div>
-                   </div>
+                    <div className="space-y-2">
+                       {/* CORREÇÃO DO BUG "CARREGANDO ITENS" */}
+                       {Array.isArray(order.items) && order.items.length > 0 ? (
+                         order.items.map((item: any, i: number) => (
+                           <div key={i} className="flex justify-between text-sm">
+                              <span className="text-slate-700 font-medium">
+                                {item.quantity}x {item.product_name || item.name || "Item"}
+                              </span>
+                           </div>
+                         ))
+                       ) : (
+                         <p className="text-xs text-slate-400 italic">Sem itens ou formato inválido</p>
+                       )}
+                       
+                       <div className="pt-2 border-t border-dashed">
+                         <p className="text-sm font-bold text-slate-800 text-right">
+                           Total: {Number(order.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                         </p>
+                       </div>
+                    </div>
                 </ScrollArea>
 
                 <div className="p-4 pt-2 mt-auto grid grid-cols-2 gap-2">

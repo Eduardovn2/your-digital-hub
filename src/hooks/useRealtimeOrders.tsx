@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAdminSettings } from "@/contexts/AdminSettingsContext";
 
@@ -9,48 +9,52 @@ export function useRealtimeOrders(storeId: string | undefined) {
   const { playNotificationSound } = useAdminSettings();
 
   useEffect(() => {
-    if (!storeId) return;
+    if (!storeId) {
+      console.log("Realtime: Aguardando storeId...");
+      return;
+    }
+
+    console.log("Realtime: Tentando conectar ao canal para a loja:", storeId);
 
     const channel = supabase
-      .channel('global-orders-tracker')
+      .channel(`admin-orders-${storeId}`) // Canal único por loja
       .on(
         'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'orders', 
-          filter: `store_id=eq.${storeId}` 
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+          filter: `store_id=eq.${storeId}`
         },
-        (payload: any) => { // <--- ADICIONEI ': any' AQUI PARA EVITAR ERROS DE TIPO
-          console.log("🔔 Pedido detectado:", payload);
+        (payload) => {
+          console.log("🔔 NOVO PEDIDO CHEGOU!", payload);
+          
+          // 1. Tentar tocar o som
+          try {
+            playNotificationSound();
+          } catch (e) {
+            console.error("Erro ao tocar som:", e);
+          }
 
-          // 1. Toca o som
-          playNotificationSound();
-
-          // 2. Garante que os valores existem antes de mostrar
-          const cliente = payload.new?.customer_name || "Cliente";
-          const total = Number(payload.new?.total || 0).toFixed(2);
-
-          // 3. Mostra o alerta visual
-          toast.success("🔔 Novo Pedido!", {
-            description: `Cliente: ${cliente} - Total: R$ ${total}`,
-            duration: Infinity,
-            action: {
-              label: "Ver Pedidos",
-              onClick: () => window.location.href = "/admin/orders"
-            }
+          // 2. Notificação visual
+          toast.success("Novo pedido recebido!", {
+            description: `Pedido de ${payload.new.customer_name}`,
+            duration: 10000,
           });
 
-          // 4. Espera 1 segundo para garantir que os itens foram salvos
-          setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: ["orders"] });
-            queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-          }, 1000); 
+          // 3. Atualizar o banco no front
+          queryClient.invalidateQueries({ queryKey: ['orders', storeId] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Realtime Status para loja ${storeId}:`, status);
+        if (status === 'CHANNEL_ERROR') {
+          console.error("Erro na conexão Realtime. Verifique se o Realtime está ativo no Supabase.");
+        }
+      });
 
     return () => {
+      console.log("Realtime: Desconectando canal...");
       supabase.removeChannel(channel);
     };
   }, [storeId, queryClient, playNotificationSound]);

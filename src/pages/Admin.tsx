@@ -25,6 +25,8 @@ export default function Admin() {
     refetch, 
     isError 
   } = useMyStore(user?.id);
+  
+  useRealtimeOrders(store?.id);
 
   console.log("--- DEBUG ADMIN ---");
   console.log("User ID:", user?.id);

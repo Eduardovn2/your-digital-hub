@@ -15,16 +15,16 @@ interface StoreProductFormProps {
 }
 
 const CATEGORIES = [
-  { value: "burgers", label: "🍔 Hambúrgueres" },
-  { value: "pizzas", label: "🍕 Pizzas" },
-  { value: "drinks", label: "🥤 Bebidas" },
-  { value: "desserts", label: "🍰 Sobremesas" },
-  { value: "sides", label: "🍟 Acompanhamentos" },
-  { value: "combos", label: "🎁 Combos" },
-  { value: "salads", label: "🥗 Saladas" },
-  { value: "pasta", label: "🍝 Massas" },
-  { value: "sushi", label: "🍣 Sushi" },
-  { value: "other", label: "📦 Outros" },
+  { value: "Hambúrgueres", label: "🍔 Hambúrgueres" },
+  { value: "Pizzas", label: "🍕 Pizzas" },
+  { value: "Bebidas", label: "🥤 Bebidas" },
+  { value: "Sobremesas", label: "🍰 Sobremesas" },
+  { value: "Acompanhamentos", label: "🍟 Acompanhamentos" },
+  { value: "Combos", label: "🎁 Combos" },
+  { value: "Saladas", label: "🥗 Saladas" },
+  { value: "Massas", label: "🍝 Massas" },
+  { value: "Japonês", label: "🍣 Japonês" },
+  { value: "Outros", label: "📦 Outros" },
 ];
 
 export function StoreProductForm({ storeId, product, onClose }: StoreProductFormProps) {

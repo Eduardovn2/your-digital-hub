@@ -1,3 +1,4 @@
+// --- STORE / LOJA ---
 export interface Store {
   id: string;
   owner_id: string;
@@ -9,10 +10,10 @@ export interface Store {
   phone: string | null;
   whatsapp: string | null;
   
-  // Endereço Completo (String única - Mantido para compatibilidade)
+  // Endereço (Mantido campo único para compatibilidade)
   address: string | null;
   
-  // 👇 NOVOS CAMPOS DE ENDEREÇO (Adicionei aqui)
+  // Novos Campos de Endereço Detalhado
   zip_code: string | null;
   street: string | null;
   street_number: string | null;
@@ -39,10 +40,17 @@ export interface Store {
 }
 
 export type StoreInsert = Omit<Store, "id" | "created_at" | "updated_at">;
-
 export type StoreUpdate = Partial<Omit<StoreInsert, "owner_id">>;
 
-// --- O RESTANTE DO SEU CÓDIGO PERMANECE IGUAL (MANTIVE PARA NÃO QUEBRAR NADA) ---
+// --- ORDERS / PEDIDOS ---
+export type OrderStatus = 
+  | 'pending' 
+  | 'accepted' 
+  | 'preparing' 
+  | 'ready' 
+  | 'delivering' 
+  | 'completed' 
+  | 'cancelled';
 
 export interface Order {
   id: string;
@@ -55,49 +63,50 @@ export interface Order {
   subtotal: number;
   delivery_fee: number;
   total: number;
+  
+  // Propriedades de Pagamento (Cruciais para Impressão)
+  payment_method: string; 
+  change_for: number | null;
+
   created_at: string;
   updated_at: string;
-  items?: OrderItem[];
+  items?: OrderItem[]; // Agora aponta para a interface abaixo
 }
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
-
 export interface OrderItem {
-  id: string;
-  order_id: string;
+  id?: string; // Opcional se vier do JSONB direto
   product_id: string | null;
   product_name: string;
   product_price: number;
   quantity: number;
   subtotal: number;
-  notes: string | null;
-  created_at: string;
+  notes?: string | null;
 }
 
 export type OrderInsert = Omit<Order, "id" | "created_at" | "updated_at" | "items">;
-export type OrderItemInsert = Omit<OrderItem, "id" | "created_at">;
 
+// --- CONFIGURAÇÕES VISUAIS DE STATUS ---
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Pendente',
-  confirmed: 'Confirmado',
+  accepted: 'Aceito',
   preparing: 'Preparando',
   ready: 'Pronto',
   delivering: 'Em entrega',
-  delivered: 'Concluído',
+  completed: 'Concluído',
   cancelled: 'Cancelado'
 };
 
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-blue-100 text-blue-800',
-  preparing: 'bg-orange-100 text-orange-800',
-  ready: 'bg-green-100 text-green-800',
-  delivering: 'bg-indigo-100 text-indigo-800',
-  delivered: 'bg-gray-100 text-gray-800',
-  cancelled: 'bg-red-100 text-red-800'
+  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  accepted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+  preparing: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+  ready: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+  delivering: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
+  completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
 };
 
-// Delivery Zones
+// --- OUTROS ---
 export interface DeliveryZone {
   id: string;
   store_id: string;
@@ -109,10 +118,6 @@ export interface DeliveryZone {
   updated_at: string;
 }
 
-export type DeliveryZoneInsert = Omit<DeliveryZone, "id" | "created_at" | "updated_at">;
-export type DeliveryZoneUpdate = Partial<Omit<DeliveryZoneInsert, "store_id">>;
-
-// Store Hours
 export interface StoreHours {
   id: string;
   store_id: string;
@@ -124,23 +129,11 @@ export interface StoreHours {
   updated_at: string;
 }
 
-export type StoreHoursInsert = Omit<StoreHours, "id" | "created_at" | "updated_at">;
-export type StoreHoursUpdate = Partial<Omit<StoreHoursInsert, "store_id">>;
-
-// Printer Settings
 export interface PrinterSettings {
-  id: string;
-  store_id: string;
-  printer_ip: string;
-  printer_port: number;
-  is_enabled: boolean;
-  paper_width: number;
-  created_at: string;
-  updated_at: string;
+  autoPrint: boolean;
+  paperSize: "58mm" | "80mm";
+  copies: number;
 }
-
-export type PrinterSettingsInsert = Omit<PrinterSettings, "id" | "created_at" | "updated_at">;
-export type PrinterSettingsUpdate = Partial<Omit<PrinterSettingsInsert, "store_id">>;
 
 export const DAYS_OF_WEEK = [
   { value: 0, label: 'Domingo' },

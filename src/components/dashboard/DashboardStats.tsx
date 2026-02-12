@@ -25,14 +25,25 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
   const [data, setData] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+useEffect(() => {
     async function loadStats() {
       try {
-        const { data, error } = await supabase.rpc('get_dashboard_stats' as any, {
-        p_store_id: storeId
+        // MUDANÇA AQUI:
+        // Não passamos { p_store_id: storeId } como objeto de argumentos nomeados do RPC.
+        // Passamos o storeId direto como o VALOR do argumento, mas tipado como JSON.
+        
+        const { data, error } = await supabase.rpc('get_dashboard_stats', { 
+          p_store_id: storeId 
         });
 
         if (error) throw error;
+        
+        // Se vier null (caso raro), definimos um padrão
+        if (!data) {
+           setData({ total_revenue: 0, total_count: 0, average_ticket: 0, daily_stats: [] });
+           return;
+        }
+
         setData(data as unknown as StatsData);
       } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
@@ -41,7 +52,9 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
       }
     }
 
-    loadStats();
+    if (storeId) {
+      loadStats();
+    }
   }, [storeId]);
 
   if (isLoading) {

@@ -165,50 +165,46 @@ const handleFinalizar = async () => {
   try {
     const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}`;
     
-    // 1. Criamos os dados do pedido (Payload)
+    // 1. Preparamos os itens para a coluna JSONB 'items'
+    // Transformamos o carrinho no formato que o Admin espera ler
+    const itemsData = items.map((item) => ({
+      product_id: item.id,
+      product_name: item.name,
+      product_price: Number(item.price),
+      quantity: item.quantity,
+      subtotal: Number(item.price) * (item.quantity || 1)
+    }));
+
+    // 2. Criamos o Payload ÚNICO (já incluindo a coluna items)
     const orderPayload = {
       store_id: storeId,
       customer_name: nome,
       customer_phone: telefone.replace(/\D/g, ""),
       customer_address: addressString,
       delivery_fee: frete,
-      subtotal: subtotalReal, // Envia o subtotal (obrigatório)
-      total: totalFinal,      // Envia o total (obrigatório)
+      subtotal: subtotalReal,
+      total: totalFinal,
       payment_method: pagamento,
       change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
-      status: "pending" as "pending",
-      device_id: deviceId
+      status: "pending" as const,
+      device_id: deviceId,
+      // 👇 AQUI ESTÁ A CHAVE: Enviamos o array de itens direto na tabela orders
+      items: itemsData 
     };
 
-    // 2. Insere na tabela 'orders' e captura o 'orderData'
-    const { data: orderData, error: orderError } = await supabase
+    // 3. Fazemos apenas UM insert no banco
+    const { error: orderError } = await supabase
       .from("orders")
-      .insert(orderPayload)
-      .select()
-      .single();
+      .insert(orderPayload);
 
     if (orderError) throw orderError;
 
-    // 3. Agora que o 'orderData' existe, inserimos os itens
-    if (orderData && items.length > 0) {
-      const itemsPayload = items.map((item) => ({
-        order_id: orderData.id,
-        product_id: item.id,
-        product_name: item.name,
-        product_price: Number(item.price),
-        quantity: item.quantity,
-        subtotal: Number(item.price) * (item.quantity || 1)
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(itemsPayload);
-
-      if (itemsError) throw itemsError;
-    }
-
-    // 4. Sucesso total
-    toast({ title: "Sucesso!", description: "Pedido enviado com sucesso." });
+    // 4. Sucesso total (O passo de insert no order_items foi removido)
+    toast({ 
+      title: "Sucesso!", 
+      description: "Pedido enviado com sucesso." 
+    });
+    
     clearCart();
     setActiveTab("orders");
 

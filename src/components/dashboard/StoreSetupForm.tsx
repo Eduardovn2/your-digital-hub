@@ -10,7 +10,7 @@ import { useCreateStore } from "@/hooks/useStores";
 import { Store, MapPin, Phone, Loader2, AlertCircle } from "lucide-react"; 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query"; // <--- IMPORTANTE
+import { useQueryClient } from "@tanstack/react-query"; 
 import { formatPhone } from "@/lib/utils"; 
 
 // SCHEMA DE VALIDAÇÃO
@@ -41,7 +41,7 @@ interface StoreSetupFormProps {
 }
 
 export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
-  const queryClient = useQueryClient(); // <--- Instância do React Query
+  const queryClient = useQueryClient(); 
   const { mutate: createStore, isPending } = useCreateStore();
   const [loadingCep, setLoadingCep] = useState(false);
   
@@ -81,8 +81,6 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
     }
   };
 
-// ... imports e setup do form ...
-
   const onSubmit = (data: StoreFormData) => {
     if (!userId) return;
     
@@ -96,7 +94,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       description: data.description || null,
       phone: data.phone,
       
-      // SALVANDO OS CAMPOS SEPARADOS (AQUI ESTÁ A CORREÇÃO)
+      // SALVANDO OS CAMPOS SEPARADOS
       zip_code: data.zip_code.replace(/\D/g, ""), 
       street: data.address_street,
       street_number: data.address_number,
@@ -121,17 +119,32 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       whatsapp: null
     } as any, { 
       onSuccess: async () => {
+        // 1. Limpa o cache antigo que dizia "sem loja"
         await queryClient.invalidateQueries({ queryKey: ["my-store"] });
+        // 2. Força a busca imediata do novo dado
+        await queryClient.refetchQueries({ queryKey: ["my-store"] });
+        
         toast.success("Loja criada com sucesso!");
-        if (onSuccess) onSuccess();
+        
+        // 3. Executa redirecionamento
+        if (onSuccess) {
+            onSuccess();
+        } else {
+            // Fallback de segurança: recarrega para ir ao Dashboard
+            window.location.href = "/admin";
+        }
       },
       onError: (error) => {
-        toast.error("Erro ao criar loja: " + error.message);
+        // Se o erro for "Duplicate Key" (já criou), tratamos como sucesso
+        if (error.message.includes("duplicate key") || error.message.includes("slug")) {
+             toast.success("Loja recuperada! Redirecionando...");
+             window.location.href = "/admin";
+        } else {
+             toast.error("Erro ao criar loja: " + error.message);
+        }
       }
     });
   };
-
-  // ... resto do componente ...
 
   return (
     <Card className="border-none shadow-none bg-transparent">

@@ -32,19 +32,22 @@ export default function Login() {
   }, [lockoutTime]);
 
   const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/admin`,
-          queryParams: { access_type: 'offline', prompt: 'consent' },
-        },
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast.error("Erro ao conectar com Google");
-    }
-  };
+      try {
+        // Define a URL fixa para garantir que não vá para localhost
+        const redirectUrl = "https://vianaeccomerce.vercel.app/admin"; 
+
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectUrl, 
+            queryParams: { access_type: 'offline', prompt: 'consent' },
+          },
+        });
+        if (error) throw error;
+      } catch (error: any) {
+        toast.error("Erro ao conectar com Google");
+      }
+    };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

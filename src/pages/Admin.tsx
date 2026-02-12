@@ -25,6 +25,12 @@ export default function Admin() {
     refetch, 
     isError 
   } = useMyStore(user?.id);
+
+  console.log("--- DEBUG ADMIN ---");
+  console.log("User ID:", user?.id);
+  console.log("Store Data:", store);
+  console.log("Is Loading:", isLoading);
+  console.log("Error:", isError);
   
   const [activeTab, setActiveTab] = useState("dashboard");
 
@@ -40,6 +46,25 @@ export default function Admin() {
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         <p className="text-slate-500 animate-pulse">Carregando sua loja...</p>
+      </div>
+    );
+  }
+
+  if (!store && !isLoading) {
+    return (
+      <div className="...">
+          {/* ... cabeçalho ... */}
+          
+          <GlassCard className="p-8">
+             <StoreSetupForm 
+               userId={user?.id} 
+               onSuccess={() => {
+                 // TRUQUE DO RELOAD: Às vezes é a forma mais segura de limpar estados presos
+                 // O React Query vai buscar tudo novo do zero
+                 window.location.href = "/admin"; 
+               }} 
+             />
+          </GlassCard>
       </div>
     );
   }

@@ -38,21 +38,27 @@ export function useStoreBySlug(slug: string | undefined) {
   });
 }
 
-export function useMyStore(userId: string | undefined) {
+export function useMyStore(userId?: string) {
   return useQuery({
-    queryKey: ["my-store", userId],
+    queryKey: ["my-store", userId], // Adicione userId na chave para atualizar se mudar
     queryFn: async () => {
-      if (!userId) return null;
+      if (!userId) return null; // Proteção extra
+      
       const { data, error } = await supabase
         .from("stores")
         .select("*")
         .eq("owner_id", userId)
-        .maybeSingle();
+        .maybeSingle(); // Use maybeSingle para não dar erro 406 se não achar
 
-      if (error) throw error;
-      return data as Store | null;
+      if (error) {
+        console.error("Erro ao buscar loja:", error);
+        throw error;
+      }
+      return data;
     },
-    enabled: !!userId,
+    enabled: !!userId, // <--- O PULO DO GATO: Só busca se userId existir!
+    retry: 1,
+    staleTime: 0, // Sempre tenta pegar dados frescos
   });
 }
 

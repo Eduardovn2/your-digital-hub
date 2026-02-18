@@ -218,8 +218,6 @@ const navigationItems = [
                 <PrinterSettings />
               </div>
             )}
-
-            {activeTab === "settings" && <StoreSettings store={store!} />}
           </div>
         </div>
       </main>

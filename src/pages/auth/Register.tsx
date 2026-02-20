@@ -72,7 +72,7 @@ export default function Register() {
       }
 
       toast.success("Conta criada com sucesso!");
-      navigate("/payment");
+      navigate("/payment-mock");
 
     } catch (error: any) {
       console.error("Erro no registro:", error);

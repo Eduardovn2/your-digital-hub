@@ -42,7 +42,7 @@ export default function Index() {
                   <span className="font-bold text-primary text-xl">V</span>
                </div>
             </div>
-            <span className="text-xl font-bold tracking-tight text-slate-800">VianaHub</span>
+            <span className="text-xl font-bold tracking-tight text-slate-800">VianaEccomerce</span>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/auth" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors hidden sm:block">
@@ -171,7 +171,7 @@ export default function Index() {
       <footer className="bg-slate-950 text-slate-400 py-12 border-t border-white/5">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm">
-            &copy; {new Date().getFullYear()} VianaHub. Tecnologia para Deliverys.
+            &copy; {new Date().getFullYear()} VianaEccomerce. Tecnologia para Deliverys.
           </p>
         </div>
       </footer>

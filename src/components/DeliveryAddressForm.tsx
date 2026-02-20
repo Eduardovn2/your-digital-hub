@@ -179,7 +179,7 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
         const query = `${rua}, ${numero || ''}, ${bairro || ''}, ${cidade}, Brazil`;
         const encodedQuery = encodeURIComponent(query);
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&limit=1`, {
-             headers: { 'User-Agent': 'VianaHub-App' }
+             headers: { 'User-Agent': 'VianaEccomerce-App' }
         });
         const data = await response.json();
         if (data && data.length > 0) {

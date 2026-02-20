@@ -3,6 +3,8 @@ import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyStore } from "@/hooks/useStores";
 import { Button } from "@/components/ui/button";
+import { useSearchParams } from "react-router-dom"; 
+
 import { 
   Menu, // <--- O ícone dos 3 traços
   Store, 
@@ -30,10 +32,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { OrdersList } from "@/components/dashboard/OrdersList";
 import { StoreProducts } from "@/components/dashboard/StoreProducts";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
+import { toast } from "sonner";
 
 export default function Admin() {
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams(); // <-- NOVO
   
   // Busca a loja do utilizador
   const { 
@@ -49,6 +53,21 @@ export default function Admin() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Força uma atualização dos dados sempre que entrar na página
+useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    
+    if (paymentStatus === "success") {
+      toast.success("Pagamento aprovado! Bem-vindo ao VianaEccomerce 🎉");
+      searchParams.delete("payment");
+      setSearchParams(searchParams);
+    } else if (paymentStatus === "pending") {
+      toast.info("Seu pagamento está sendo processado. Você terá acesso total assim que for confirmado.");
+      searchParams.delete("payment");
+      setSearchParams(searchParams);
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Força uma atualização dos dados...
   useEffect(() => {
     if (user?.id) {
       refetch();
@@ -73,7 +92,7 @@ export default function Admin() {
             <div className="bg-primary/10 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto">
               <Rocket className="h-10 w-10 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900">Bem-vindo ao VianaHub</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Bem-vindo ao VianaEccomerce</h1>
             <p className="text-slate-500">Parece que ainda não tem uma loja ativa.</p>
             <Button variant="ghost" size="sm" onClick={() => refetch()} className="text-primary hover:bg-primary/10">
                 <RefreshCw className="h-4 w-4 mr-2" /> Verificar novamente

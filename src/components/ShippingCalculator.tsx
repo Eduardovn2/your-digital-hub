@@ -54,7 +54,7 @@ export function ShippingCalculator({
       // 2. Geolocalização da Loja (Nominatim)
       const resStore = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(storeAddress + ", Brasil")}&limit=1`,
-        { headers: { 'User-Agent': 'VianaHub-App' } }
+        { headers: { 'User-Agent': 'VianaEccomerce-App' } }
       );
       const dataStore = await resStore.json();
       if (!dataStore[0]) throw new Error("Endereço da loja não localizado no mapa.");

@@ -255,7 +255,7 @@ export default function Login() {
       </div>
       
       <footer className="absolute bottom-4 w-full text-center text-xs text-slate-400 font-medium">
-        &copy; {new Date().getFullYear()} VianaHub. Acesso restrito a lojistas.
+        &copy; {new Date().getFullYear()} VianaEccomerce. Acesso restrito a lojistas.
       </footer>
     </div>
   );

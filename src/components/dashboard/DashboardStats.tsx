@@ -107,7 +107,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
 
     loadStats();
 
-    const storedPin = localStorage.getItem("@vianahub-admin-pin");
+    const storedPin = localStorage.getItem("@VianaEccomerce-admin-pin");
     if (storedPin) {
       setHasStoredPin(true);
     }
@@ -120,13 +120,13 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
     }
 
     if (!hasStoredPin) {
-      localStorage.setItem("@vianahub-admin-pin", pinInput);
+      localStorage.setItem("@VianaEccomerce-admin-pin", pinInput);
       setHasStoredPin(true);
       setAreValuesVisible(true);
       setIsPinDialogOpen(false);
       toast.success("PIN criado com sucesso!");
     } else {
-      const stored = localStorage.getItem("@vianahub-admin-pin");
+      const stored = localStorage.getItem("@VianaEccomerce-admin-pin");
       if (pinInput === stored) {
         setAreValuesVisible(true);
         setIsPinDialogOpen(false);
@@ -191,7 +191,7 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
             if (error2) throw error2;
         }
 
-        localStorage.removeItem("@vianahub-admin-pin");
+        localStorage.removeItem("@VianaEccomerce-admin-pin");
         setHasStoredPin(false);
         setAreValuesVisible(false);
         setPinInput("");

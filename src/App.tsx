@@ -35,24 +35,31 @@ const App = () => (
                 <Route path="/register" element={<Register />} />
                 
                 {/* Área do Admin (Protegida) */}
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute>
-                      <Admin />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute>
+                        <Admin />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                {/* Loja do Cliente (Pública) */}
-                <Route path="/:slug" element={<StorePage />} />
-                
-                {/* Mock de Pagamento */}
-                <Route path="/payment-mock" element={<PaymentMock />} />
-                
-                {/* 404 */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                  {/* A ROTA SALVADORA: Tem que se chamar exatamente "/payment" */}
+                  <Route 
+                    path="/payment" 
+                    element={
+                      <ProtectedRoute>
+                        <PaymentMock />
+                      </ProtectedRoute>
+                    } 
+                  />
+
+                  {/* Loja do Cliente (Pública) - Deixe essa sempre por último! */}
+                  <Route path="/:slug" element={<StorePage />} />
+                  
+                  {/* 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
             </BrowserRouter>
           </TooltipProvider>
         </CartProvider>

@@ -48,7 +48,7 @@ const App = () => (
                 <Route path="/:slug" element={<StorePage />} />
                 
                 {/* Mock de Pagamento */}
-                <Route path="/payment-mock" element={<PaymentMock />} />
+                <Route path="/payment" element={<PaymentMock />} />
                 
                 {/* 404 */}
                 <Route path="*" element={<NotFound />} />

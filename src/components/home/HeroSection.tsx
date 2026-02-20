@@ -38,7 +38,7 @@ const scrollToDemo = () => {
           </h1>
           
           <p className="text-lg lg:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            A plataforma completa para você vender mais. Cardápio digital, gestão de pedidos e pagamentos em um só lugar. Pare de pagar comissões abusivas.
+            A plataforma completa para você vender mais. Cardápio digital, gestão de pedidos e pagamentos em um só lugar. Pare de pagar comissões abusivas e venha para a Viana.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-center pt-4">

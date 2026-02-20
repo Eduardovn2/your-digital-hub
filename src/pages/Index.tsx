@@ -160,7 +160,7 @@ export default function Index() {
                 </Button>
               </Link>
               <p className="mt-4 text-xs text-slate-400 flex items-center justify-center gap-2">
-                <ShieldCheck className="h-4 w-4" /> 7 dias de garantia incondicional
+                <ShieldCheck className="h-4 w-4" /> 15 dias de garantia incondicional
               </p>
             </GlassCard>
           </div>

@@ -76,7 +76,7 @@ export default function PaymentMock() {
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Assinatura Lojista</h1>
             <p className="text-slate-500 mt-2">
-              Invista <span className="text-slate-900 font-bold">R$ 59,90/mês</span> para ter sua loja online completa.
+              Invista <span className="text-slate-900 font-bold">R$ 69,90/mês</span> para ter sua loja online completa.
             </p>
           </div>
           

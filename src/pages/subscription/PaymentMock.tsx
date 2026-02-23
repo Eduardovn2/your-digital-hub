@@ -7,10 +7,15 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Componente customizado com o ícone oficial do PIX
+// Ícone OFICIAL e Exato do PIX construído em SVG
 const PixIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor">
-    <path d="M10.142 14.188L15.352 8.98a1.31 1.31 0 0 1 1.854 0l5.21 5.21a1.31 1.31 0 0 1 0 1.854l-5.21 5.21a1.31 1.31 0 0 1-1.854 0l-5.21-5.21a1.31 1.31 0 0 1 0-1.854zm16.516-1.572L17.206 3.165a2.124 2.124 0 0 0-3.004 0L4.75 12.616a2.124 2.124 0 0 0 0 3.004l9.452 9.452a2.124 2.124 0 0 0 3.004 0l9.452-9.452a2.124 2.124 0 0 0 0-3.004z" />
+  <svg 
+    className={className} 
+    viewBox="0 0 512 512" 
+    fill="currentColor" 
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M421.3 226.4L330.1 135.2c-15.5-15.5-40.7-15.5-56.2 0l-91.2 91.2c-15.5 15.5-15.5 40.7 0 56.2l91.2 91.2c15.5 15.5 40.7 15.5 56.2 0l91.2-91.2c15.5-15.6 15.5-40.8 0-56.2zm-274.5-91.2c-15.5-15.5-40.7-15.5-56.2 0L-1.6 226.4c-15.5 15.5-15.5 40.7 0 56.2l91.2 91.2c15.5 15.5 40.7 15.5 56.2 0l91.2-91.2c15.5-15.5 15.5-40.7 0-56.2l-90.2-91.2zM284 384l-91.2 91.2c-15.5 15.5-40.7 15.5-56.2 0L45.4 384c-15.5-15.5-15.5-40.7 0-56.2l91.2-91.2c15.5-15.5 40.7-15.5 56.2 0l91.2 91.2c15.6 15.5 15.6 40.7 0 56.2z"/>
   </svg>
 );
 
@@ -90,7 +95,7 @@ export default function PaymentMock() {
           
           <div className="space-y-4 animate-in fade-in duration-500">
             
-            {/* Botão de Assinatura Automática (Cartão - Ícone Amarelo) */}
+            {/* Botão 1: Assinatura Automática (Amarelo) */}
             <Button 
                 onClick={() => handlePayment('subscription')} 
                 className="w-full h-auto py-4 font-bold bg-white/40 backdrop-blur-md text-slate-800 border border-white/60 shadow-sm hover:bg-white/60 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col items-start px-5 gap-1 group" 
@@ -98,8 +103,8 @@ export default function PaymentMock() {
             >
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-yellow-500/10 group-hover:bg-yellow-500/20 transition-colors">
-                    <CreditCard className="h-5 w-5 text-yellow-600" />
+                  <div className="p-2 rounded-lg bg-yellow-400/20 group-hover:bg-yellow-400/30 transition-colors shadow-sm">
+                    <CreditCard className="h-5 w-5 text-yellow-600 drop-shadow-sm" />
                   </div>
                   <span className="text-lg">Assinatura no Cartão</span>
                 </div>
@@ -115,7 +120,7 @@ export default function PaymentMock() {
               </div>
             </Button>
 
-            {/* Botão de PIX/Avulso Manual (PIX - Ícone Verde) */}
+            {/* Botão 2: PIX/Boleto Avulso (Verde) */}
             <Button 
                 onClick={() => handlePayment('pix')} 
                 className="w-full h-auto py-4 font-bold bg-white/40 backdrop-blur-md text-slate-800 border border-white/60 shadow-sm hover:bg-white/60 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col items-start px-5 gap-1 group" 
@@ -123,8 +128,8 @@ export default function PaymentMock() {
             >
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
-                    <PixIcon className="h-5 w-5 text-emerald-600" />
+                  <div className="p-2 rounded-lg bg-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors shadow-sm">
+                    <PixIcon className="h-5 w-5 text-emerald-600 drop-shadow-sm" />
                   </div>
                   <span className="text-lg">PIX ou Boleto</span>
                 </div>

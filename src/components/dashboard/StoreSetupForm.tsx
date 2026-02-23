@@ -100,8 +100,8 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       
       // --- NOVA LÓGICA: Loja nasce bloqueada esperando pagamento ---
       status: 'pending',
-      expires_at: null, // Não tem data de validade ainda
-      is_active: false, // Só fica ativo quando pagar
+      expires_at: null, 
+      is_active: false, 
       
       is_open: true,
       primary_color: "#ea580c",
@@ -121,19 +121,17 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
         await queryClient.invalidateQueries({ queryKey: ["my-store"] });
         await queryClient.refetchQueries({ queryKey: ["my-store"] });
         
-        // Mensagem atualizada focando no próximo passo (pagamento)
         toast.success("Loja criada! Libere seu acesso para começar.");
         
-        if (onSuccess) {
-            onSuccess();
-        } else {
-            window.location.href = "/admin";
-        }
+        // REDIRECIONAMENTO FORÇADO PARA O PAGAMENTO
+        setTimeout(() => {
+          window.location.href = "/payment";
+        }, 800);
       },
       onError: (error) => {
         if (error.message.includes("duplicate key") || error.message.includes("slug")) {
              toast.success("Loja recuperada! Redirecionando...");
-             window.location.href = "/admin";
+             window.location.href = "/payment"; // Se tentar criar loja duplicada, manda pro pagamento também
         } else {
              toast.error("Erro ao criar loja: " + error.message);
         }
@@ -252,7 +250,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Processando...
                 </>
-            ) : "Continuar para Pagamento 🔒"}
+            ) : "Continuar criação da loja."}
           </Button>
         </form>
       </CardContent>

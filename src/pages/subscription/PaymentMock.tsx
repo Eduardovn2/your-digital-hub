@@ -7,15 +7,15 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Ícone OFICIAL e Exato do PIX (Baseado nas diretrizes do Banco Central)
+// Ícone IDÊNTICO à imagem do link (512x512 com os recortes arredondados perfeitos)
 const PixIcon = ({ className }: { className?: string }) => (
   <svg 
     className={className} 
-    viewBox="0 0 24 24" 
+    viewBox="0 0 512 512" 
     fill="currentColor" 
     xmlns="http://www.w3.org/2000/svg"
   >
-    <path d="M5.283 18.36a3.505 3.505 0 0 0 2.493-1.032l3.6-3.6a.684.684 0 0 1 .946 0l3.613 3.613a3.504 3.504 0 0 0 2.493 1.032h.71l-4.56 4.56a3.647 3.647 0 0 1-5.156 0L4.85 18.36ZM18.428 5.627a3.505 3.505 0 0 0-2.493 1.032l-3.613 3.613a.684.684 0 0 1-.946 0l-3.6-3.613A3.504 3.504 0 0 0 5.283 5.627h-.71l4.56-4.56a3.647 3.647 0 0 1 5.156 0l4.85 4.85h-.71Zm-1.849 5.895-3.614-3.614a3.505 3.505 0 0 0-2.492-1.032h-3.6a.684.684 0 0 1 0-.946l3.613-3.613a3.504 3.504 0 0 0 1.032-2.493v-.71l4.56 4.56a3.647 3.647 0 0 1 0 5.156l-4.85 4.85v-.71Zm-5.895 1.849 3.614 3.614a3.505 3.505 0 0 0 2.492 1.032h3.6a.684.684 0 0 1 0 .946l-3.613 3.613a3.504 3.504 0 0 0-1.032 2.493v.71l-4.56-4.56a3.647 3.647 0 0 1 0-5.156l4.85-4.85v.71Z"/>
+    <path d="M147.662 277.684l108.307-108.308 108.308 108.308-23.882 23.882-60.252-60.252a34.053 34.053 0 00-48.348 0l-60.252 60.252-23.881-23.882zm23.881-72.203l84.426 84.426-84.426 84.426L87.117 289.907a34.053 34.053 0 010-48.348l84.426-84.426zm168.853 0l84.426 84.426a34.053 34.053 0 010 48.348l-84.426 84.426-84.426-84.426 84.426-84.426zm-84.427 132.455l60.252-60.252 23.882 23.882-108.308 108.308-108.307-108.308 23.881-23.882 60.252 60.252a34.053 34.053 0 0048.348 0z" />
   </svg>
 );
 
@@ -129,7 +129,7 @@ export default function PaymentMock() {
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors shadow-sm">
-                    {/* O SVG MILIMÉTRICO DO PIX AQUI */}
+                    {/* O ÍCONE EXATO DO PIX */}
                     <PixIcon className="h-5 w-5 text-emerald-600 drop-shadow-sm" />
                   </div>
                   <span className="text-lg">PIX ou Boleto</span>

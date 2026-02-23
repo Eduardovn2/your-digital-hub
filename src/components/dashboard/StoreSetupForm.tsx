@@ -19,9 +19,8 @@ const storeSchema = z.object({
   slug: z.string().min(3, "O link deve ter pelo menos 3 caracteres").regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e traços"),
   description: z.string().optional(),
   
-  // VALIDAÇÃO RÍGIDA DO WHATSAPP (DDD + 9 Dígitos)
   phone: z.string()
-    .transform(val => val.replace(/\D/g, "")) // Remove mascára para validar
+    .transform(val => val.replace(/\D/g, ""))
     .refine(val => val.length === 11, {
         message: "O número precisa ter DDD (2 dígitos) + 9 dígitos. Ex: (11) 91234-5678"
     }),
@@ -84,12 +83,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
   const onSubmit = (data: StoreFormData) => {
     if (!userId) return;
     
-    // Mantemos o fullAddress por compatibilidade visual
     const fullAddress = `${data.address_street}, ${data.address_number} - ${data.address_neighborhood}, ${data.address_city}`;
-
-    // --- NOVA LÓGICA: Calcula data de validade para 15 dias de Trial ---
-    const trialExpirationDate = new Date();
-    trialExpirationDate.setDate(trialExpirationDate.getDate() + 15);
 
     createStore({
       owner_id: userId,
@@ -97,21 +91,18 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       slug: data.slug,
       description: data.description || null,
       phone: data.phone,
-      
-      // SALVANDO OS CAMPOS SEPARADOS
       zip_code: data.zip_code.replace(/\D/g, ""), 
       street: data.address_street,
       street_number: data.address_number,
       neighborhood: data.address_neighborhood,
       city: data.address_city,
+      address: fullAddress, 
       
-      address: fullAddress, // Também salvamos o completo
+      // --- NOVA LÓGICA: Loja nasce bloqueada esperando pagamento ---
+      status: 'pending',
+      expires_at: null, // Não tem data de validade ainda
+      is_active: false, // Só fica ativo quando pagar
       
-      // --- SALVANDO STATUS ATIVO E VALIDADE DO TRIAL ---
-      status: 'active',
-      expires_at: trialExpirationDate.toISOString(),
-      
-      is_active: true,
       is_open: true,
       primary_color: "#ea580c",
       secondary_color: "#f97316",
@@ -127,23 +118,19 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       whatsapp: null
     } as any, { 
       onSuccess: async () => {
-        // 1. Limpa o cache antigo que dizia "sem loja"
         await queryClient.invalidateQueries({ queryKey: ["my-store"] });
-        // 2. Força a busca imediata do novo dado
         await queryClient.refetchQueries({ queryKey: ["my-store"] });
         
-        toast.success("Loja criada! Você ganhou 15 dias grátis 🎉");
+        // Mensagem atualizada focando no próximo passo (pagamento)
+        toast.success("Loja criada! Libere seu acesso para começar.");
         
-        // 3. Executa redirecionamento
         if (onSuccess) {
             onSuccess();
         } else {
-            // Fallback de segurança: recarrega para ir ao Dashboard
             window.location.href = "/admin";
         }
       },
       onError: (error) => {
-        // Se o erro for "Duplicate Key" (já criou), tratamos como sucesso
         if (error.message.includes("duplicate key") || error.message.includes("slug")) {
              toast.success("Loja recuperada! Redirecionando...");
              window.location.href = "/admin";
@@ -158,7 +145,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0 text-center md:text-left">
         <CardTitle className="text-xl md:text-2xl">Dados da Loja</CardTitle>
-        <CardDescription>Preencha as informações básicas para colocar seu delivery no ar. Você tem 15 dias grátis!</CardDescription>
+        <CardDescription>Crie sua loja agora. Pague e ganhe +15 dias de garantia incondicional.</CardDescription>
       </CardHeader>
       <CardContent className="px-0">
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -189,7 +176,6 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
             <Textarea id="description" placeholder="O melhor hambúrguer da cidade..." className="resize-none min-h-[80px]" {...form.register("description")} />
           </div>
 
-          {/* ----- SEÇÃO DO WHATSAPP ----- */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="phone">WhatsApp (com DDD)</Label>
@@ -264,9 +250,9 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
             {isPending ? (
                 <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Criando sua Loja...
+                    Processando...
                 </>
-            ) : "Criar Loja e Começar 🚀"}
+            ) : "Continuar para Pagamento 🔒"}
           </Button>
         </form>
       </CardContent>

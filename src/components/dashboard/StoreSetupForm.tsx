@@ -87,6 +87,10 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
     // Mantemos o fullAddress por compatibilidade visual
     const fullAddress = `${data.address_street}, ${data.address_number} - ${data.address_neighborhood}, ${data.address_city}`;
 
+    // --- NOVA LÓGICA: Calcula data de validade para 15 dias de Trial ---
+    const trialExpirationDate = new Date();
+    trialExpirationDate.setDate(trialExpirationDate.getDate() + 15);
+
     createStore({
       owner_id: userId,
       name: data.name,
@@ -102,6 +106,10 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
       city: data.address_city,
       
       address: fullAddress, // Também salvamos o completo
+      
+      // --- SALVANDO STATUS ATIVO E VALIDADE DO TRIAL ---
+      status: 'active',
+      expires_at: trialExpirationDate.toISOString(),
       
       is_active: true,
       is_open: true,
@@ -124,7 +132,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
         // 2. Força a busca imediata do novo dado
         await queryClient.refetchQueries({ queryKey: ["my-store"] });
         
-        toast.success("Loja criada com sucesso!");
+        toast.success("Loja criada! Você ganhou 15 dias grátis 🎉");
         
         // 3. Executa redirecionamento
         if (onSuccess) {
@@ -150,7 +158,7 @@ export function StoreSetupForm({ userId, onSuccess }: StoreSetupFormProps) {
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0 text-center md:text-left">
         <CardTitle className="text-xl md:text-2xl">Dados da Loja</CardTitle>
-        <CardDescription>Preencha as informações básicas para colocar seu delivery no ar.</CardDescription>
+        <CardDescription>Preencha as informações básicas para colocar seu delivery no ar. Você tem 15 dias grátis!</CardDescription>
       </CardHeader>
       <CardContent className="px-0">
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

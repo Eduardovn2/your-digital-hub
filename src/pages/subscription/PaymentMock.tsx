@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/GlassCard"; 
-import { Loader2, CreditCard, ExternalLink, ShieldCheck } from "lucide-react";
+import { Loader2, CreditCard, ExternalLink, ShieldCheck, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function PaymentMock() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<string | null>(null); // Agora guarda qual botão está carregando
 
   // Lê a URL quando a página carrega para ver se houve erro no pagamento
   useEffect(() => {
@@ -21,18 +21,23 @@ export default function PaymentMock() {
     }
   }, [searchParams, setSearchParams]);
 
-  const handlePayment = async () => {
+  // A função agora recebe o tipo de pagamento
+  const handlePayment = async (type: 'subscription' | 'pix') => {
     if (!user) {
         toast.error("Usuário não autenticado.");
         return;
     }
 
-    setIsLoading(true);
+    setIsLoading(type);
 
     try {
-      // Chama a Edge Function que você criou no Supabase
+      // Decide qual Edge Function chamar
+      const functionName = type === 'subscription' 
+        ? 'create-mercadopago-checkout' 
+        : 'create-pix-checkout';
+
       const { data, error } = await supabase.functions.invoke(
-        'create-mercadopago-checkout', 
+        functionName, 
         {
           body: { 
             email: user.email, 
@@ -51,7 +56,7 @@ export default function PaymentMock() {
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Erro ao processar o redirecionamento de pagamento.");
-      setIsLoading(false);
+      setIsLoading(null);
     }
   };
 
@@ -72,41 +77,53 @@ export default function PaymentMock() {
         >
           <div className="text-center mb-8">
             <div className="bg-gradient-to-br from-primary/20 to-primary/5 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-white/20 backdrop-blur-sm">
-              <CreditCard className="h-8 w-8 text-primary drop-shadow-sm" />
+              <ShieldCheck className="h-8 w-8 text-primary drop-shadow-sm" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Assinatura Lojista</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Liberar Acesso</h1>
             <p className="text-slate-500 mt-2">
-              Invista <span className="text-slate-900 font-bold">R$ 69,90/mês</span> para ter sua loja online completa.
+              Escolha a forma de pagamento para ativar sua loja por <span className="text-slate-900 font-bold">R$ 69,90/mês</span>.
             </p>
           </div>
           
-          <div className="space-y-6">
-            <div className="text-center space-y-4 animate-in fade-in duration-500">
-                <p className="text-sm text-slate-600 mb-6">
-                    Você será redirecionado para o ambiente seguro do Mercado Pago para concluir a sua assinatura.
-                </p>
+          <div className="space-y-4 animate-in fade-in duration-500">
+            
+            {/* Botão de Assinatura (Cartão) */}
+            <Button 
+                onClick={() => handlePayment('subscription')} 
+                className="w-full h-14 font-bold bg-slate-900 text-white rounded-xl shadow-lg hover:bg-black hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-between px-6" 
+                disabled={isLoading !== null}
+            >
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-5 w-5 text-blue-400" />
+                <span>Assinatura (Cartão)</span>
+              </div>
+              {isLoading === 'subscription' ? (
+                <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+              ) : (
+                <ExternalLink className="h-4 w-4 text-slate-400"/>
+              )}
+            </Button>
 
-                <div className="pt-2 flex items-center gap-2 text-xs text-slate-500 justify-center pb-4">
-                    <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                    <span>Pagamento 100% seguro e criptografado.</span>
-                </div>
+            {/* Botão de PIX/Avulso */}
+            <Button 
+                onClick={() => handlePayment('pix')} 
+                className="w-full h-14 font-bold bg-white text-slate-900 border-2 border-slate-200 rounded-xl shadow-sm hover:border-emerald-500 hover:text-emerald-700 hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-between px-6" 
+                disabled={isLoading !== null}
+            >
+              <div className="flex items-center gap-3">
+                <QrCode className="h-5 w-5 text-emerald-500" />
+                <span>PIX ou Boleto (1 Mês)</span>
+              </div>
+              {isLoading === 'pix' ? (
+                <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
+              ) : (
+                <ExternalLink className="h-4 w-4 text-slate-400"/>
+              )}
+            </Button>
 
-                <Button 
-                    onClick={handlePayment} 
-                    className="w-full h-14 font-bold bg-slate-900 text-white rounded-xl shadow-lg hover:bg-black hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2" 
-                    disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Gerando Link Seguro...
-                    </>
-                  ) : (
-                    <>
-                        Pagar no Mercado Pago <ExternalLink className="h-4 w-4"/>
-                    </>
-                  )}
-                </Button>
+            <div className="pt-4 flex items-center gap-2 text-xs text-slate-500 justify-center">
+                <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                <span>Pagamento 100% seguro via Mercado Pago.</span>
             </div>
           </div>
         </GlassCard>

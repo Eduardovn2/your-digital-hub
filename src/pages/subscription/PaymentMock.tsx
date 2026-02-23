@@ -2,10 +2,17 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/GlassCard"; 
-import { Loader2, CreditCard, ExternalLink, ShieldCheck, QrCode, RefreshCw, Hand } from "lucide-react";
+import { Loader2, CreditCard, ExternalLink, ShieldCheck, RefreshCw, Hand } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Componente customizado com o ícone oficial do PIX
+const PixIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor">
+    <path d="M10.142 14.188L15.352 8.98a1.31 1.31 0 0 1 1.854 0l5.21 5.21a1.31 1.31 0 0 1 0 1.854l-5.21 5.21a1.31 1.31 0 0 1-1.854 0l-5.21-5.21a1.31 1.31 0 0 1 0-1.854zm16.516-1.572L17.206 3.165a2.124 2.124 0 0 0-3.004 0L4.75 12.616a2.124 2.124 0 0 0 0 3.004l9.452 9.452a2.124 2.124 0 0 0 3.004 0l9.452-9.452a2.124 2.124 0 0 0 0-3.004z" />
+  </svg>
+);
 
 export default function PaymentMock() {
   const { user } = useAuth();
@@ -51,7 +58,7 @@ export default function PaymentMock() {
 
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || "Erro ao processar o redirecionamento de pagamento.");
+      toast.error(error.message || "Erro ao conectar com o provedor de pagamento.");
       setIsLoading(null);
     }
   };
@@ -83,7 +90,7 @@ export default function PaymentMock() {
           
           <div className="space-y-4 animate-in fade-in duration-500">
             
-            {/* Botão de Assinatura Automática (Cartão) - Glass Theme Neutro */}
+            {/* Botão de Assinatura Automática (Cartão - Ícone Amarelo) */}
             <Button 
                 onClick={() => handlePayment('subscription')} 
                 className="w-full h-auto py-4 font-bold bg-white/40 backdrop-blur-md text-slate-800 border border-white/60 shadow-sm hover:bg-white/60 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col items-start px-5 gap-1 group" 
@@ -91,8 +98,8 @@ export default function PaymentMock() {
             >
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-slate-900/5 group-hover:bg-slate-900/10 transition-colors">
-                    <CreditCard className="h-5 w-5 text-slate-700" />
+                  <div className="p-2 rounded-lg bg-yellow-500/10 group-hover:bg-yellow-500/20 transition-colors">
+                    <CreditCard className="h-5 w-5 text-yellow-600" />
                   </div>
                   <span className="text-lg">Assinatura no Cartão</span>
                 </div>
@@ -104,11 +111,11 @@ export default function PaymentMock() {
               </div>
               <div className="flex items-center gap-1.5 mt-1 text-slate-500 font-normal text-xs bg-white/50 border border-white/40 px-2 py-1 rounded-md ml-[44px]">
                 <RefreshCw className="h-3 w-3 text-slate-400" />
-                Cobrança 100% automática todo mês
+                Cobrança automática todo mês
               </div>
             </Button>
 
-            {/* Botão de PIX/Avulso Manual - Glass Theme Neutro */}
+            {/* Botão de PIX/Avulso Manual (PIX - Ícone Verde) */}
             <Button 
                 onClick={() => handlePayment('pix')} 
                 className="w-full h-auto py-4 font-bold bg-white/40 backdrop-blur-md text-slate-800 border border-white/60 shadow-sm hover:bg-white/60 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col items-start px-5 gap-1 group" 
@@ -116,8 +123,8 @@ export default function PaymentMock() {
             >
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-slate-900/5 group-hover:bg-slate-900/10 transition-colors">
-                    <QrCode className="h-5 w-5 text-slate-700" />
+                  <div className="p-2 rounded-lg bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
+                    <PixIcon className="h-5 w-5 text-emerald-600" />
                   </div>
                   <span className="text-lg">PIX ou Boleto</span>
                 </div>

@@ -317,6 +317,8 @@ export type Database = {
           show_banner: boolean | null
           show_categories: boolean | null
           slug: string
+          status: string | null          // <--- ADICIONE AQUI
+          expires_at: string | null
           text_color: string | null
           updated_at: string
           whatsapp: string | null
@@ -342,6 +344,8 @@ export type Database = {
           show_banner?: boolean | null
           show_categories?: boolean | null
           slug: string
+          status?: string | null         // <--- ADICIONE AQUI
+          expires_at?: string | null
           text_color?: string | null
           updated_at?: string
           whatsapp?: string | null
@@ -367,6 +371,8 @@ export type Database = {
           show_banner?: boolean | null
           show_categories?: boolean | null
           slug?: string
+          status?: string | null         // <--- ADICIONE AQUI
+          expires_at?: string | null
           text_color?: string | null
           updated_at?: string
           whatsapp?: string | null

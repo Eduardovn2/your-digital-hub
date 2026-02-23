@@ -16,6 +16,7 @@ import StorePage from "./pages/StorePage";
 import NotFound from "./pages/NotFound";
 import {ProtectedRoute} from "./pages/auth/ProtectedRoute";
 import PaymentMock from "./pages/subscription/PaymentMock";
+import { SubscriptionGuard } from "./pages/auth/SubscriptionGuard";
 
 const queryClient = new QueryClient();
 
@@ -34,15 +35,16 @@ const App = () => (
                 <Route path="/auth" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 
-                {/* Área do Admin (Protegida) */}
-                  <Route
-                    path="/admin"
-                    element={
-                      <ProtectedRoute>
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionGuard>
                         <Admin />
-                      </ProtectedRoute>
-                    }
-                  />
+                      </SubscriptionGuard>
+                    </ProtectedRoute>
+                  }
+                />
 
                   {/* A ROTA SALVADORA: Tem que se chamar exatamente "/payment" */}
                   <Route 

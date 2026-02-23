@@ -37,6 +37,8 @@ export interface Store {
   is_open: boolean;
   created_at: string;
   updated_at: string;
+  status: string;              
+  expires_at: string | null;
 }
 
 export type StoreInsert = Omit<Store, "id" | "created_at" | "updated_at">;

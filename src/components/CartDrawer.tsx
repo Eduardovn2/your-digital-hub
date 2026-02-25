@@ -74,7 +74,12 @@ const OrderStatusBadge = ({ status }: { status: string }) => {
   const statusKey = normalizeStatus(status);
 
 const styles = {
-    pending: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-400", icon: Clock, label: "Pendente" },
+    pending: { 
+       bg: "bg-slate-100 dark:bg-slate-800", 
+       text: "text-slate-600 dark:text-slate-400", 
+       icon: Clock, 
+       label: "Aguardando Pagamento" // <--- Mude de "Pendente" para isto
+    },
     accepted: { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-700 dark:text-blue-400", icon: ClipboardList, label: "Na Fila" },
     preparing: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", icon: UtensilsCrossed, label: "Preparando" },
     ready: { bg: "bg-purple-50 dark:bg-purple-900/20", text: "text-purple-700 dark:text-purple-400", icon: PackageCheck, label: "Pronto p/ Entrega" },

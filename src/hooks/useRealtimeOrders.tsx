@@ -21,28 +21,59 @@ export function useRealtimeOrders(storeId: string | undefined) {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          // MUDANÇA 1: Mudamos de 'INSERT' para '*' para escutar tanto a criação quanto a atualização
+          event: '*', 
           schema: 'public',
           table: 'orders',
           filter: `store_id=eq.${storeId}`
         },
         (payload) => {
-          console.log("🔔 NOVO PEDIDO CHEGOU!", payload);
+          console.log("🔔 ATUALIZAÇÃO NO BANCO:", payload);
           
-          // 1. Tentar tocar o som
-          try {
-            playNotificationSound();
-          } catch (e) {
-            console.error("Erro ao tocar som:", e);
+          const newOrder = payload.new as any;
+          const oldOrder = payload.old as any;
+
+          let shouldNotify = false;
+          let notificationTitle = "Novo pedido!";
+
+          // MUDANÇA 2: Lógica de separação (Dinheiro vs PIX/Cartão)
+          
+          // Cenário A: O pedido acabou de ser criado (INSERT)
+          if (payload.eventType === 'INSERT') {
+            // Se for dinheiro (ou pagamento na entrega), apita logo!
+            if (newOrder.payment_method === 'dinheiro' || newOrder.payment_method === 'cash') {
+              shouldNotify = true;
+              notificationTitle = "Novo pedido (Pagar na Entrega)!";
+            } else {
+              // É PIX ou Cartão. Entra silencioso como "Aguardando Pagamento".
+              console.log("Pedido online gerado. Aguardando o cliente pagar...");
+            }
           }
 
-          // 2. Notificação visual
-          toast.success("Novo pedido recebido!", {
-            description: `Pedido de ${payload.new.customer_name}`,
-            duration: 10000,
-          });
+          // Cenário B: O pedido foi atualizado (UPDATE)
+          if (payload.eventType === 'UPDATE') {
+            // Se o Webhook do Mercado Pago mudou o status de 'pending' para 'accepted'
+            if (oldOrder?.status === 'pending' && newOrder?.status === 'accepted') {
+              shouldNotify = true;
+              notificationTitle = "Pagamento Aprovado! Novo pedido na fila.";
+            }
+          }
 
-          // 3. Atualizar o banco no front
+          // MUDANÇA 3: Só toca a campainha se a lógica acima autorizar
+          if (shouldNotify) {
+            try {
+              playNotificationSound();
+            } catch (e) {
+              console.error("Erro ao tocar som:", e);
+            }
+
+            toast.success(notificationTitle, {
+              description: `Pedido de ${newOrder.customer_name}`,
+              duration: 10000,
+            });
+          }
+
+          // Atualiza a tela sempre (mesmo silencioso, é bom para o painel ter a lista atualizada em tempo real)
           queryClient.invalidateQueries({ queryKey: ['orders', storeId] });
         }
       )

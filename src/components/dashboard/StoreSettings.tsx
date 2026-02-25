@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Store, MapPin, Truck, Bell, Save, Loader2, Search, Camera, ImageIcon, CreditCard, Wallet, AlertCircle } from "lucide-react";
+import { 
+  Store, MapPin, Truck, Bell, Save, Loader2, Search, 
+  Camera, ImageIcon, CreditCard, Wallet, AlertCircle, CheckCircle2 
+} from "lucide-react";
 import { toast } from "sonner";
 import { DeliverySettings } from "./DeliverySettings"; 
 import { SubscriptionSettings } from "./SubscriptionSettings"; 
 import { formatPhone } from "@/lib/utils"; 
+
+// CONFIGURAÇÕES DA SUA PLATAFORMA (Substitua pelo seu Client ID do Mercado Pago)
+const MP_CLIENT_ID = "SEU_CLIENT_ID_DA_APLICACAO"; 
+const REDIRECT_URI = window.location.origin + "/admin/settings";
 
 export function StoreSettings({ store }: { store: any }) {
   const [loading, setLoading] = useState(false);
@@ -19,7 +26,6 @@ export function StoreSettings({ store }: { store: any }) {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   
-  // ADICIONÁMOS AQUI OS NOVOS CAMPOS DO MERCADO PAGO NO ESTADO INICIAL
   const [formData, setFormData] = useState({
     name: store?.name || "",
     description: store?.description || "",
@@ -35,6 +41,44 @@ export function StoreSettings({ store }: { store: any }) {
     mp_access_token: store?.mp_access_token || "",
     mp_public_key: store?.mp_public_key || ""
   });
+
+  // --- LÓGICA DE CAPTURA DO CÓDIGO MERCADO PAGO ---
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+
+    if (code && store?.id) {
+      const handleTokenExchange = async () => {
+        try {
+          toast.loading("Finalizando conexão com Mercado Pago...");
+          
+          const { error } = await supabase.functions.invoke('exchange-mp-token', {
+            body: { code, storeId: store.id }
+          });
+
+          if (error) throw error;
+
+          toast.success("Conta conectada com sucesso! 🚀");
+          
+          // Limpa a URL para segurança e estética
+          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          // Recarrega os dados para mostrar o estado de "Conectado"
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (err) {
+          console.error(err);
+          toast.error("Erro ao conectar conta. Tente novamente.");
+        }
+      };
+
+      handleTokenExchange();
+    }
+  }, [store?.id]);
+
+  const handleConnectMP = () => {
+    const authUrl = `https://auth.mercadopago.com.br/authorization?client_id=${MP_CLIENT_ID}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+    window.location.href = authUrl;
+  };
   
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'banner') => {
     try {
@@ -123,27 +167,24 @@ export function StoreSettings({ store }: { store: any }) {
 
       <Tabs defaultValue="dados" className="space-y-6">
         <TabsList className="bg-white/40 backdrop-blur-md border border-white/60 p-1.5 h-auto flex flex-wrap gap-2 justify-start rounded-2xl shadow-sm w-full">
-          <TabsTrigger value="dados" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+          <TabsTrigger value="dados" className="rounded-xl px-4 py-2 data-[state=active]:bg-white shadow-sm transition-all">
             <Store className="h-4 w-4 mr-2" /> Loja & Morada
           </TabsTrigger>
-          <TabsTrigger value="entrega" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md transition-all">
+          <TabsTrigger value="entrega" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-orange-600 shadow-sm transition-all">
             <Truck className="h-4 w-4 mr-2" /> Logística de Entrega
           </TabsTrigger>
-          
-          <TabsTrigger value="pagamentos" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-md transition-all">
+          <TabsTrigger value="pagamentos" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all">
             <Wallet className="h-4 w-4 mr-2" /> Pagamentos (Mercado Pago)
           </TabsTrigger>
-
-          <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-md transition-all">
+          <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all">
             <Bell className="h-4 w-4 mr-2" /> Notificações
           </TabsTrigger>
-          
-          {/* Removido o ml-auto daqui para ficar colado aos outros */}
-          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-md transition-all">
+          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 shadow-sm transition-all">
             <CreditCard className="h-4 w-4 mr-2" /> Assinatura
           </TabsTrigger>
         </TabsList>
 
+        {/* --- DADOS --- */}
         <TabsContent value="dados" className="space-y-6 outline-none">
           {/* Identidade Visual */}
           <Card className="bg-white/60 backdrop-blur-xl border-white/50 shadow-lg rounded-3xl overflow-hidden">
@@ -153,7 +194,6 @@ export function StoreSettings({ store }: { store: any }) {
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                {/* Upload do Logo */}
                 <div className="space-y-3">
                   <Label>Logo da Loja</Label>
                   <div className="flex items-center gap-4">
@@ -175,7 +215,6 @@ export function StoreSettings({ store }: { store: any }) {
                   </div>
                 </div>
 
-                {/* Upload do Banner */}
                 <div className="space-y-3">
                   <Label>Banner de Capa</Label>
                   <div className="relative h-24 w-full rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-100 group">
@@ -196,7 +235,7 @@ export function StoreSettings({ store }: { store: any }) {
             </CardContent>
           </Card>
 
-          {/* Perfil da Loja */}
+          {/* Perfil */}
           <Card className="bg-white/60 backdrop-blur-xl border-white/50 shadow-lg rounded-3xl overflow-hidden">
             <CardHeader className="border-b border-white/40 bg-white/20">
               <CardTitle>Perfil da Loja</CardTitle>
@@ -222,44 +261,24 @@ export function StoreSettings({ store }: { store: any }) {
 
           {/* Endereço */}
           <Card className="bg-indigo-50/40 backdrop-blur-xl border-indigo-100/50 shadow-lg rounded-3xl">
-            <CardHeader>
-              <div className="flex items-center gap-2 text-indigo-900">
-                <MapPin className="h-5 w-5" />
-                <CardTitle>Geolocalização</CardTitle>
-              </div>
-              <CardDescription className="text-indigo-700/70">Precisão para cálculo de frete por KM.</CardDescription>
-            </CardHeader>
+            <CardHeader><div className="flex items-center gap-2 text-indigo-900"><MapPin className="h-5 w-5" /><CardTitle>Geolocalização</CardTitle></div></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2 relative">
+              <div className="space-y-2">
                 <Label>CEP</Label>
                 <div className="relative">
                   <Input className="bg-white/80 border-indigo-200 focus:ring-indigo-500 rounded-xl pr-10" value={formData.zip_code} onChange={handleCepChange} maxLength={9} />
-                  <div className="absolute right-3 top-2.5">
-                    {loadingCep ? <Loader2 className="h-5 w-5 animate-spin text-indigo-600"/> : <Search className="h-5 w-5 text-indigo-300"/>}
-                  </div>
+                  <div className="absolute right-3 top-2.5">{loadingCep ? <Loader2 className="h-5 w-5 animate-spin text-indigo-600"/> : <Search className="h-5 w-5 text-indigo-300"/>}</div>
                 </div>
               </div>
-              <div className="md:col-span-2 space-y-2">
-                <Label>Rua / Avenida</Label>
-                <Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Número</Label>
-                <Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.street_number} onChange={e => setFormData({...formData, street_number: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Bairro</Label>
-                <Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label>Cidade</Label>
-                <Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
-              </div>
+              <div className="md:col-span-2 space-y-2"><Label>Rua / Avenida</Label><Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} /></div>
+              <div className="space-y-2"><Label>Número</Label><Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.street_number} onChange={e => setFormData({...formData, street_number: e.target.value})} /></div>
+              <div className="space-y-2"><Label>Bairro</Label><Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} /></div>
+              <div className="space-y-2"><Label>Cidade</Label><Input className="bg-white/80 border-indigo-200 rounded-xl" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /></div>
             </CardContent>
           </Card>
 
           <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={loading} className="px-8 py-6 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white shadow-xl hover:shadow-2xl transition-all">
+            <Button onClick={handleSave} disabled={loading} className="px-8 py-6 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white shadow-xl transition-all">
               {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2"/> : <Save className="h-5 w-5 mr-2"/>}
               Guardar Configurações
             </Button>
@@ -270,7 +289,7 @@ export function StoreSettings({ store }: { store: any }) {
           <DeliverySettings storeId={store.id} />
         </TabsContent>
 
-        {/* NOVA ABA: PAGAMENTOS (MERCADO PAGO) */}
+        {/* --- ABA DE PAGAMENTOS (OAUTH INTEGRADO) --- */}
         <TabsContent value="pagamentos" className="space-y-6 outline-none animate-in fade-in duration-300">
           <Card className="bg-white/60 backdrop-blur-xl border-white/50 shadow-lg rounded-3xl overflow-hidden border-blue-100">
             <CardHeader className="border-b border-white/40 bg-blue-50/50">
@@ -279,48 +298,60 @@ export function StoreSettings({ store }: { store: any }) {
                 Integração Mercado Pago
               </CardTitle>
               <CardDescription className="text-blue-700/70">
-                Configure as suas credenciais para aceitar PIX e Cartão de Crédito com Checkout Transparente. O dinheiro vai direto para a sua conta.
+                Conecte sua conta para aceitar PIX e Cartão de Crédito automaticamente.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-6 space-y-6">
+            <CardContent className="p-6 space-y-8">
               
-              <Alert className="bg-blue-50 border-blue-200 text-blue-800">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle className="font-bold">Onde encontrar as chaves?</AlertTitle>
-                <AlertDescription className="text-xs mt-1">
-                  Aceda ao seu painel do Mercado Pago &gt; Seu Negócio &gt; Configurações &gt; Gestão e Administração &gt; Credenciais. Utilize sempre as suas <b>Credenciais de Produção</b>.
-                </AlertDescription>
-              </Alert>
-
-              <div className="grid gap-6">
-                <div className="space-y-2">
-                  <Label className="text-slate-700 font-bold">Public Key (Chave Pública)</Label>
-                  <Input 
-                    placeholder="APP_USR-..." 
-                    value={formData.mp_public_key}
-                    onChange={e => setFormData({...formData, mp_public_key: e.target.value})}
-                    className="bg-white/80 border-blue-100 focus:bg-white rounded-xl font-mono text-sm"
-                  />
-                  <p className="text-[10px] text-slate-500">Usada para gerar o formulário de pagamento seguro na sua loja.</p>
+              {/* CONEXÃO OAUTH */}
+              <div className="flex flex-col items-center justify-center py-10 space-y-6 border-2 border-dashed border-blue-100 rounded-[2rem] bg-blue-50/30">
+                <div className="bg-blue-600 p-4 rounded-2xl shadow-xl shadow-blue-500/20 text-white">
+                  <CreditCard className="h-10 w-10" />
                 </div>
                 
+                <div className="text-center space-y-2 px-6">
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Conexão Rápida</h3>
+                  <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
+                    Autorize o Hub a processar seus pagamentos. Você receberá o dinheiro direto na sua conta Mercado Pago.
+                  </p>
+                </div>
+
+                {formData.mp_access_token ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full border border-emerald-100">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span className="text-[11px] font-black uppercase tracking-widest">Conta Conectada</span>
+                    </div>
+                    <Button variant="outline" onClick={handleConnectMP} className="rounded-xl text-[10px] font-bold h-9">Alterar Conta</Button>
+                  </div>
+                ) : (
+                  <Button onClick={handleConnectMP} className="bg-[#009EE3] hover:bg-[#007EB5] text-white font-black rounded-2xl px-10 h-14 shadow-lg transition-all active:scale-95">
+                    CONECTAR MERCADO PAGO
+                  </Button>
+                )}
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200" /></div>
+                <div className="relative flex justify-center text-[10px] uppercase font-bold"><span className="bg-white px-2 text-slate-400">Ou use chaves manuais</span></div>
+              </div>
+
+              {/* CAMPOS MANUAIS */}
+              <div className="grid gap-6 opacity-60 hover:opacity-100 transition-opacity">
                 <div className="space-y-2">
-                  <Label className="text-slate-700 font-bold">Access Token (Chave Privada)</Label>
-                  <Input 
-                    type="password"
-                    placeholder="APP_USR-..." 
-                    value={formData.mp_access_token}
-                    onChange={e => setFormData({...formData, mp_access_token: e.target.value})}
-                    className="bg-white/80 border-blue-100 focus:bg-white rounded-xl font-mono text-sm"
-                  />
-                  <p className="text-[10px] text-slate-500">Mantenha em segredo. Usada pelos nossos servidores para confirmar os seus recebimentos via PIX.</p>
+                  <Label className="text-xs font-bold">Public Key</Label>
+                  <Input placeholder="APP_USR-..." value={formData.mp_public_key} onChange={e => setFormData({...formData, mp_public_key: e.target.value})} className="bg-white/80 border-blue-100 rounded-xl font-mono text-xs" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold">Access Token</Label>
+                  <Input type="password" placeholder="APP_USR-..." value={formData.mp_access_token} onChange={e => setFormData({...formData, mp_access_token: e.target.value})} className="bg-white/80 border-blue-100 rounded-xl font-mono text-xs" />
                 </div>
               </div>
               
               <div className="flex justify-end pt-4 border-t border-white/50">
-                <Button onClick={handleSave} disabled={loading} className="px-6 py-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30 transition-all">
+                <Button onClick={handleSave} disabled={loading} className="px-8 py-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all">
                   {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2"/> : <Save className="h-5 w-5 mr-2"/>}
-                  Guardar Chaves
+                  Salvar Manualmente
                 </Button>
               </div>
             </CardContent>
@@ -334,7 +365,6 @@ export function StoreSettings({ store }: { store: any }) {
         <TabsContent value="assinatura" className="outline-none animate-in fade-in duration-300">
           <SubscriptionSettings />
         </TabsContent>
-
       </Tabs>
     </div>
   );

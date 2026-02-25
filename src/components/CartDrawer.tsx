@@ -299,16 +299,12 @@ const handleFinalizar = async () => {
             linhas.push(`Cidade: ${enderecoCompleto?.cidade}`);
         }
         
-        linhas.push(`____________`);
-        linhas.push(`Tecnologia`);
-        linhas.push(`     www.vianaeccomerce.com.br`); // Pode colocar a URL real do seu SaaS aqui
-
         // Junta tudo com a quebra de linha correta para URL
         const msg = linhas.join('\n');
-        const encodedMsg = encodeURIComponent(msg);
+        const encodedMsg = linhas.map(linha => encodeURIComponent(linha)).join('%0A');
         
         // API Oficial do WhatsApp
-        const waUrl = `https://api.whatsapp.com/send?phone=55${numeroLoja}&text=${encodedMsg}`;
+        const waUrl = `https://wa.me/55${numeroLoja}?text=${encodedMsg}`;
         
         window.open(waUrl, '_blank');
       }

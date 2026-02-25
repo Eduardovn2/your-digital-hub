@@ -198,66 +198,109 @@ useEffect(() => {
   };
 
 const handleFinalizar = async () => {
-  if (!isFormValid) return;
-  setLoading(true);
+    if (!isFormValid) return;
+    setLoading(true);
 
-  try {
-    const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}`;
-    
-    // 1. Preparamos os itens para a coluna JSONB 'items'
-    // Transformamos o carrinho no formato que o Admin espera ler
-    const itemsData = items.map((item) => ({
-      product_id: item.id,
-      product_name: item.name,
-      product_price: Number(item.price),
-      quantity: item.quantity,
-      subtotal: Number(item.price) * (item.quantity || 1)
-    }));
+    try {
+      const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}`;
+      
+      // 1. Preparamos os itens
+      const itemsData = items.map((item) => ({
+        product_id: item.id,
+        product_name: item.name,
+        product_price: Number(item.price),
+        quantity: item.quantity,
+        subtotal: Number(item.price) * (item.quantity || 1)
+      }));
 
-    // 2. Criamos o Payload ÚNICO (já incluindo a coluna items)
-    const orderPayload = {
-      store_id: storeId,
-      customer_name: nome,
-      customer_phone: telefone.replace(/\D/g, ""),
-      customer_address: addressString,
-      delivery_fee: frete,
-      subtotal: subtotalReal,
-      total: totalFinal,
-      payment_method: pagamento,
-      change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
-      status: "pending" as const,
-      device_id: deviceId,
-      // 👇 AQUI ESTÁ A CHAVE: Enviamos o array de itens direto na tabela orders
-      items: itemsData 
-    };
+      // 2. Payload do Pedido
+      const orderPayload = {
+        store_id: storeId,
+        customer_name: nome,
+        customer_phone: telefone.replace(/\D/g, ""),
+        customer_address: addressString,
+        delivery_fee: frete,
+        subtotal: subtotalReal,
+        total: totalFinal,
+        payment_method: pagamento,
+        change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
+        status: "pending" as const,
+        device_id: deviceId,
+        items: itemsData 
+      };
 
-    // 3. Fazemos apenas UM insert no banco
-    const { error: orderError } = await supabase
-      .from("orders")
-      .insert(orderPayload);
+      // 3. Salva no banco e RETORNA O ID do pedido
+      const { data: insertedOrder, error: orderError } = await supabase
+        .from("orders")
+        .insert(orderPayload)
+        .select("id")
+        .single();
 
-    if (orderError) throw orderError;
+      if (orderError) throw orderError;
 
-    // 4. Sucesso total (O passo de insert no order_items foi removido)
-    toast({ 
-      title: "Sucesso!", 
-      description: "Pedido enviado com sucesso." 
-    });
-    
-    clearCart();
-    setActiveTab("orders");
+      // 4. Busca o telefone da Loja para o WhatsApp
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("phone")
+        .eq("id", storeId)
+        .single();
 
-  } catch (error: any) {
-    console.error("Erro no Supabase:", error);
-    toast({ 
-      title: "Erro no envio", 
-      description: error.message || "Verifique o console para detalhes.", 
-      variant: "destructive" 
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+      // 5. Monta a mensagem e abre o WhatsApp
+      if (storeData?.phone) {
+        const numeroLoja = storeData.phone.replace(/\D/g, ""); // Remove parênteses e traços
+        
+        let msg = `*NOVO PEDIDO #${insertedOrder.id.slice(0, 4).toUpperCase()}* 🍔\n\n`;
+        msg += `*👤 Cliente:* ${nome}\n`;
+        msg += `*📱 Contato:* ${telefone}\n`;
+        msg += `*📍 Endereço:* ${addressString}\n\n`;
+        
+        msg += `*🛒 ITENS DO PEDIDO:*\n`;
+        items.forEach(item => {
+            msg += `▪️ ${item.quantity}x ${item.name} - R$ ${(Number(item.price) * (item.quantity || 1)).toFixed(2)}\n`;
+        });
+        
+        msg += `\n*💰 RESUMO:*\n`;
+        msg += `Subtotal: R$ ${subtotalReal.toFixed(2)}\n`;
+        msg += `Taxa de Entrega: ${frete === 0 ? 'Grátis' : `R$ ${frete?.toFixed(2)}`}\n`;
+        msg += `*Total Final: R$ ${totalFinal.toFixed(2)}*\n\n`;
+        
+        msg += `*💳 FORMA DE PAGAMENTO:*\n`;
+        msg += `👉 ${pagamento.toUpperCase()}\n`;
+        
+        // Se for dinheiro, avisa ao motoboy quanto de troco levar
+        if (pagamento === 'dinheiro' && trocoPara) {
+            const valorTroco = parseCurrency(trocoPara) - totalFinal;
+            msg += `Troco para: R$ ${parseCurrency(trocoPara).toFixed(2)}\n`;
+            msg += `*(Levar R$ ${valorTroco.toFixed(2)} de troco)*\n`;
+        }
+
+        const encodedMsg = encodeURIComponent(msg);
+        // O código '55' é o DDI do Brasil. 
+        const waUrl = `https://wa.me/55${numeroLoja}?text=${encodedMsg}`;
+        
+        // Redireciona o cliente para o WhatsApp numa nova aba
+        window.open(waUrl, '_blank');
+      }
+
+      toast({ 
+        title: "Pedido Confirmado!", 
+        description: "Seu pedido foi enviado com sucesso." 
+      });
+      
+      clearCart();
+      setActiveTab("orders");
+
+    } catch (error: any) {
+      console.error("Erro no Supabase:", error);
+      toast({ 
+        title: "Erro no envio", 
+        description: error.message || "Verifique o console para detalhes.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>

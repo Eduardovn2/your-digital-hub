@@ -132,9 +132,8 @@ export function StoreSettings({ store }: { store: any }) {
           <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-md transition-all">
             <Bell className="h-4 w-4 mr-2" /> Notificações
           </TabsTrigger>
-
-          {/* NOVO BOTÃO: ASSINATURA (Colocado à direita) */}
-          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-md transition-all ml-auto">
+          {/* BOTÃO ASSINATURA: Agora lado a lado com os outros */}
+          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-md transition-all">
             <CreditCard className="h-4 w-4 mr-2" /> Assinatura
           </TabsTrigger>
         </TabsList>

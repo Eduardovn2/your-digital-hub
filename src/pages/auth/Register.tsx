@@ -63,8 +63,20 @@ export default function Register() {
         },
       });
 
+      // 1. Erro explícito do Supabase
       if (error) throw error;
 
+      // 2. A TRAVA INTELIGENTE: Bloqueia se o email já estiver registrado
+      // Quando a "Prevenção de Enumeração" do Supabase está ligada, ele finge sucesso
+      // mas devolve o array de 'identities' vazio se a conta já existir.
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        const msg = "Este e-mail já está cadastrado! Por favor, faça Login.";
+        setErrorMsg(msg);
+        toast.error(msg);
+        return; // Interrompe a execução aqui! Não vai para a tela de OTP.
+      }
+
+      // Se passou pelas travas acima, o usuário é genuinamente novo!
       if (data.user && !data.session) {
         toast.success("Código enviado para seu e-mail!");
         setStep("verify"); 

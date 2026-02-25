@@ -18,7 +18,7 @@ import { formatPhone } from "@/lib/utils";
 
 // CONFIGURAÇÕES DA SUA PLATAFORMA (Substitua pelo seu Client ID do Mercado Pago)
 const MP_CLIENT_ID = "680998988261571"; 
-const REDIRECT_URI = window.location.origin + "/admin/settings";
+const REDIRECT_URI = window.location.origin + "/admin";
 
 export function StoreSettings({ store }: { store: any }) {
   const [loading, setLoading] = useState(false);

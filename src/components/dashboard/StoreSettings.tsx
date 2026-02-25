@@ -6,9 +6,10 @@ import { SoundSettingsCard } from "./SoundSettingsCard";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, MapPin, Truck, Bell, Save, Loader2, Search, Camera, ImageIcon } from "lucide-react";
+import { Store, MapPin, Truck, Bell, Save, Loader2, Search, Camera, ImageIcon, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { DeliverySettings } from "./DeliverySettings"; 
+import { SubscriptionSettings } from "./SubscriptionSettings"; // <- IMPORTAÇÃO DO CANCELAMENTO
 import { formatPhone } from "@/lib/utils"; 
 
 export function StoreSettings({ store }: { store: any }) {
@@ -121,7 +122,7 @@ export function StoreSettings({ store }: { store: any }) {
       </div>
 
       <Tabs defaultValue="dados" className="space-y-6">
-        <TabsList className="bg-white/40 backdrop-blur-md border border-white/60 p-1.5 h-auto flex flex-wrap gap-2 justify-start rounded-2xl shadow-sm">
+        <TabsList className="bg-white/40 backdrop-blur-md border border-white/60 p-1.5 h-auto flex flex-wrap gap-2 justify-start rounded-2xl shadow-sm w-full">
           <TabsTrigger value="dados" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
             <Store className="h-4 w-4 mr-2" /> Loja & Morada
           </TabsTrigger>
@@ -131,11 +132,16 @@ export function StoreSettings({ store }: { store: any }) {
           <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-md transition-all">
             <Bell className="h-4 w-4 mr-2" /> Notificações
           </TabsTrigger>
+
+          {/* NOVO BOTÃO: ASSINATURA (Colocado à direita) */}
+          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-md transition-all ml-auto">
+            <CreditCard className="h-4 w-4 mr-2" /> Assinatura
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados" className="space-y-6 outline-none">
           
-          {/* --- NOVA SEÇÃO: IDENTIDADE VISUAL --- */}
+          {/* --- SEÇÃO: IDENTIDADE VISUAL --- */}
           <Card className="bg-white/60 backdrop-blur-xl border-white/50 shadow-lg rounded-3xl overflow-hidden">
             <CardHeader className="border-b border-white/40 bg-white/10">
               <CardTitle>Identidade Visual</CardTitle>
@@ -187,7 +193,7 @@ export function StoreSettings({ store }: { store: any }) {
             </CardContent>
           </Card>
 
-          {/* Dados da Loja (Seu código original adaptado) */}
+          {/* Dados da Loja */}
           <Card className="bg-white/60 backdrop-blur-xl border-white/50 shadow-lg rounded-3xl overflow-hidden">
             <CardHeader className="border-b border-white/40 bg-white/20">
               <CardTitle>Perfil da Loja</CardTitle>
@@ -211,7 +217,7 @@ export function StoreSettings({ store }: { store: any }) {
             </CardContent>
           </Card>
 
-          {/* Endereço (Seu código original) */}
+          {/* Endereço */}
           <Card className="bg-indigo-50/40 backdrop-blur-xl border-indigo-100/50 shadow-lg rounded-3xl">
             <CardHeader>
               <div className="flex items-center gap-2 text-indigo-900">
@@ -264,6 +270,12 @@ export function StoreSettings({ store }: { store: any }) {
         <TabsContent value="notificacoes" className="space-y-6 outline-none">
           <SoundSettingsCard />
         </TabsContent>
+
+        {/* NOVA ABA: ASSINATURA */}
+        <TabsContent value="assinatura" className="outline-none animate-in fade-in duration-300">
+          <SubscriptionSettings />
+        </TabsContent>
+
       </Tabs>
     </div>
   );

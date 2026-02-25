@@ -238,56 +238,80 @@ const handleFinalizar = async () => {
 
       if (orderError) throw orderError;
 
-      // 4. Busca o telefone da Loja para o WhatsApp
+      // 4. Busca os dados da Loja (Nome, Telefone e Slug para o link)
       const { data: storeData } = await supabase
         .from("stores")
-        .select("phone")
+        .select("phone, name, slug")
         .eq("id", storeId)
         .single();
 
-      // 5. Monta a mensagem e abre o WhatsApp
-        if (storeData?.phone) {
-                const numeroLoja = storeData.phone.replace(/\D/g, ""); 
-                
-                // Criamos as linhas como uma lista (Array) para garantir as quebras de linha
-                const linhas = [
-                `*NOVO PEDIDO #${insertedOrder.id.slice(0, 4).toUpperCase()}* 🍔`,
-                ``,
-                `*Cliente:* ${nome}`,
-                `*Contato:* ${telefone}`,
-                `*Endereço:* ${addressString}`,
-                ``,
-                `*🛒 ITENS DO PEDIDO:*`
-                ];
-                
-                items.forEach(item => {
-                    linhas.push(`- ${item.quantity}x ${item.name} (R$ ${(Number(item.price) * (item.quantity || 1)).toFixed(2)})`);
-                });
-                
-                linhas.push(``);
-                linhas.push(`*💰 RESUMO:*`);
-                linhas.push(`Subtotal: R$ ${subtotalReal.toFixed(2)}`);
-                linhas.push(`Taxa de Entrega: ${frete === 0 ? 'Grátis' : `R$ ${frete?.toFixed(2)}`}`);
-                linhas.push(`*Total Final: R$ ${totalFinal.toFixed(2)}*`);
-                linhas.push(``);
-                linhas.push(`*💳 PAGAMENTO:*`);
-                linhas.push(`👉 ${pagamento.toUpperCase()}`);
-                
-                if (pagamento === 'dinheiro' && trocoPara) {
-                    const valorTroco = parseCurrency(trocoPara) - totalFinal;
-                    linhas.push(`Troco para: R$ ${parseCurrency(trocoPara).toFixed(2)}`);
-                    linhas.push(`*(Levar R$ ${valorTroco.toFixed(2)} de troco)*`);
-                }
+      // 5. Monta a mensagem EXATAMENTE no layout exigido
+      if (storeData?.phone) {
+        const numeroLoja = storeData.phone.replace(/\D/g, ""); 
+        const storeName = storeData.name || "Loja";
+        const storeLink = `${window.location.origin}/${storeData.slug}`;
+        
+        const linhas = [
+          `${storeName}`,
+          ``,
+          `Meu nome é ${nome}, Contato: ${telefone.replace(/\D/g, "")}`,
+          ``,
+          `Código do pedido: #${insertedOrder.id.slice(0, 6).toUpperCase()}`,
+          ``
+        ];
+        
+        // Loop dos Itens
+        items.forEach(item => {
+            const precoUnitario = Number(item.price).toFixed(2).replace('.', ',');
+            const precoTotalItem = (Number(item.price) * (item.quantity || 1)).toFixed(2).replace('.', ',');
+            
+            linhas.push(`${item.quantity}x - ${item.name}`);
+            linhas.push(`(R$ ${precoUnitario})`);
+            linhas.push(`R$ ${precoTotalItem}`);
+            linhas.push(`____________`);
+        });
+        
+        linhas.push(``);
+        linhas.push(`Entrega: ${frete === 0 ? 'Grátis' : frete?.toFixed(2).replace('.', ',')}`);
+        linhas.push(`Total: ${totalFinal.toFixed(2).replace('.', ',')}`);
+        linhas.push(``);
+        
+        const modoPagamento = pagamento === 'dinheiro' ? 'Dinheiro' : pagamento === 'cartão' ? 'Cartão' : 'Pix';
+        linhas.push(`Pagamento em:     ${modoPagamento}`);
+        
+        if (pagamento === 'dinheiro' && trocoPara) {
+            linhas.push(`Troco para: R$ ${parseCurrency(trocoPara).toFixed(2).replace('.', ',')}`);
+        }
 
-                // Junta todas as linhas com a quebra oficial (\n) e converte para formato de Link
-                const msg = linhas.join('\n');
-                const encodedMsg = encodeURIComponent(msg);
-                
-                // Usamos a API oficial do WhatsApp que lida melhor com formatação
-                const waUrl = `https://api.whatsapp.com/send?phone=55${numeroLoja}&text=${encodedMsg}`;
-                
-                window.open(waUrl, '_blank');
-            }
+        linhas.push(`Acompanhar Pedido`);
+        linhas.push(`${storeLink}`);
+        linhas.push(``);
+        linhas.push(`Endereço de Entrega`);
+        linhas.push(``);
+        linhas.push(`Rua: ${enderecoCompleto?.rua}`);
+        linhas.push(`Número: ${enderecoCompleto?.numero}`);
+        linhas.push(`Bairro: ${enderecoCompleto?.bairro}`);
+        
+        if (enderecoCompleto?.referencia) {
+            linhas.push(`Referência: ${enderecoCompleto?.referencia}`);
+        }
+        if (enderecoCompleto?.cidade) {
+            linhas.push(`Cidade: ${enderecoCompleto?.cidade}`);
+        }
+        
+        linhas.push(`____________`);
+        linhas.push(`Tecnologia`);
+        linhas.push(`     www.vianaeccomerce.com.br`); // Pode colocar a URL real do seu SaaS aqui
+
+        // Junta tudo com a quebra de linha correta para URL
+        const msg = linhas.join('\n');
+        const encodedMsg = encodeURIComponent(msg);
+        
+        // API Oficial do WhatsApp
+        const waUrl = `https://api.whatsapp.com/send?phone=55${numeroLoja}&text=${encodedMsg}`;
+        
+        window.open(waUrl, '_blank');
+      }
 
       toast({ 
         title: "Pedido Confirmado!", 

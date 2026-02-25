@@ -246,41 +246,48 @@ const handleFinalizar = async () => {
         .single();
 
       // 5. Monta a mensagem e abre o WhatsApp
-      if (storeData?.phone) {
-        const numeroLoja = storeData.phone.replace(/\D/g, ""); // Remove parênteses e traços
-        
-        let msg = `*NOVO PEDIDO #${insertedOrder.id.slice(0, 4).toUpperCase()}* 🍔\n\n`;
-        msg += `*👤 Cliente:* ${nome}\n`;
-        msg += `*📱 Contato:* ${telefone}\n`;
-        msg += `*📍 Endereço:* ${addressString}\n\n`;
-        
-        msg += `*🛒 ITENS DO PEDIDO:*\n`;
-        items.forEach(item => {
-            msg += `▪️ ${item.quantity}x ${item.name} - R$ ${(Number(item.price) * (item.quantity || 1)).toFixed(2)}\n`;
-        });
-        
-        msg += `\n*💰 RESUMO:*\n`;
-        msg += `Subtotal: R$ ${subtotalReal.toFixed(2)}\n`;
-        msg += `Taxa de Entrega: ${frete === 0 ? 'Grátis' : `R$ ${frete?.toFixed(2)}`}\n`;
-        msg += `*Total Final: R$ ${totalFinal.toFixed(2)}*\n\n`;
-        
-        msg += `*💳 FORMA DE PAGAMENTO:*\n`;
-        msg += `👉 ${pagamento.toUpperCase()}\n`;
-        
-        // Se for dinheiro, avisa ao motoboy quanto de troco levar
-        if (pagamento === 'dinheiro' && trocoPara) {
-            const valorTroco = parseCurrency(trocoPara) - totalFinal;
-            msg += `Troco para: R$ ${parseCurrency(trocoPara).toFixed(2)}\n`;
-            msg += `*(Levar R$ ${valorTroco.toFixed(2)} de troco)*\n`;
-        }
+        if (storeData?.phone) {
+                const numeroLoja = storeData.phone.replace(/\D/g, ""); 
+                
+                // Criamos as linhas como uma lista (Array) para garantir as quebras de linha
+                const linhas = [
+                `*NOVO PEDIDO #${insertedOrder.id.slice(0, 4).toUpperCase()}* 🍔`,
+                ``,
+                `*Cliente:* ${nome}`,
+                `*Contato:* ${telefone}`,
+                `*Endereço:* ${addressString}`,
+                ``,
+                `*🛒 ITENS DO PEDIDO:*`
+                ];
+                
+                items.forEach(item => {
+                    linhas.push(`- ${item.quantity}x ${item.name} (R$ ${(Number(item.price) * (item.quantity || 1)).toFixed(2)})`);
+                });
+                
+                linhas.push(``);
+                linhas.push(`*💰 RESUMO:*`);
+                linhas.push(`Subtotal: R$ ${subtotalReal.toFixed(2)}`);
+                linhas.push(`Taxa de Entrega: ${frete === 0 ? 'Grátis' : `R$ ${frete?.toFixed(2)}`}`);
+                linhas.push(`*Total Final: R$ ${totalFinal.toFixed(2)}*`);
+                linhas.push(``);
+                linhas.push(`*💳 PAGAMENTO:*`);
+                linhas.push(`👉 ${pagamento.toUpperCase()}`);
+                
+                if (pagamento === 'dinheiro' && trocoPara) {
+                    const valorTroco = parseCurrency(trocoPara) - totalFinal;
+                    linhas.push(`Troco para: R$ ${parseCurrency(trocoPara).toFixed(2)}`);
+                    linhas.push(`*(Levar R$ ${valorTroco.toFixed(2)} de troco)*`);
+                }
 
-        const encodedMsg = encodeURIComponent(msg);
-        // O código '55' é o DDI do Brasil. 
-        const waUrl = `https://wa.me/55${numeroLoja}?text=${encodedMsg}`;
-        
-        // Redireciona o cliente para o WhatsApp numa nova aba
-        window.open(waUrl, '_blank');
-      }
+                // Junta todas as linhas com a quebra oficial (\n) e converte para formato de Link
+                const msg = linhas.join('\n');
+                const encodedMsg = encodeURIComponent(msg);
+                
+                // Usamos a API oficial do WhatsApp que lida melhor com formatação
+                const waUrl = `https://api.whatsapp.com/send?phone=55${numeroLoja}&text=${encodedMsg}`;
+                
+                window.open(waUrl, '_blank');
+            }
 
       toast({ 
         title: "Pedido Confirmado!", 

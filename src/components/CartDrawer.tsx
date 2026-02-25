@@ -15,7 +15,8 @@ import {
   Loader2, ShoppingBag, CreditCard, Banknote, Trash2, Coins, 
   ImageOff, AlertTriangle, Clock, CheckCircle2, XCircle, 
   Bike, Package, ClipboardList, ArrowRight, Activity, BellRing, 
-  PackageCheck, UtensilsCrossed, HelpCircle, User, X
+  PackageCheck, UtensilsCrossed, HelpCircle, User, X,
+  Timer
 } from "lucide-react";
 import { DeliveryAddressForm, AddressData } from "@/components/DeliveryAddressForm";
 
@@ -132,6 +133,16 @@ export default function CartDrawer() {
   
   const [frete, setFrete] = useState<number | null>(null);
   const [enderecoCompleto, setEnderecoCompleto] = useState<AddressData | null>(null);
+  
+  const [isRepaying, setIsRepaying] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  // Atualiza o relógio a cada 10 segundos para o cronômetro
+  useEffect(() => {
+    if (!open) return;
+    const interval = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(interval);
+  }, [open]);
 
 const subtotalReal = items.reduce((acc, item) => acc + (Number(item.price) * (item.quantity || 1)), 0);
   const totalFinal = subtotalReal + (frete || 0);
@@ -193,15 +204,42 @@ useEffect(() => {
     };
   }, [deviceId, open]);
 
-  const fetchOrderHistory = async () => {
-      if (!deviceId) return;
-      const { data } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("device_id", deviceId)
-        .order("created_at", { ascending: false })
-        .limit(15);
-      if (data) setOrderHistory(data);
+const fetchOrderHistory = async () => {
+    if (!deviceId) return;
+    const { data } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("device_id", deviceId)
+      .order("created_at", { ascending: false })
+      .limit(15);
+    
+    if (data) {
+      let needsRefresh = false;
+      const currentTime = Date.now();
+      
+      for (const order of data) {
+        if (order.status === 'pending' && ['pix', 'cartão', 'card'].includes((order as any).payment_method?.toLowerCase())) {
+          const diffMins = (currentTime - new Date(order.created_at).getTime()) / 60000;
+          if (diffMins >= 5) {
+            // Cancela no banco automaticamente se passou de 5 minutos!
+            await supabase.from("orders").update({ status: 'cancelled' }).eq('id', order.id);
+            needsRefresh = true;
+          }
+        }
+      }
+
+      if (needsRefresh) {
+        const { data: refreshedData } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("device_id", deviceId)
+          .order("created_at", { ascending: false })
+          .limit(15);
+        if (refreshedData) setOrderHistory(refreshedData);
+      } else {
+        setOrderHistory(data);
+      }
+    }
   };
 
   const handleAddressUpdate = (address: AddressData, valorFrete: number | null) => {
@@ -288,6 +326,29 @@ const handleFinalizar = async () => {
     setLoading(false);
   }
 };
+
+const handleRepay = async (order: any) => {
+    setIsRepaying(order.id);
+    try {
+      const { data, error: funcError } = await supabase.functions.invoke('process-payment', {
+        body: { orderId: order.id, paymentMethod: order.payment_method, storeId: order.store_id }
+      });
+
+      if (funcError || data.error) throw new Error(data?.error || "Erro ao conectar com Mercado Pago");
+
+      if (order.payment_method === 'pix') {
+        setPixData(data);
+        setShowPixScreen(true);
+        setActiveTab("cart"); // Volta para a tela principal para mostrar o PIX
+      } else {
+        window.location.href = data.init_point;
+      }
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setIsRepaying(null);
+    }
+  };
 
 // Função auxiliar para o WhatsApp (mantendo seu layout House Burguer)
 const enviarWhatsApp = (orderId: string, storeData: any) => {
@@ -590,83 +651,106 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
 
             {/* ABA 2: MEUS PEDIDOS */}
             <TabsContent value="orders" className="flex-1 flex flex-col overflow-hidden m-0 bg-slate-50/50 dark:bg-slate-950/50 h-full data-[state=inactive]:hidden">
-                <ScrollArea className="flex-1 h-full w-full">
-                    <div className="p-5 pb-10 space-y-4 flex flex-col justify-start min-h-full">
-                        {/* 1. SE ESTIVER CARREGANDO, MOSTRA SKELETONS */}
-                        {isInitialLoading ? (
-                           <>
-                             <OrderSkeleton />
-                             <OrderSkeleton />
-                             <OrderSkeleton />
-                           </>
-                        ) : orderHistory.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-60">
-                                <Activity className="h-10 w-10 text-slate-300" />
-                                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-100">Histórico vazio</p>
-                            </div>
-                        ) : (
-                            orderHistory.map((order) => {
-                                // TRATAMENTO SEGURO DO JSON DOS ITENS
-                                const rawItems = order.items || [];
-                                const itemsArray = Array.isArray(rawItems) 
-                                    ? rawItems 
-                                    : (typeof rawItems === 'string' ? JSON.parse(rawItems) : []);
-
-                                const isActive = activeOrder?.id === order.id;
-
-                                return (
-                                    <div 
-                                        key={order.id} 
-                                        className={`p-5 rounded-2xl border transition-all duration-300 mb-4 ${
-                                            isActive 
-                                                ? 'bg-white dark:bg-slate-800 border-slate-900 dark:border-white/20 shadow-xl scale-[1.01]' 
-                                                : 'bg-white/50 dark:bg-slate-900/40 border-slate-100 dark:border-white/5 shadow-sm'
-                                        }`}
-                                    >
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="space-y-0.5">
-                                                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                                                    PEDIDO #{order.id.slice(0, 4)}
-                                                </span>
-                                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                                                    {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                                </p>
-                                            </div>
-                                            <OrderStatusBadge status={order.status} />
+                            <ScrollArea className="flex-1 h-full w-full">
+                                <div className="p-5 pb-10 space-y-4 flex flex-col justify-start min-h-full">
+                                    {/* 1. SE ESTIVER CARREGANDO, MOSTRA SKELETONS */}
+                                    {isInitialLoading ? (
+                                    <>
+                                        <OrderSkeleton />
+                                        <OrderSkeleton />
+                                        <OrderSkeleton />
+                                    </>
+                                    ) : orderHistory.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-60">
+                                            <Activity className="h-10 w-10 text-slate-300" />
+                                            <p className="text-sm font-extrabold text-slate-800 dark:text-slate-100">Histórico vazio</p>
                                         </div>
+                                    ) : (
+                                        orderHistory.map((order) => {
+                                            // TRATAMENTO SEGURO DO JSON DOS ITENS
+                                            const rawItems = order.items || [];
+                                            const itemsArray = Array.isArray(rawItems) 
+                                                ? rawItems 
+                                                : (typeof rawItems === 'string' ? JSON.parse(rawItems) : []);
 
-                                        {/* LISTA DE ITENS */}
-                                        <div className="bg-slate-50 dark:bg-slate-950/40 rounded-xl p-3 mb-4 space-y-2 border border-slate-100/50 dark:border-white/5">
-                                            {itemsArray.slice(0, 3).map((item: any, idx: number) => (
-                                                <div key={`${order.id}-item-${idx}`} className="flex justify-between text-xs">
-                                                    <span className="flex gap-2">
-                                                        <span className="font-black text-slate-900 dark:text-slate-100">{item.quantity}x</span> 
-                                                        <span className="text-slate-600 dark:text-slate-300 line-clamp-1">
-                                                            {item.product_name || item.name}
+                                            const isActive = activeOrder?.id === order.id;
+
+                                            // --- LÓGICA DO CRONÔMETRO DE PAGAMENTO ---
+                                            const isOnlinePending = order.status === 'pending' && ['pix', 'cartão', 'card'].includes(order.payment_method?.toLowerCase());
+                                            const diffMins = isOnlinePending ? (now - new Date(order.created_at).getTime()) / 60000 : 0;
+                                            const minutesLeft = Math.max(0, 5 - diffMins);
+
+                                            return (
+                                                <div 
+                                                    key={order.id} 
+                                                    className={`p-5 rounded-2xl border transition-all duration-300 mb-4 ${
+                                                        isActive 
+                                                            ? 'bg-white dark:bg-slate-800 border-slate-900 dark:border-white/20 shadow-xl scale-[1.01]' 
+                                                            : 'bg-white/50 dark:bg-slate-900/40 border-slate-100 dark:border-white/5 shadow-sm'
+                                                    }`}
+                                                >
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="space-y-0.5">
+                                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                                                PEDIDO #{order.id.slice(0, 4)}
+                                                            </span>
+                                                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                                                                {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                            </p>
+                                                        </div>
+                                                        <OrderStatusBadge status={order.status} />
+                                                    </div>
+
+                                                    {/* LISTA DE ITENS */}
+                                                    <div className="bg-slate-50 dark:bg-slate-950/40 rounded-xl p-3 mb-4 space-y-2 border border-slate-100/50 dark:border-white/5">
+                                                        {itemsArray.slice(0, 3).map((item: any, idx: number) => (
+                                                            <div key={`${order.id}-item-${idx}`} className="flex justify-between text-xs">
+                                                                <span className="flex gap-2">
+                                                                    <span className="font-black text-slate-900 dark:text-slate-100">{item.quantity}x</span> 
+                                                                    <span className="text-slate-600 dark:text-slate-300 line-clamp-1">
+                                                                        {item.product_name || item.name}
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                        
+                                                        {itemsArray.length > 3 && (
+                                                            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic font-medium pl-6">
+                                                                + {itemsArray.length - 3} outros itens
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-white/5">
+                                                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total</span>
+                                                        <span className="text-base font-black text-slate-900 dark:text-white">
+                                                            R$ {Number(order.total_amount || order.total).toFixed(2)}
                                                         </span>
-                                                    </span>
-                                                </div>
-                                            ))}
-                                            
-                                            {itemsArray.length > 3 && (
-                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 italic font-medium pl-6">
-                                                    + {itemsArray.length - 3} outros itens
-                                                </p>
-                                            )}
-                                        </div>
+                                                    </div>
 
-                                        <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-white/5">
-                                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total</span>
-                                            <span className="text-base font-black text-slate-900 dark:text-white">
-                                                R$ {Number(order.total_amount || order.total).toFixed(2)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </ScrollArea>
+                                                    {/* AVISO E BOTÃO DE RETOMAR PAGAMENTO */}
+                                                    {isOnlinePending && minutesLeft > 0 && (
+                                                        <div className="mt-4 p-3 bg-orange-50/80 dark:bg-orange-900/20 rounded-xl border border-orange-200/60 dark:border-orange-500/20 flex flex-col gap-3 animate-in fade-in">
+                                                            <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 text-xs font-bold px-1">
+                                                                <Timer className="h-4 w-4 animate-pulse" />
+                                                                <span>Aguardando pagamento. Expira em {Math.floor(minutesLeft)}:{Math.floor((minutesLeft % 1) * 60).toString().padStart(2, '0')}.</span>
+                                                            </div>
+                                                            <Button
+                                                                onClick={() => handleRepay(order)}
+                                                                disabled={isRepaying === order.id}
+                                                                className="w-full h-10 bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20 text-xs font-black uppercase tracking-wider rounded-lg transition-all"
+                                                            >
+                                                                {isRepaying === order.id ? <Loader2 className="animate-spin h-4 w-4" /> : "RETOMAR PAGAMENTO"}
+                                                            </Button>
+                                                        </div>
+                                                    )}
+
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </ScrollArea>
             </TabsContent>
         </Tabs>
       </SheetContent>

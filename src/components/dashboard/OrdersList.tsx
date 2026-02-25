@@ -97,8 +97,21 @@ const triggerManualPrint = (order: Order) => {
     });
   };
 
-  const activeOrders = orders.filter(o => !['completed', 'cancelled'].includes(o.status));
-
+  const activeOrders = orders.filter(o => {
+    // 1. Esconde pedidos que já foram finalizados ou cancelados
+    if (['completed', 'cancelled'].includes(o.status)) return false;
+    
+    // 2. A MÁGICA: Esconde da cozinha se for PIX/Cartão e ainda não estiver pago
+    const isDinheiro = ['dinheiro', 'cash'].includes(o.payment_method?.toLowerCase());
+    
+    if (o.status === 'pending' && !isDinheiro) {
+      return false; // Fica totalmente invisível para a cozinha!
+    }
+    
+    // Se for Dinheiro (mesmo pendente) ou se já estiver pago (accepted para a frente), mostra!
+    return true;
+  });
+  
   return (
     <div className="space-y-8 animate-fade-in">
       {/* COMPONENTE DE IMPRESSÃO INVISÍVEL */}

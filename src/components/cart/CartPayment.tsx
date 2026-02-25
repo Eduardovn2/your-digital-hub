@@ -1,6 +1,7 @@
 import { Banknote, CreditCard, Coins, AlertTriangle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { SiPix } from "react-icons/si"; // <-- Adicionámos o ícone do PIX aqui
 
 interface CartPaymentProps {
   pagamento: "pix" | "cartão" | "dinheiro";
@@ -43,9 +44,11 @@ export function CartPayment({
                 : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300"
             }`}
           >
-            {m === "pix" && <Banknote className="h-5 w-5" />}
-            {m === "cartão" && <CreditCard className="h-5 w-5" />}
-            {m === "dinheiro" && <Coins className="h-5 w-5" />}
+            {/* Ícones com cores condicionais (Coloridos se inativos, Brancos se ativos) */}
+            {m === "pix" && <SiPix className={`h-5 w-5 drop-shadow-sm transition-colors ${pagamento === m ? "text-white" : "text-emerald-600"}`} />}
+            {m === "cartão" && <CreditCard className={`h-5 w-5 drop-shadow-sm transition-colors ${pagamento === m ? "text-white" : "text-yellow-500"}`} />}
+            {m === "dinheiro" && <Coins className={`h-5 w-5 drop-shadow-sm transition-colors ${pagamento === m ? "text-white" : "text-emerald-500"}`} />}
+            
             <span className="text-[9px] font-black uppercase tracking-wider">
               {m === "dinheiro" ? "Dinheiro" : m === "cartão" ? "Cartão" : "Pix"}
             </span>

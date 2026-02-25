@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { CartPayment } from "./cart/CartPayment";
 import { useCart } from "@/contexts/CartContext";
 import { useDevice } from "@/hooks/useDevice";
 import { Button } from "@/components/ui/button";
@@ -439,76 +440,34 @@ const handleFinalizar = async () => {
                     </div>
 
                     {/* PAGAMENTO (CLEAN & MODERN) */}
-                    <div className="relative p-5 space-y-4 rounded-2xl border border-white/40 bg-white/60 backdrop-blur-md shadow-sm overflow-hidden transition-all hover:bg-white/70">
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
+{/* COMPONENTE DE PAGAMENTO IMPORTADO */}
+                    <CartPayment 
+                        pagamento={pagamento}
+                        setPagamento={setPagamento}
+                        trocoPara={trocoPara}
+                        setTrocoPara={setTrocoPara}
+                        totalFinal={totalFinal}
+                    />
 
-                        <Label className="relative text-[11px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
-                            <Banknote className="h-3.5 w-3.5" /> 
-                            Forma de Pagamento
-                        </Label>
-                        
-                        <div className="relative grid grid-cols-3 gap-3">
-                            {['pix', 'cartão', 'dinheiro'].map((m) => (
-                            <button 
-                                key={m} 
-                                onClick={() => setPagamento(m as any)} 
-                                className={`relative overflow-hidden p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all duration-300 border ${
-                                    pagamento === m 
-                                        ? 'bg-slate-900 dark:bg-slate-800 border-slate-900 dark:border-white/20 text-white shadow-lg scale-[1.02]' 
-                                        : 'bg-white dark:bg-slate-900/50 border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-500 hover:dark:border-white/10'
-                                }`}
-                            >
-                                {m === 'pix' && <Banknote className={`h-5 w-5 ${pagamento === m ? 'text-white' : 'text-slate-400'}`} />}
-                                {m === 'cartão' && <CreditCard className={`h-5 w-5 ${pagamento === m ? 'text-white' : 'text-slate-400'}`} />}
-                                {m === 'dinheiro' && <Coins className={`h-5 w-5 ${pagamento === m ? 'text-white' : 'text-slate-400'}`} />}
-                                <span className="text-[9px] font-black uppercase tracking-wider">
-                                    {m === 'dinheiro' ? 'Dinheiro' : m === 'cartão' ? 'Cartão' : 'Pix'}
-                                </span>
-                            </button>
-                            ))}
+                    {/* RESUMO DOS VALORES (TOTAL DA COMPRA) */}
+                    <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 rounded-2xl border border-white/50 dark:border-white/10 shadow-sm space-y-3 mb-4">
+                        <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 font-medium">
+                            <span>Subtotal</span>
+                            <span>R$ {subtotalReal.toFixed(2)}</span>
                         </div>
-                        
-                        {/* Seção de Troco */}
-                        {pagamento === "dinheiro" && (
-                             <div className="relative animate-in fade-in slide-in-from-top-2 duration-300 space-y-3 pt-1">
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs text-slate-700 font-bold ml-1">Troco para quanto?</Label>
-                                    <div className="relative group">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold group-focus-within:text-slate-900 transition-colors">R$</span>
-                                        <Input 
-                                            placeholder="0,00" 
-                                            value={trocoPara} 
-                                            onChange={e => setTrocoPara(e.target.value)} 
-                                            className="pl-9 bg-white border-slate-200 h-11 text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all shadow-sm placeholder:font-normal placeholder:text-slate-400 rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                            type="number" 
-                                            inputMode="decimal"
-                                            step="0.01"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* BOX RESULTADO */}
-                                {trocoPara && parseCurrency(trocoPara) > totalFinal ? (
-                                    <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200 animate-in zoom-in-95">
-                                        <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                                            <Coins className="h-4 w-4 text-slate-400" />
-                                            Seu troco:
-                                        </span>
-                                        <span className="text-lg font-black text-slate-900">
-                                            R$ {(parseCurrency(trocoPara) - totalFinal).toFixed(2)}
-                                        </span>
-                                    </div>
-                                ) : null}
-                                
-                                {trocoPara && parseCurrency(trocoPara) > 0 && parseCurrency(trocoPara) < totalFinal && (
-                                    <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-center animate-in fade-in">
-                                        <p className="text-[10px] text-slate-400 font-medium">
-                                            Valor menor que o total (R$ {totalFinal.toFixed(2)})
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 font-medium">
+                            <span>Taxa de Entrega</span>
+                            <span className={frete === 0 ? "text-emerald-500 font-bold" : ""}>
+                                {frete === null ? "A calcular" : frete === 0 ? "Grátis" : `R$ ${frete.toFixed(2)}`}
+                            </span>
+                        </div>
+                        <Separator className="bg-slate-200/50 dark:bg-slate-800 my-2" />
+                        <div className="flex justify-between items-center">
+                            <span className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">Total</span>
+                            <span className="text-xl font-black text-slate-900 dark:text-white">
+                                R$ {totalFinal.toFixed(2)}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 </ScrollArea>

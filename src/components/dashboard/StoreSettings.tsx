@@ -130,7 +130,6 @@ export function StoreSettings({ store }: { store: any }) {
             <Truck className="h-4 w-4 mr-2" /> Logística de Entrega
           </TabsTrigger>
           
-          {/* NOVO SEPARADOR: PAGAMENTOS */}
           <TabsTrigger value="pagamentos" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-md transition-all">
             <Wallet className="h-4 w-4 mr-2" /> Pagamentos (Mercado Pago)
           </TabsTrigger>
@@ -138,7 +137,9 @@ export function StoreSettings({ store }: { store: any }) {
           <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-md transition-all">
             <Bell className="h-4 w-4 mr-2" /> Notificações
           </TabsTrigger>
-          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-md transition-all ml-auto">
+          
+          {/* Removido o ml-auto daqui para ficar colado aos outros */}
+          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-md transition-all">
             <CreditCard className="h-4 w-4 mr-2" /> Assinatura
           </TabsTrigger>
         </TabsList>

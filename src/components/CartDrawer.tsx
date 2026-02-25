@@ -140,7 +140,7 @@ export default function CartDrawer() {
   // Atualiza o relógio a cada 10 segundos para o cronômetro
   useEffect(() => {
     if (!open) return;
-    const interval = setInterval(() => setNow(Date.now()), 10000);
+    const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [open]);
 

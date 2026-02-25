@@ -28,7 +28,7 @@ export function useStoreBySlug(slug: string | undefined) {
         .from("stores")
         .select("*")
         .eq("slug", slug)
-        .eq("is_active", true)
+        .eq("status", "active")
         .maybeSingle();
 
       if (error) throw error;

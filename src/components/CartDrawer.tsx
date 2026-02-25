@@ -104,7 +104,14 @@ const styles = {
 
 export default function CartDrawer() {
     const { items, total, storeId, clearCart, removeFromCart, customerId } = useCart();
-  const { toast } = useToast();
+
+    const [pixData, setPixData] = useState<{qr_code: string, qr_code_base64: string} | null>(null);
+    const [showPixScreen, setShowPixScreen] = useState(false);
+
+    const { toast } = useToast();
+
+
+  
   const deviceId = useDevice();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -198,136 +205,121 @@ useEffect(() => {
   };
 
 const handleFinalizar = async () => {
-    if (!isFormValid) return;
-    setLoading(true);
+  if (!isFormValid) return;
+  setLoading(true);
 
-    try {
-      const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}`;
-      
-      // 1. Preparamos os itens
-      const itemsData = items.map((item) => ({
-        product_id: item.id,
-        product_name: item.name,
-        product_price: Number(item.price),
-        quantity: item.quantity,
-        subtotal: Number(item.price) * (item.quantity || 1)
-      }));
+  try {
+    const addressString = `${enderecoCompleto!.rua}, ${enderecoCompleto!.numero} - ${enderecoCompleto!.bairro}`;
+    
+    const itemsData = items.map((item) => ({
+      product_id: item.id,
+      product_name: item.name,
+      product_price: Number(item.price),
+      quantity: item.quantity,
+      subtotal: Number(item.price) * (item.quantity || 1)
+    }));
 
-      // 2. Payload do Pedido
-      const orderPayload = {
-        store_id: storeId,
-        customer_name: nome,
-        customer_phone: telefone.replace(/\D/g, ""),
-        customer_address: addressString,
-        delivery_fee: frete,
-        subtotal: subtotalReal,
-        total: totalFinal,
-        payment_method: pagamento,
-        change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
-        status: "pending" as const,
-        device_id: deviceId,
-        items: itemsData 
-      };
+    const orderPayload = {
+      store_id: storeId,
+      customer_name: nome,
+      customer_phone: telefone.replace(/\D/g, ""),
+      customer_address: addressString,
+      delivery_fee: frete,
+      subtotal: subtotalReal,
+      total: totalFinal,
+      payment_method: pagamento,
+      change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
+      status: "pending" as const,
+      device_id: deviceId,
+      items: itemsData 
+    };
 
-      // 3. Salva no banco e RETORNA O ID do pedido
-      const { data: insertedOrder, error: orderError } = await supabase
-        .from("orders")
-        .insert(orderPayload)
-        .select("id")
-        .single();
+    // 1. Salva o pedido no banco primeiro (Sempre necessário)
+    const { data: insertedOrder, error: orderError } = await supabase
+      .from("orders")
+      .insert(orderPayload)
+      .select("id")
+      .single();
 
-      if (orderError) throw orderError;
+    if (orderError) throw orderError;
 
-      // 4. Busca os dados da Loja (Nome, Telefone e Slug para o link)
-      const { data: storeData } = await supabase
-        .from("stores")
-        .select("phone, name, slug")
-        .eq("id", storeId)
-        .single();
+    // 2. BUSCA DADOS DA LOJA (Necessário para WhatsApp ou MP)
+    const { data: storeData } = await supabase
+      .from("stores")
+      .select("phone, name, slug, mp_access_token")
+      .eq("id", storeId)
+      .single();
 
-      // 5. Monta a mensagem EXATAMENTE no layout exigido
-      if (storeData?.phone) {
-        const numeroLoja = storeData.phone.replace(/\D/g, ""); 
-        const storeName = storeData.name || "Loja";
-        const storeLink = `${window.location.origin}/${storeData.slug}`;
-        
-        const linhas = [
-          `${storeName}`,
-          ``,
-          `Meu nome é ${nome}, Contato: ${telefone.replace(/\D/g, "")}`,
-          ``,
-          `Código do pedido: #${insertedOrder.id.slice(0, 6).toUpperCase()}`,
-          ``
-        ];
-        
-        // Loop dos Itens
-        items.forEach(item => {
-            const precoUnitario = Number(item.price).toFixed(2).replace('.', ',');
-            const precoTotalItem = (Number(item.price) * (item.quantity || 1)).toFixed(2).replace('.', ',');
-            
-            linhas.push(`${item.quantity}x - ${item.name}`);
-            linhas.push(`(R$ ${precoUnitario})`);
-            linhas.push(`R$ ${precoTotalItem}`);
-            linhas.push(`____________`);
-        });
-        
-        linhas.push(``);
-        linhas.push(`Entrega: ${frete === 0 ? 'Grátis' : frete?.toFixed(2).replace('.', ',')}`);
-        linhas.push(`Total: ${totalFinal.toFixed(2).replace('.', ',')}`);
-        linhas.push(``);
-        
-        const modoPagamento = pagamento === 'dinheiro' ? 'Dinheiro' : pagamento === 'cartão' ? 'Cartão' : 'Pix';
-        linhas.push(`Pagamento em:     ${modoPagamento}`);
-        
-        if (pagamento === 'dinheiro' && trocoPara) {
-            linhas.push(`Troco para: R$ ${parseCurrency(trocoPara).toFixed(2).replace('.', ',')}`);
-        }
+    // --- FLUXO HÍBRIDO DE PAGAMENTO ---
 
-        linhas.push(`Acompanhar Pedido`);
-        linhas.push(`${storeLink}`);
-        linhas.push(``);
-        linhas.push(`Endereço de Entrega`);
-        linhas.push(``);
-        linhas.push(`Rua: ${enderecoCompleto?.rua}`);
-        linhas.push(`Número: ${enderecoCompleto?.numero}`);
-        linhas.push(`Bairro: ${enderecoCompleto?.bairro}`);
-        
-        if (enderecoCompleto?.referencia) {
-            linhas.push(`Referência: ${enderecoCompleto?.referencia}`);
-        }
-        if (enderecoCompleto?.cidade) {
-            linhas.push(`Cidade: ${enderecoCompleto?.cidade}`);
-        }
-        
-        // Junta tudo com a quebra de linha correta para URL
-        const msg = linhas.join('\n');
-        const encodedMsg = linhas.map(linha => encodeURIComponent(linha)).join('%0A');
-        
-        // API Oficial do WhatsApp
-        const waUrl = `https://wa.me/55${numeroLoja}?text=${encodedMsg}`;
-        
-        window.open(waUrl, '_blank');
-      }
-
-      toast({ 
-        title: "Pedido Confirmado!", 
-        description: "Seu pedido foi enviado com sucesso." 
-      });
-      
+    // CASO A: DINHEIRO (WhatsApp direto)
+    if (pagamento === "dinheiro") {
+      enviarWhatsApp(insertedOrder.id, storeData);
       clearCart();
       setActiveTab("orders");
-
-    } catch (error: any) {
-      console.error("Erro no Supabase:", error);
-      toast({ 
-        title: "Erro no envio", 
-        description: error.message || "Verifique o console para detalhes.", 
-        variant: "destructive" 
+      setOpen(false);
+    } 
+    // CASO B: PIX OU CARTÃO (Chama Mercado Pago via Edge Function)
+    else {
+      const { data, error: funcError } = await supabase.functions.invoke('process-payment', {
+        body: { orderId: insertedOrder.id, paymentMethod: pagamento, storeId }
       });
-    } finally {
-      setLoading(false);
+
+      if (funcError || data.error) throw new Error(data?.error || "Erro ao processar pagamento");
+
+      if (pagamento === "pix") {
+        setPixData(data);
+        setShowPixScreen(true); // Abre a tela do QR Code dentro da sacola
+      } else if (pagamento === "cartão") {
+        // Redireciona para o Checkout Pro do Mercado Pago
+        window.location.href = data.init_point;
+      }
     }
-  };
+
+  } catch (error: any) {
+    console.error("Erro:", error);
+    toast({ title: "Erro no pedido", description: error.message, variant: "destructive" });
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Função auxiliar para o WhatsApp (mantendo seu layout House Burguer)
+const enviarWhatsApp = (orderId: string, storeData: any) => {
+    const numeroLoja = storeData.phone.replace(/\D/g, ""); 
+    const storeLink = `${window.location.origin}/${storeData.slug}`;
+    
+    const linhas = [
+      `${storeData.name}`,
+      ``,
+      `Meu nome é ${nome}, Contato: ${telefone.replace(/\D/g, "")}`,
+      ``,
+      `Código do pedido: #${orderId.slice(0, 6).toUpperCase()}`,
+      ``
+    ];
+    
+    items.forEach(item => {
+        linhas.push(`${item.quantity}x - ${item.name}`);
+        linhas.push(`(R$ ${Number(item.price).toFixed(2).replace('.', ',')})`);
+        linhas.push(`R$ ${(Number(item.price) * (item.quantity || 1)).toFixed(2).replace('.', ',')}`);
+        linhas.push(`____________`);
+    });
+    
+    linhas.push(``, `Entrega: ${frete === 0 ? 'Grátis' : frete?.toFixed(2).replace('.', ',')}`);
+    linhas.push(`Total: ${totalFinal.toFixed(2).replace('.', ',')}`, ``);
+    linhas.push(`Pagamento em:     ${pagamento === 'pix' ? 'Pix' : pagamento === 'cartão' ? 'Cartão' : 'Dinheiro'}`);
+    
+    if (pagamento === 'dinheiro' && trocoPara) {
+        linhas.push(`Troco para: R$ ${parseCurrency(trocoPara).toFixed(2).replace('.', ',')}`);
+    }
+
+    linhas.push(`Acompanhar Pedido`, `${storeLink}`, ``, `Endereço de Entrega`, ``);
+    linhas.push(`Rua: ${enderecoCompleto?.rua}`, `Número: ${enderecoCompleto?.numero}`, `Bairro: ${enderecoCompleto?.bairro}`);
+    linhas.push(`____________`, `Tecnologia`, `     www.vianaeccomerce.com.br`);
+
+    const encodedMsg = linhas.map(linha => encodeURIComponent(linha)).join('%0A');
+    window.open(`https://wa.me/55${numeroLoja}?text=${encodedMsg}`, '_blank');
+};
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -402,158 +394,193 @@ const handleFinalizar = async () => {
             </SheetHeader>
 
             <TabsContent value="cart" className="flex-1 flex flex-col overflow-hidden m-0 relative h-full data-[state=inactive]:hidden">
-                <ScrollArea className="flex-1 px-5 w-full">
-                <div className="space-y-5 py-5 pb-40">
-                    
-                    {/* BANNER ATIVO */}
-                    {activeOrder && (
-                        <div 
-                            onClick={() => setActiveTab("orders")} 
-                            className="relative overflow-hidden p-4 rounded-xl bg-slate-900 text-white shadow-lg cursor-pointer animate-in slide-in-from-top-2 hover:scale-[1.02] transition-transform"
-                        >
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <BellRing className="h-12 w-12 text-white" />
-                            </div>
-                            <div className="relative flex items-center justify-between">
-                                <div className="space-y-1.5 w-full">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2 w-2 bg-orange-500 rounded-full animate-pulse" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                            {normalizeStatus(activeOrder.status) === 'delivering' ? "Sua MOTO está chegando" : "Acompanhe seu pedido"}
+                
+                {/* 1. TELA DE PIX (Aparece apenas após finalizar um pedido via PIX) */}
+                {showPixScreen && pixData ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-8 animate-in zoom-in-95 duration-300">
+                        <div className="bg-emerald-50/50 dark:bg-emerald-900/20 p-6 rounded-[2.5rem] border border-emerald-100 dark:border-emerald-800 shadow-inner backdrop-blur-md relative group">
+                            <div className="absolute inset-0 bg-emerald-400/10 rounded-[2.5rem] blur-2xl group-hover:bg-emerald-400/20 transition-all" />
+                            <img 
+                                src={`data:image/png;base64,${pixData.qr_code_base64}`} 
+                                className="w-56 h-56 rounded-2xl shadow-2xl relative z-10 border-4 border-white dark:border-slate-800" 
+                                alt="QR Code PIX"
+                            />
+                        </div>
+
+                        <div className="text-center space-y-2">
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Pague agora</h3>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest px-4 leading-relaxed">
+                                Aponte a câmera do seu banco ou <br /> copie o código abaixo
+                            </p>
+                        </div>
+
+                        <div className="w-full space-y-3">
+                            <Button 
+                                onClick={() => {
+                                    navigator.clipboard.writeText(pixData.qr_code);
+                                    toast({ 
+                                        title: "Código Copiado! ✅", 
+                                        description: "Agora basta colar no seu banco para pagar." 
+                                    });
+                                }}
+                                className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
+                            >
+                                COPIAR CÓDIGO PIX
+                            </Button>
+                            
+                            <Button 
+                                variant="ghost" 
+                                onClick={() => {
+                                    setShowPixScreen(false);
+                                    setActiveTab("orders");
+                                }}
+                                className="w-full text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-white/5 h-12"
+                            >
+                                JÁ PAGUEI / VER MEUS PEDIDOS
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        {/* 2. CONTEÚDO NORMAL DA SACOLA (ScrollArea com Itens e Formulários) */}
+                        <ScrollArea className="flex-1 px-5 w-full">
+                            <div className="space-y-5 py-5 pb-40">
+                                
+                                {/* BANNER ATIVO */}
+                                {activeOrder && (
+                                    <div 
+                                        onClick={() => setActiveTab("orders")} 
+                                        className="relative overflow-hidden p-4 rounded-xl bg-slate-900 text-white shadow-lg cursor-pointer animate-in slide-in-from-top-2 hover:scale-[1.02] transition-transform"
+                                    >
+                                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                                            <BellRing className="h-12 w-12 text-white" />
+                                        </div>
+                                        <div className="relative flex items-center justify-between">
+                                            <div className="space-y-1.5 w-full">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-2 w-2 bg-orange-500 rounded-full animate-pulse" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                                        {normalizeStatus(activeOrder.status) === 'delivering' ? "Sua MOTO está chegando" : "Acompanhe seu pedido"}
+                                                    </span>
+                                                </div>
+                                                <div className="pt-1 flex justify-between items-center w-full">
+                                                    <OrderStatusBadge status={activeOrder.status} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* LISTA DE ITENS NA SACOLA */}
+                                <div className="space-y-3">
+                                    {items.length === 0 && !activeOrder && (
+                                        <div className="text-center py-16 opacity-50 flex flex-col items-center">
+                                            <ShoppingBag className="h-12 w-12 mb-3 text-slate-300" />
+                                            <span className="text-sm font-medium">Sua sacola está vazia</span>
+                                        </div>
+                                    )}
+                                    {items.map(item => (
+                                        <div key={item.id} className="flex justify-between items-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-3 rounded-xl border border-white/50 dark:border-slate-800/50 shadow-sm transition-all hover:bg-white/90 dark:hover:bg-slate-900">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-12 w-12 rounded-lg bg-white/50 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/60 dark:border-slate-700">
+                                                    {item.image_url ? <img src={item.image_url} className="h-full w-full object-cover" /> : <ImageOff className="text-slate-300 dark:text-slate-600 h-5 w-5" />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.name}</p>
+                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold bg-white/50 dark:bg-slate-800/50 px-1.5 py-0.5 rounded w-fit mt-0.5">
+                                                        {item.quantity}x R$ {Number(item.price).toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50/50 transition-colors" onClick={() => removeFromCart(item.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* DADOS DO CLIENTE */}
+                                <div className="space-y-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 rounded-2xl border border-white/50 dark:border-white/10 shadow-sm transition-all">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className="bg-slate-100/80 p-1.5 rounded-full"><User className="h-3.5 w-3.5 text-slate-500" /></div>
+                                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dados do Cliente</Label>
+                                    </div>
+                                    <div className="grid gap-4">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">Nome Completo</Label>
+                                            <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Eduardo Viana" className="bg-white/50 dark:bg-slate-800 h-11 text-sm border-white/60 dark:border-slate-700 rounded-xl shadow-sm focus:ring-slate-900" />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-bold text-slate-700 flex justify-between">
+                                                WhatsApp / Celular
+                                                <span className={`text-[12px] ${telefone.replace(/\D/g, "").length === 11 ? "text-emerald-600 font-black" : "text-slate-400 font-medium"}`}>
+                                                    {telefone.replace(/\D/g, "").length}/11
+                                                </span>
+                                            </Label>
+                                            <Input 
+                                                value={telefone} 
+                                                onChange={e => setTelefone(formatPhoneNumber(e.target.value))} 
+                                                placeholder="(21) 99999-9999" 
+                                                inputMode="tel"
+                                                maxLength={15}
+                                                className={`bg-white/50 dark:bg-slate-800 h-11 text-sm border-white/60 dark:border-slate-700 rounded-xl shadow-sm transition-colors ${
+                                                    telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 ? "border-red-300 bg-red-50/30" : ""
+                                                }`} 
+                                            />
+                                        </div>
+                                    </div>
+                                    <Separator className="my-2 bg-slate-200/50" />
+                                    <DeliveryAddressForm onAddressComplete={handleAddressUpdate} storeId={storeId} />
+                                </div>
+
+                                {/* COMPONENTE DE PAGAMENTO IMPORTADO */}
+                                <CartPayment 
+                                    pagamento={pagamento}
+                                    setPagamento={setPagamento}
+                                    trocoPara={trocoPara}
+                                    setTrocoPara={setTrocoPara}
+                                    totalFinal={totalFinal}
+                                />
+
+                                {/* RESUMO DOS VALORES (TOTAL DA COMPRA) */}
+                                <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 rounded-2xl border border-white/50 dark:border-white/10 shadow-sm space-y-3 mb-4">
+                                    <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 font-medium">
+                                        <span>Subtotal</span>
+                                        <span>R$ {subtotalReal.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 font-medium">
+                                        <span>Taxa de Entrega</span>
+                                        <span className={frete === 0 ? "text-emerald-500 font-bold" : ""}>
+                                            {frete === null ? "A calcular" : frete === 0 ? "Grátis" : `R$ ${frete.toFixed(2)}`}
                                         </span>
                                     </div>
-                                    <div className="pt-1 flex justify-between items-center w-full">
-                                        <OrderStatusBadge status={activeOrder.status} />
+                                    <Separator className="bg-slate-200/50 dark:bg-slate-800 my-2" />
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">Total</span>
+                                        <span className="text-xl font-black text-slate-900 dark:text-white">
+                                            R$ {totalFinal.toFixed(2)}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        </ScrollArea>
 
-                    {/* ITENS */}
-                    <div className="space-y-3">
-                        {items.length === 0 && !activeOrder && (
-                            <div className="text-center py-16 opacity-50 flex flex-col items-center">
-                                <ShoppingBag className="h-12 w-12 mb-3 text-slate-300" />
-                                <span className="text-sm font-medium">Sua sacola está vazia</span>
-                            </div>
-                        )}
-                        {items.map(item => (
-                                <div key={item.id} className="flex justify-between items-center bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-3 rounded-xl border border-white/50 dark:border-slate-800/50 shadow-sm transition-all hover:bg-white/90 dark:hover:bg-slate-900">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-12 w-12 rounded-lg bg-white/50 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/60 dark:border-slate-700">
-                                                {item.image_url ? <img src={item.image_url} className="h-full w-full object-cover" /> : <ImageOff className="text-slate-300 dark:text-slate-600 h-5 w-5" />}
-                                            </div>
-                                            <div>
-                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.name}</p>
-                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold bg-white/50 dark:bg-slate-800/50 px-1.5 py-0.5 rounded w-fit mt-0.5">{item.quantity}x R$ {Number(item.price).toFixed(2)}
-                                            {item.quantity}x R$ {Number(item.price).toFixed(2)}
-                                        </p>
-                                    </div>
-                                </div>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50/50 transition-colors" onClick={() => removeFromCart(item.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* DADOS CLIENTE */}
-{/* 2. DADOS CLIENTE (Com Validação Visual) */}
-                    <div className="space-y-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 rounded-2xl border border-white/50 dark:border-white/10 shadow-sm transition-all">
-                        <div className="flex items-center gap-2 mb-1">
-                            <div className="bg-slate-100/80 p-1.5 rounded-full"><User className="h-3.5 w-3.5 text-slate-500" /></div>
-                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dados do Cliente</Label>
+                        {/* BOTÃO FIXO DE FINALIZAÇÃO */}
+                        <div className="absolute bottom-0 w-full p-5 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-100 dark:border-white/5 z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]">
+                            <Button 
+                                onClick={handleFinalizar} 
+                                disabled={loading || !isFormValid} 
+                                className={`w-full h-14 text-base font-black rounded-2xl shadow-2xl transition-all active:scale-95 border ${
+                                    !isFormValid 
+                                        ? "bg-slate-200 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-transparent" 
+                                        : "bg-slate-900 dark:bg-slate-100 hover:bg-black dark:hover:bg-white text-white dark:text-slate-900 border-transparent shadow-white/5"
+                                }`}
+                            >
+                                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "FINALIZAR PEDIDO"}
+                            </Button>
                         </div>
-                        <div className="grid gap-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                                    Nome Completo
-                                </Label>
-                                <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Eduardo Viana" className="bg-white/50 dark:bg-slate-800 h-11 text-sm border-white/60 dark:border-slate-700 dark:text-white placeholder:dark:text-slate-500 focus:bg-white dark:focus:bg-slate-700 focus:ring-1 focus:ring-primary transition-all shadow-sm"></Input>
-                            </div>
-                            
-                            {/* CAMPO DE TELEFONE COM AVISO DE CARACTERES */}
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-slate-700 flex justify-between">
-                                    WhatsApp / Celular
-                                    {/* Contador visual no cantinho (Ex: 9/11) */}
-                                    <span className={`text-[12px] ${telefone.replace(/\D/g, "").length === 11 ? "text-emerald-600 font-black" : "text-slate-400 font-medium"}`}>
-                                        {telefone.replace(/\D/g, "").length}/11
-                                    </span>
-                                </Label>
-                                <Input 
-                                    value={telefone} 
-                                    onChange={e => setTelefone(formatPhoneNumber(e.target.value))} 
-                                    placeholder="(21) 99999-9999" 
-                                    inputMode="tel"
-                                    maxLength={15}
-                                    // Borda vermelha se começou a digitar e não terminou
-                                    className={`bg-white/50 dark:bg-slate-800/50 h-11 text-sm border-white/60 dark:border-slate-700/60 dark:text-white transition-colors shadow-sm ${
-                                        telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 
-                                        ? "border-red-300 focus:border-red-400 bg-red-50/30" 
-                                        : "focus:border-slate-200"
-                                    }`} 
-                                />
-                                
-                                {/* MENSAGEM DE ERRO DINÂMICA */}
-                                {telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 && (
-                                    <p className="text-[10px] text-red-500 font-bold animate-in slide-in-from-top-1 ml-1 flex items-center gap-1">
-                                        <XCircle className="h-3 w-3" />
-                                        Faltam {11 - telefone.replace(/\D/g, "").length} números (DDD + 9 dígitos)
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                        <Separator className="my-2 bg-slate-200/50" />
-                        <DeliveryAddressForm onAddressComplete={handleAddressUpdate} storeId={storeId} />
-                    </div>
-
-                    {/* PAGAMENTO (CLEAN & MODERN) */}
-{/* COMPONENTE DE PAGAMENTO IMPORTADO */}
-                    <CartPayment 
-                        pagamento={pagamento}
-                        setPagamento={setPagamento}
-                        trocoPara={trocoPara}
-                        setTrocoPara={setTrocoPara}
-                        totalFinal={totalFinal}
-                    />
-
-                    {/* RESUMO DOS VALORES (TOTAL DA COMPRA) */}
-                    <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-5 rounded-2xl border border-white/50 dark:border-white/10 shadow-sm space-y-3 mb-4">
-                        <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 font-medium">
-                            <span>Subtotal</span>
-                            <span>R$ {subtotalReal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400 font-medium">
-                            <span>Taxa de Entrega</span>
-                            <span className={frete === 0 ? "text-emerald-500 font-bold" : ""}>
-                                {frete === null ? "A calcular" : frete === 0 ? "Grátis" : `R$ ${frete.toFixed(2)}`}
-                            </span>
-                        </div>
-                        <Separator className="bg-slate-200/50 dark:bg-slate-800 my-2" />
-                        <div className="flex justify-between items-center">
-                            <span className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">Total</span>
-                            <span className="text-xl font-black text-slate-900 dark:text-white">
-                                R$ {totalFinal.toFixed(2)}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                </ScrollArea>
-                            <div className="absolute bottom-0 w-full p-5 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-100 dark:border-white/5 z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]">
-                                <Button 
-                                    onClick={handleFinalizar} 
-                                    disabled={loading || !isFormValid} 
-                                    className={`w-full h-14 text-base font-black rounded-2xl shadow-2xl transition-all active:scale-95 border ${
-                                        !isFormValid 
-                                            ? "bg-slate-200 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-transparent" 
-                                            : "bg-slate-900 dark:bg-slate-100 hover:bg-black dark:hover:bg-white text-white dark:text-slate-900 border-transparent shadow-white/5"
-                                    }`}
-                                >
-                                    {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "FINALIZAR PEDIDO"}
-                                </Button>
-                            </div>
+                    </>
+                )}
             </TabsContent>
 
             {/* ABA 2: MEUS PEDIDOS */}

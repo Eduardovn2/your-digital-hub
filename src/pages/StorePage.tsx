@@ -199,65 +199,71 @@ return (
                 </div>
               </div>
 
-{/* INFOS INFERIORES: BOTÕES DE ALTA CONVERSÃO */}
+{/* INFOS INFERIORES: STATUS, HORÁRIO E CONTACTOS */}
               <div className="flex flex-col gap-3 mt-3 md:mt-5">
                 
-                {/* Linha 1: Status e Endereço (Ocupando bem o espaço) */}
-                <div className="flex items-center gap-2 w-full">
-                  {/* Status */}
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 shadow-inner shrink-0 border border-slate-200/50 dark:border-slate-700/50">
+                {/* Linha 1: Status + Horário Detalhado + Endereço */}
+                <div className="flex flex-wrap items-center gap-2 w-full">
+                  
+                  {/* Bloco de Funcionamento Integrado */}
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-2xl p-1 shadow-inner border border-slate-200/50 dark:border-slate-700/50 shrink-0">
                     <span className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm ${isOpen ? 'bg-white dark:bg-slate-900 text-emerald-600' : 'bg-white dark:bg-slate-900 text-red-600'}`}>
                       <div className={`h-1.5 w-1.5 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
                       {isOpen ? 'Aberto' : 'Fechado'}
                     </span>
+                    
+                    {/* Exibição clara do Horário */}
+                    {hours?.opening_time && hours?.closing_time && (
+                      <span className="px-3 text-[11px] font-black text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        {isOpen 
+                          ? `FECHA ÀS ${hours.closing_time.substring(0, 5)}` 
+                          : `ABRE ÀS ${hours.opening_time.substring(0, 5)}`}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Endereço: Botão Maior e com Número */}
+                  {/* Botão Endereço (Compacto para caber na linha) */}
                   {(store as any).street && (store as any).street !== "null" && (
                     <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${(store as any).street}, ${(store as any).street_number} - ${(store as any).city}`)}`}
+                      href={`http://maps.google.com/?q=${encodeURIComponent(`${(store as any).street}, ${(store as any).street_number}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 flex items-center gap-2 h-11 px-4 bg-white dark:bg-slate-900 hover:bg-slate-50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-300 transition-all shadow-sm active:scale-95 min-w-0"
+                      className="flex-1 flex items-center gap-2 h-11 px-4 bg-white dark:bg-slate-900 hover:bg-slate-50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-300 transition-all shadow-sm min-w-0"
                     >
                       <MapPin className="h-4 w-4 text-indigo-500 shrink-0" />
-                      <span className="text-xs font-black truncate">
-                        {(store as any).street}{(store as any).street_number ? `, ${(store as any).street_number}` : ''}
+                      <span className="text-[10px] font-black truncate">
+                        {(store as any).street}, {(store as any).street_number}
                       </span>
                     </a>
                   )}
                 </div>
 
-                {/* Linha 2: WhatsApp e Instagram (Botões Grandes de Chamada para Ação) */}
+                {/* Linha 2: Botões de Ação (WhatsApp e Instagram) */}
                 <div className="flex items-center gap-3">
-                  
-                  {/* WhatsApp: O botão principal */}
                   {(store as any).phone && (store as any).phone !== "null" && (
                     <a 
                       href={`https://wa.me/55${(store as any).phone.replace(/\D/g, "")}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="flex-1 flex items-center justify-center gap-2 h-11 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-2 h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
                     >
-                      <Phone className="h-4 w-4" />
+                      <Phone className="h-5 w-5" />
                       Falar no WhatsApp
                     </a>
                   )}
 
-                  {/* Instagram: Estilo vibrante */}
                   {(store as any).instagram && (store as any).instagram !== "null" && (
                     <a 
                       href={`https://instagram.com/${(store as any).instagram.replace('@', '')}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="flex items-center justify-center gap-2 h-11 px-5 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 text-white font-black rounded-2xl text-xs uppercase shadow-lg shadow-pink-500/20 transition-all active:scale-95"
+                      className="flex items-center justify-center gap-2 h-12 px-6 bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 text-white font-black rounded-2xl text-xs uppercase shadow-lg shadow-pink-500/20 transition-all active:scale-95"
                     >
-                      <Instagram className="h-4 w-4" />
-                      <span className="hidden sm:inline">Instagram</span>
+                      <Instagram className="h-5 w-5" />
                     </a>
                   )}
-                  
                 </div>
+
               </div>
             </div>
           </GlassCard>

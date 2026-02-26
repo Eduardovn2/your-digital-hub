@@ -202,6 +202,24 @@ export default function StorePage() {
           </GlassCard>
         </div>
       </div>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          {isOpen ? (
+            <span className="text-green-600 font-bold bg-green-100 px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
+              <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Aberto
+            </span>
+          ) : (
+            <span className="text-red-500 font-bold bg-red-100 px-2 py-0.5 rounded-full text-xs">Fechado</span>
+          )}
+          
+          {/* MOSTRA O HORÁRIO DE HOJE */}
+          {hours && (
+            <span className="text-slate-400 text-[10px] font-medium">
+              Hoje: {hours.opening_time} às {hours.closing_time}
+            </span>
+          )}
+        </div>
+      </div>
 
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Busca e Filtros */}

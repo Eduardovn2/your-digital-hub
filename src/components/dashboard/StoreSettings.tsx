@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SoundSettingsCard } from "./SoundSettingsCard";
 import { Label } from "@/components/ui/label";
+import { StoreHoursSettings } from "./StoreHoursSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -175,8 +176,12 @@ export function StoreSettings({ store }: { store: any }) {
         <TabsContent value="dados" className="space-y-6 outline-none animate-in slide-in-from-bottom-2 duration-500">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            {/* 1. SIDEBAR DE DICAS (Agora aparece PRIMEIRO no mobile: order-1) */}
+            {/* 1. SIDEBAR DE CONFIGURAÇÕES RÁPIDAS (Aparece PRIMEIRO no mobile: order-1) */}
             <div className="space-y-6 order-1 md:order-2">
+                
+                {/* NOVO: Painel de Horários integrado aqui */}
+                <StoreHoursSettings storeId={store.id} />
+
                 <Card className="border-none shadow-lg bg-gradient-to-br from-indigo-600 to-indigo-800 text-white rounded-3xl overflow-hidden">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-tighter">
@@ -200,7 +205,7 @@ export function StoreSettings({ store }: { store: any }) {
                 </Card>
             </div>
 
-            {/* 2. FORMULÁRIOS (Agora aparece DEPOIS no mobile: order-2) */}
+            {/* 2. FORMULÁRIOS PRINCIPAIS (Aparece DEPOIS no mobile: order-2) */}
             <div className="md:col-span-2 space-y-6 order-2 md:order-1">
                 {/* Identidade Visual */}
                 <Card className="border-none shadow-xl bg-white dark:bg-slate-900 overflow-hidden rounded-3xl">

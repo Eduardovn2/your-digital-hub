@@ -1,9 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { StoreHours, StoreHoursInsert, StoreHoursUpdate } from "@/types/store";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
-export function useStoreHours(storeId: string | undefined) {
+export function useStoreHours(storeId?: string) {
   return useQuery({
     queryKey: ["store-hours", storeId],
     queryFn: async () => {
@@ -15,71 +13,34 @@ export function useStoreHours(storeId: string | undefined) {
         .maybeSingle();
 
       if (error) throw error;
-      return data as StoreHours | null;
+      return data;
     },
     enabled: !!storeId,
   });
 }
 
-export function useUpsertStoreHours() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ storeId, hours }: { storeId: string; hours: StoreHoursInsert | StoreHoursUpdate }) => {
-      // Check if exists
-      const { data: existing } = await supabase
-        .from("store_hours")
-        .select("id")
-        .eq("store_id", storeId)
-        .maybeSingle();
-
-      if (existing) {
-        const { data, error } = await supabase
-          .from("store_hours")
-          .update(hours)
-          .eq("store_id", storeId)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data as StoreHours;
-      } else {
-        const { data, error } = await supabase
-          .from("store_hours")
-          .insert({ ...hours, store_id: storeId } as StoreHoursInsert)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data as StoreHours;
-      }
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["store-hours", data.store_id] });
-      toast.success("Horário atualizado!");
-    },
-    onError: (error: Error) => {
-      toast.error(`Erro ao salvar horário: ${error.message}`);
-    },
-  });
-}
-
-// Helper to check if store is currently open
-export function isStoreCurrentlyOpen(hours: StoreHours | null): boolean {
-  if (!hours || !hours.is_auto_control) return true;
+export function isStoreCurrentlyOpen(settings: any) {
+  if (!settings || !settings.is_auto_control) return true; // Se não configurou, assume-se aberto
 
   const now = new Date();
-  const currentDay = now.getDay();
-  const currentTime = now.toTimeString().slice(0, 5); // HH:MM
+  const currentDay = now.getDay(); // 0 = Domingo, 1 = Segunda...
+  
+  // 1. Verifica se abre hoje
+  if (!settings.days_open?.includes(currentDay)) return false;
 
-  // Check if today is in days_open
-  if (!hours.days_open.includes(currentDay)) {
-    return false;
+  // 2. Verifica o horário
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+  
+  const [openH, openM] = settings.opening_time.split(":").map(Number);
+  const [closeH, closeM] = settings.closing_time.split(":").map(Number);
+  
+  const openMinutes = openH * 60 + openM;
+  const closeMinutes = closeH * 60 + closeM;
+
+  // Caso o fechamento seja após a meia-noite (ex: abre 18:00 e fecha 02:00)
+  if (closeMinutes < openMinutes) {
+    return currentTime >= openMinutes || currentTime <= closeMinutes;
   }
 
-  // Check if current time is within opening hours
-  const opening = hours.opening_time.slice(0, 5);
-  const closing = hours.closing_time.slice(0, 5);
-
-  return currentTime >= opening && currentTime <= closing;
+  return currentTime >= openMinutes && currentTime <= closeMinutes;
 }

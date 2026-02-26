@@ -183,7 +183,7 @@ return (
               </div>
             </div>
             
-            <div className="flex-1 min-w-0 flex flex-col justify-center">
+<div className="flex-1 min-w-0 flex flex-col justify-center">
               
               {/* NOME E DESCRIÇÃO DESKTOP */}
               <div className="hidden md:block">
@@ -199,12 +199,11 @@ return (
                 </div>
               </div>
 
+              {/* INFOS INFERIORES: HORÁRIO + BOTÕES (Redes e Endereço) */}
               <div className="flex flex-col gap-3 mt-2 md:mt-4">
                 
                 {/* Linha 1: Horário */}
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                  
-                  {/* Bloco Integrado de Horário (Gourmet) */}
                   <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-inner">
                     {isOpen ? (
                       <span className="text-emerald-700 dark:text-emerald-400 font-black bg-white dark:bg-slate-900 px-3 py-1 rounded-lg flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wider shadow-sm">
@@ -227,33 +226,51 @@ return (
                   </div>
                 </div>
 
-                {/* Linha 2: Botões de Contato (WhatsApp e Instagram) */}
-                <div className="flex items-center gap-2">
+                {/* Linha 2: Botões de Contato e Endereço (Todos Juntos e com Validação Anti-Null) */}
+                <div className="flex flex-wrap items-center gap-2">
                   
-                  {/* Validação rigorosa: Só mostra se o telefone existir, não for a palavra "null" e tiver números */}
+                  {/* Botão WhatsApp */}
                   {(store as any).phone && (store as any).phone !== "null" && (store as any).phone.replace(/\D/g, "").length > 0 && (
                     <a 
                       href={`https://wa.me/55${(store as any).phone.replace(/\D/g, "")}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="flex items-center gap-2 h-9 px-4 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
+                      className="flex items-center gap-1.5 h-9 px-3 md:px-4 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
                     >
                       <Phone className="h-3.5 w-3.5" />
-                      Pedir no WhatsApp
+                      <span className="hidden sm:inline">Pedir no</span> WhatsApp
                     </a>
                   )}
 
-                  {/* Validação rigorosa: Só mostra se o instagram existir, não for "null" e não for vazio */}
+                  {/* Botão Instagram */}
                   {(store as any).instagram && (store as any).instagram !== "null" && (store as any).instagram.trim() !== "" && (
                     <a 
                       href={`https://instagram.com/${(store as any).instagram.replace('@', '').trim()}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="flex items-center gap-1.5 h-9 px-4 bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50 text-pink-600 dark:text-pink-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
+                      className="flex items-center gap-1.5 h-9 px-3 md:px-4 bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50 text-pink-600 dark:text-pink-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
                       title="Visitar Instagram"
                     >
                       <Instagram className="h-3.5 w-3.5" />
                       Instagram
+                    </a>
+                  )}
+
+                  {/* Botão Endereço para o Google Maps */}
+                  {(store as any).street && (store as any).street !== "null" && (store as any).street.trim() !== "" && (
+                    <a 
+                      href={`https://maps.google.com/?q=${encodeURIComponent(
+                        `${(store as any).street}${(store as any).street_number ? `, ${(store as any).street_number}` : ''}${(store as any).city ? ` - ${(store as any).city}` : ''}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 h-9 px-3 md:px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] tracking-wide max-w-full"
+                      title="Ver rota no Google Maps"
+                    >
+                      <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                      <span className="truncate max-w-[150px] md:max-w-[200px]">
+                        {(store as any).street}{(store as any).street_number ? `, ${(store as any).street_number}` : ''}
+                      </span>
                     </a>
                   )}
                   

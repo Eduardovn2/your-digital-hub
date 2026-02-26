@@ -4,6 +4,23 @@ import { MenuItem } from "@/types/menu";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/imageUtils";
 
+// --- NOVAS INTERFACES DE COMPLEMENTOS ---
+export interface ComplementItem {
+  id: string;
+  name: string;
+  price: number;
+}
+
+export interface ComplementGroup {
+  id: string;
+  name: string;
+  isRequired: boolean;
+  min: number;
+  max: number;
+  items: ComplementItem[];
+}
+
+// --- INTERFACES PRINCIPAIS CORRIGIDAS ---
 export interface Product {
   id: string;
   name: string;
@@ -13,10 +30,12 @@ export interface Product {
   category: string;
   popular: boolean | null;
   store_id: string | null;
+  complements?: ComplementGroup[] | any; // <--- O CAMPO NOVO ESTÁ AQUI AGORA
   created_at: string;
   updated_at: string;
 }
 
+// Como o ProductInsert herda do Product, ele automaticamente ganha o campo 'complements'
 export type ProductInsert = Omit<Product, "id" | "created_at" | "updated_at">;
 export type ProductUpdate = Partial<ProductInsert>;
 

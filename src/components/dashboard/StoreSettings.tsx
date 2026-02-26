@@ -166,23 +166,37 @@ export function StoreSettings({ store }: { store: any }) {
       </div>
 
       <Tabs defaultValue="dados" className="space-y-6">
-        <TabsList className="bg-white/40 backdrop-blur-md border border-white/60 p-1.5 h-auto flex flex-nowrap overflow-x-auto gap-2 justify-start rounded-2xl shadow-sm w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <TabsTrigger value="dados" className="rounded-xl px-4 py-2 data-[state=active]:bg-white shadow-sm transition-all whitespace-nowrap shrink-0">
-            <Store className="h-4 w-4 mr-2" /> Loja & Morada
-          </TabsTrigger>
-          <TabsTrigger value="entrega" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-orange-600 shadow-sm transition-all whitespace-nowrap shrink-0">
-            <Truck className="h-4 w-4 mr-2" /> Logística de Entrega
-          </TabsTrigger>
-          <TabsTrigger value="pagamentos" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all whitespace-nowrap shrink-0">
-            <Wallet className="h-4 w-4 mr-2" /> Pagamentos (Mercado Pago)
-          </TabsTrigger>
-          <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all whitespace-nowrap shrink-0">
-            <Bell className="h-4 w-4 mr-2" /> Notificações
-          </TabsTrigger>
-          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 shadow-sm transition-all whitespace-nowrap shrink-0">
-            <CreditCard className="h-4 w-4 mr-2" /> Assinatura
-          </TabsTrigger>
-        </TabsList>
+{/* --- MENU DE NAVEGAÇÃO (ABAS) --- */}
+        <div className="space-y-1">
+          {/* Dica de Scroll (Só aparece no mobile) */}
+          <div className="flex md:hidden items-center justify-end gap-1 px-2 text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 animate-pulse">
+            <span>Deslize para ver mais</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </div>
+
+          <div className="relative w-full">
+            <TabsList className="bg-white/40 backdrop-blur-md border border-white/60 p-1.5 h-auto flex flex-nowrap overflow-x-auto gap-2 justify-start rounded-2xl shadow-sm w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <TabsTrigger value="dados" className="rounded-xl px-4 py-2 data-[state=active]:bg-white shadow-sm transition-all whitespace-nowrap shrink-0">
+                <Store className="h-4 w-4 mr-2" /> Loja & Morada
+              </TabsTrigger>
+              <TabsTrigger value="entrega" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-orange-600 shadow-sm transition-all whitespace-nowrap shrink-0">
+                <Truck className="h-4 w-4 mr-2" /> Logística de Entrega
+              </TabsTrigger>
+              <TabsTrigger value="pagamentos" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all whitespace-nowrap shrink-0">
+                <Wallet className="h-4 w-4 mr-2" /> Pagamentos
+              </TabsTrigger>
+              <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all whitespace-nowrap shrink-0">
+                <Bell className="h-4 w-4 mr-2" /> Notificações
+              </TabsTrigger>
+              <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 shadow-sm transition-all whitespace-nowrap shrink-0">
+                <CreditCard className="h-4 w-4 mr-2" /> Assinatura
+              </TabsTrigger>
+            </TabsList>
+
+            {/* EFEITO FADE: Sombra Esmaecida na direita para indicar continuidade */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-50 dark:from-slate-900 to-transparent pointer-events-none rounded-r-2xl md:hidden" />
+          </div>
+        </div>
 
         {/* --- DADOS --- */}
         <TabsContent value="dados" className="space-y-6 outline-none">

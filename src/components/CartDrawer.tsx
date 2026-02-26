@@ -11,12 +11,13 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { useStoreHours, isStoreCurrentlyOpen } from "@/hooks/useStoreHours";
 import { 
   Loader2, ShoppingBag, CreditCard, Banknote, Trash2, Coins, 
   ImageOff, AlertTriangle, Clock, CheckCircle2, XCircle, 
   Bike, Package, ClipboardList, ArrowRight, Activity, BellRing, 
   PackageCheck, UtensilsCrossed, HelpCircle, User, X,
-  Timer
+  Timer, Lock
 } from "lucide-react";
 import { DeliveryAddressForm, AddressData } from "@/components/DeliveryAddressForm";
 
@@ -124,6 +125,10 @@ export default function CartDrawer() {
 
   
   const deviceId = useDevice();
+
+  const { data: hoursData, isLoading: loadingHours } = useStoreHours(storeId);
+    const isOpen = isStoreCurrentlyOpen(hoursData);
+
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
@@ -167,7 +172,8 @@ const subtotalReal = items.reduce((acc, item) => acc + (Number(item.price) * (it
     nome.trim().length > 0 && 
     isPhoneValid && // Agora o código sabe o que é isso
     frete !== null && 
-    isAddressValid;
+    isAddressValid && 
+    isOpen;
 
   // Lógica do Banner
   const lastOrder = orderHistory[0];
@@ -253,6 +259,17 @@ const fetchOrderHistory = async () => {
   };
 
 const handleFinalizar = async () => {
+
+    // --- ADICIONE ESTA TRAVA NO INÍCIO DA FUNÇÃO ---
+  if (!isOpen) {
+    toast({
+      title: "Loja Fechada 🚫",
+      description: "Desculpe, não estamos aceitando pedidos no momento.",
+      variant: "destructive"
+    });
+    return;
+  }
+
   if (!isFormValid) return;
   setLoading(true);
 
@@ -524,6 +541,16 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                         <ScrollArea className="flex-1 px-5 w-full">
                             <div className="space-y-5 py-5 pb-40">
                                 
+                                
+                                {!isOpen && !loadingHours && (
+                                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 p-4 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2">
+                                        <Lock className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-tight">Loja Fechada</p>
+                                            <p className="text-xs text-red-600 dark:text-red-500/80 font-medium">Infelizmente não estamos aceitando pedidos agora. Confira nossos horários.</p>
+                                        </div>
+                                    </div>
+                                )}
                                 {/* BANNER ATIVO */}
                                 {activeOrder && (
                                     <div 
@@ -648,16 +675,25 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
 
                         {/* BOTÃO FIXO DE FINALIZAÇÃO */}
                         <div className="absolute bottom-0 w-full p-5 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-100 dark:border-white/5 z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]">
+
                             <Button 
                                 onClick={handleFinalizar} 
-                                disabled={loading || !isFormValid} 
+                                disabled={loading || !isFormValid || !isOpen} 
                                 className={`w-full h-14 text-base font-black rounded-2xl shadow-2xl transition-all active:scale-95 border ${
-                                    !isFormValid 
-                                        ? "bg-slate-200 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-transparent" 
-                                        : "bg-slate-900 dark:bg-slate-100 hover:bg-black dark:hover:bg-white text-white dark:text-slate-900 border-transparent shadow-white/5"
+                                    !isOpen
+                                        ? "bg-slate-400 text-white cursor-not-allowed border-transparent grayscale"
+                                        : !isFormValid 
+                                            ? "bg-slate-200 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-transparent" 
+                                            : "bg-slate-900 dark:bg-slate-100 hover:bg-black dark:hover:bg-white text-white dark:text-slate-900 border-transparent"
                                 }`}
                             >
-                                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "FINALIZAR PEDIDO"}
+                                {loading ? (
+                                    <Loader2 className="animate-spin h-5 w-5" />
+                                ) : !isOpen ? (
+                                    "LOJA FECHADA NO MOMENTO"
+                                ) : (
+                                    "FINALIZAR PEDIDO"
+                                )}
                             </Button>
                         </div>
                     </>

@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Store, MapPin, Truck, Bell, Save, Loader2, Search, 
   Camera, ImageIcon, CreditCard, Wallet, CheckCircle2,
-  ChevronRight, Sparkles, Settings, Info, Clock, User
+  ChevronRight, Sparkles, Settings, Info, Clock, User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DeliverySettings } from "./DeliverySettings"; 

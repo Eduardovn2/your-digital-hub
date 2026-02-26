@@ -139,23 +139,19 @@ export function StoreSettings({ store }: { store: any }) {
         </Button>
       </div>
 
-<Tabs defaultValue="perfil" className="space-y-8 w-full max-w-[100vw] overflow-hidden px-1">
+<Tabs defaultValue="perfil" className="space-y-8 w-full">
         
         {/* NAVEGAÇÃO DE ABAS ORGANIZADA COM AVISO MOBILE */}
         <div className="space-y-2">
           
-          {/* Dica visual que só aparece no mobile */}
           <div className="flex md:hidden items-center justify-end gap-1 px-2 text-[10px] font-black uppercase tracking-wider text-indigo-500 animate-pulse">
             <span>Deslize as opções</span>
             <ChevronRight className="h-3 w-3" />
           </div>
 
-          {/* O segredo está aqui: w-full e padding lateral para não cortar os botões */}
-          <div className="relative w-full -mx-4 px-4 md:mx-0 md:px-0">
-            {/* Usamos overflow-x-auto, snap-x (para scroll suave), e pb-2 (padding bottom)
-              para garantir que nenhum botão fique cortado na parte de baixo ou dos lados.
-            */}
-            <TabsList className="bg-slate-100/50 dark:bg-slate-900 p-1.5 flex flex-nowrap overflow-x-auto gap-2 rounded-2xl w-full no-scrollbar snap-x snap-mandatory">
+          <div className="relative w-full">
+            {/* O SEGREDO É O JUSTIFY-START: Garante que a primeira aba nunca some */}
+            <TabsList className="bg-slate-100/50 dark:bg-slate-900 p-1.5 flex justify-start flex-nowrap overflow-x-auto gap-2 rounded-2xl w-full no-scrollbar snap-x snap-mandatory">
               {[
                 { id: "perfil", label: "Perfil", icon: User, color: "text-indigo-500" },
                 { id: "horarios", label: "Funcionamento", icon: Clock, color: "text-amber-500" },
@@ -168,7 +164,6 @@ export function StoreSettings({ store }: { store: any }) {
                 <TabsTrigger 
                   key={tab.id} 
                   value={tab.id} 
-                  // Adicionado 'snap-start' para o scroll parar certinho no botão
                   className="rounded-xl px-5 py-3 data-[state=active]:bg-white data-[state=active]:shadow-md font-bold text-slate-500 transition-all shrink-0 snap-start h-auto"
                 >
                   <tab.icon className={`h-4 w-4 mr-2 ${tab.color}`} /> {tab.label}
@@ -176,11 +171,7 @@ export function StoreSettings({ store }: { store: any }) {
               ))}
             </TabsList>
             
-            {/* Sombra direita (fade) para o mobile indicando scroll */}
-            <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-slate-50 dark:from-slate-950 to-transparent pointer-events-none md:hidden rounded-r-2xl" />
-            
-            {/* Sombra ESQUERDA (NOVO) para indicar que pode voltar para o perfil */}
-            <div className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-slate-50 dark:from-slate-950 to-transparent pointer-events-none md:hidden rounded-l-2xl" />
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-50 dark:from-slate-950 to-transparent pointer-events-none md:hidden rounded-r-2xl" />
           </div>
         </div>
 

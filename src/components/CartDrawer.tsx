@@ -584,23 +584,26 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                                             <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Eduardo Viana" className="bg-white/50 dark:bg-slate-800 h-11 text-sm border-white/60 dark:border-slate-700 rounded-xl shadow-sm focus:ring-slate-900" />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label className="text-xs font-bold text-slate-700 flex justify-between">
-                                                WhatsApp / Celular
-                                                <span className={`text-[12px] ${telefone.replace(/\D/g, "").length === 11 ? "text-emerald-600 font-black" : "text-slate-400 font-medium"}`}>
-                                                    {telefone.replace(/\D/g, "").length}/11
-                                                </span>
-                                            </Label>
-                                            <Input 
-                                                value={telefone} 
-                                                onChange={e => setTelefone(formatPhoneNumber(e.target.value))} 
-                                                placeholder="(21) 99999-9999" 
-                                                inputMode="tel"
-                                                maxLength={15}
-                                                className={`bg-white/50 dark:bg-slate-800 h-11 text-sm border-white/60 dark:border-slate-700 rounded-xl shadow-sm transition-colors ${
-                                                    telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 ? "border-red-300 bg-red-50/30" : ""
-                                                }`} 
-                                            />
-                                        </div>
+                                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex justify-between w-full">
+                                                    <span>WhatsApp / Celular</span>
+                                                    {/* MÁGICA DO CONTADOR DE CARACTERES AQUI */}
+                                                    <span className={`text-[12px] transition-colors ${telefone.replace(/\D/g, "").length === 11 ? "text-emerald-600 dark:text-emerald-400 font-black" : "text-slate-400 dark:text-slate-500 font-medium"}`}>
+                                                        {telefone.replace(/\D/g, "").length}/11
+                                                    </span>
+                                                </Label>
+                                                <Input 
+                                                    value={telefone} 
+                                                    onChange={e => setTelefone(formatPhoneNumber(e.target.value))} 
+                                                    placeholder="(21) 99999-9999" 
+                                                    inputMode="tel"
+                                                    maxLength={15}
+                                                    className={`bg-white/50 dark:bg-slate-800 h-11 text-sm border-white/60 dark:border-slate-700 rounded-xl shadow-sm transition-colors ${
+                                                        telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 
+                                                            ? "border-red-300 bg-red-50/30 dark:border-red-500/50 dark:bg-red-900/20" 
+                                                            : "focus:ring-slate-900 dark:focus:ring-white"
+                                                    }`} 
+                                                />
+                                            </div>
                                     </div>
                                     <Separator className="my-2 bg-slate-200/50" />
                                     <DeliveryAddressForm onAddressComplete={handleAddressUpdate} storeId={storeId} />

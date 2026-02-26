@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateProduct, useUpdateProduct, useUploadProductImage, Product, ProductInsert } from "@/hooks/useProducts";
+import { useCreateProduct, useUpdateProduct, useUploadProductImage, useProducts, Product } from "@/hooks/useProducts";
 import { Loader2, Upload, X, Plus, Trash2, Layers } from "lucide-react";
 
 interface StoreProductFormProps {
@@ -32,6 +32,24 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
   const updateProduct = useUpdateProduct();
   const uploadImage = useUploadProductImage();
   
+  // Puxa os produtos existentes da loja para extrair as categorias personalizadas
+  const { data: existingProducts } = useProducts(storeId);
+  
+  // Cria uma lista inteligente com as categorias que o lojista já inventou antes
+  const customCategories = useMemo(() => {
+    if (!existingProducts) return [];
+    const uniqueCats = new Set<string>();
+    
+    existingProducts.forEach(p => {
+      // Se tiver categoria e ela NÃO estiver na nossa lista padrão (CATEGORIES)
+      if (p.category && !CATEGORIES.some(c => c.value === p.category)) {
+        uniqueCats.add(p.category);
+      }
+    });
+    
+    return Array.from(uniqueCats);
+  }, [existingProducts]);
+
   const [formData, setFormData] = useState({
     name: product?.name || "",
     description: product?.description || "",
@@ -57,7 +75,6 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
   };
 
   // --- FUNÇÕES DO CONSTRUTOR DE COMPLEMENTOS ---
-// --- FUNÇÕES DO CONSTRUTOR DE COMPLEMENTOS ---
   const addGroup = () => {
     setComplements([...complements, { 
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(), 
@@ -80,7 +97,6 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
   };
 
   const addItem = (groupIndex: number) => {
-    // Usamos o .map para criar uma nova referência de memória, forçando o ecrã a atualizar!
     setComplements(complements.map((group, index) => {
       if (index === groupIndex) {
         return {
@@ -140,7 +156,7 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
       }))
     }));
 
-    const data: any = { // Utilizamos any momentaneamente para compatibilidade com o hook atual
+    const data: any = { 
       name: formData.name,
       description: formData.description || null,
       price: parseFloat(formData.price.toString().replace(',', '.')),
@@ -148,7 +164,7 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
       popular: formData.popular,
       image_url: formData.image_url || null,
       store_id: storeId,
-      complements: formattedComplements // NOVO CAMPO
+      complements: formattedComplements 
     };
 
     if (product) {
@@ -217,7 +233,8 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
                     required
                   />
                 </div>
-                {/* CAMPO DE CATEGORIA LIVRE E OBRIGATÓRIA */}
+                
+                {/* CAMPO DE CATEGORIA INTELIGENTE */}
                 <div className="space-y-2">
                   <Label className="font-bold flex items-center gap-1">
                     Categoria <span className="text-red-500">*</span>
@@ -228,21 +245,25 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
                     name="category"
                     value={formData.category}
                     onChange={(e) => handleChange("category", e.target.value)}
-                    placeholder="Ex: Hambúrgueres, Promoção..."
+                    placeholder="Ex: Hambúrgueres..."
                     required
                     list="category-suggestions"
                     className="bg-slate-50 dark:bg-slate-900 w-full"
                   />
                   
-                  {/* Datalist cria as sugestões automáticas baseadas no seu array CATEGORIES */}
                   <datalist id="category-suggestions">
+                    {/* 1. Categorias padrão */}
                     {CATEGORIES.map(cat => (
                       <option key={cat.value} value={cat.value} />
                     ))}
+                    {/* 2. Categorias que o lojista já inventou nesta loja */}
+                    {customCategories.map(cat => (
+                      <option key={cat} value={cat} />
+                    ))}
                   </datalist>
                   
-                  <p className="text-[10px] text-slate-500 font-medium">
-                    Escolha da lista ou digite um novo nome.
+                  <p className="text-[10px] text-slate-500 font-medium leading-tight mt-1">
+                    Escolha da lista ou digite para criar uma nova.
                   </p>
                 </div>
               </div>
@@ -300,7 +321,7 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
               </div>
             </div>
 
-            {/* SEÇÃO DE COMPLEMENTOS (NOVO) */}
+            {/* SEÇÃO DE COMPLEMENTOS */}
             <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                 <div>

@@ -57,6 +57,7 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
   };
 
   // --- FUNÇÕES DO CONSTRUTOR DE COMPLEMENTOS ---
+// --- FUNÇÕES DO CONSTRUTOR DE COMPLEMENTOS ---
   const addGroup = () => {
     setComplements([...complements, { 
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(), 
@@ -79,25 +80,52 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
   };
 
   const addItem = (groupIndex: number) => {
-    const newComps = [...complements];
-    newComps[groupIndex].items.push({ 
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(), 
-      name: "", 
-      price: "" // Mantemos como string no input para facilitar a digitação de decimais
-    });
-    setComplements(newComps);
+    // Usamos o .map para criar uma nova referência de memória, forçando o ecrã a atualizar!
+    setComplements(complements.map((group, index) => {
+      if (index === groupIndex) {
+        return {
+          ...group,
+          items: [
+            ...group.items,
+            { 
+              id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(), 
+              name: "", 
+              price: "" 
+            }
+          ]
+        };
+      }
+      return group;
+    }));
   };
 
   const updateItem = (groupIndex: number, itemIndex: number, field: string, value: string) => {
-    const newComps = [...complements];
-    newComps[groupIndex].items[itemIndex] = { ...newComps[groupIndex].items[itemIndex], [field]: value };
-    setComplements(newComps);
+    setComplements(complements.map((group, gIdx) => {
+      if (gIdx === groupIndex) {
+        return {
+          ...group,
+          items: group.items.map((item: any, iIdx: number) => {
+            if (iIdx === itemIndex) {
+              return { ...item, [field]: value };
+            }
+            return item;
+          })
+        };
+      }
+      return group;
+    }));
   };
 
   const removeItem = (groupIndex: number, itemIndex: number) => {
-    const newComps = [...complements];
-    newComps[groupIndex].items = newComps[groupIndex].items.filter((_: any, i: number) => i !== itemIndex);
-    setComplements(newComps);
+    setComplements(complements.map((group, gIdx) => {
+      if (gIdx === groupIndex) {
+        return {
+          ...group,
+          items: group.items.filter((_: any, iIdx: number) => iIdx !== itemIndex)
+        };
+      }
+      return group;
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

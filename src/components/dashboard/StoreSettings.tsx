@@ -281,9 +281,6 @@ export function StoreSettings({ store }: { store: any }) {
 
         </TabsContent>
 
-        <TabsContent value="entrega" className="outline-none animate-in slide-in-from-bottom-2 duration-500">
-          <DeliverySettings storeId={store.id} />
-        </TabsContent>
 
         {/* --- ABA DE PAGAMENTOS (MERCADO PAGO TOTALMENTE INTEGRADO) --- */}
         <TabsContent value="pagamentos" className="space-y-6 outline-none animate-in slide-in-from-bottom-2 duration-500">

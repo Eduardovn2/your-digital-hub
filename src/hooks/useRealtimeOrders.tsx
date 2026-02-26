@@ -21,7 +21,6 @@ export function useRealtimeOrders(storeId: string | undefined) {
       .on(
         'postgres_changes',
         {
-          // MUDANÇA 1: Mudamos de 'INSERT' para '*' para escutar tanto a criação quanto a atualização
           event: '*', 
           schema: 'public',
           table: 'orders',
@@ -36,12 +35,12 @@ export function useRealtimeOrders(storeId: string | undefined) {
           let shouldNotify = false;
           let notificationTitle = "Novo pedido!";
 
-          // MUDANÇA 2: Lógica de separação (Dinheiro vs PIX/Cartão)
-          
+          const isDinheiro = ['dinheiro', 'cash'].includes(newOrder?.payment_method?.toLowerCase());
+
           // Cenário A: O pedido acabou de ser criado (INSERT)
           if (payload.eventType === 'INSERT') {
             // Se for dinheiro (ou pagamento na entrega), apita logo!
-            if (newOrder.payment_method === 'dinheiro' || newOrder.payment_method === 'cash') {
+            if (isDinheiro) {
               shouldNotify = true;
               notificationTitle = "Novo pedido (Pagar na Entrega)!";
             } else {
@@ -52,9 +51,7 @@ export function useRealtimeOrders(storeId: string | undefined) {
 
           // Cenário B: O pedido foi atualizado (UPDATE)
           if (payload.eventType === 'UPDATE') {
-            const isDinheiro = ['dinheiro', 'cash'].includes(newOrder.payment_method?.toLowerCase());
-            
-            // Só toca no UPDATE se for um pedido online (PIX/Cartão) que acabou de ser pago
+            // Só toca no UPDATE se o pagamento FOR ONLINE e mudou de pending para accepted (Webhook)
             if (!isDinheiro && oldOrder?.status === 'pending' && newOrder?.status === 'accepted') {
               shouldNotify = true;
               notificationTitle = "Pagamento Aprovado! Novo pedido na fila.";
@@ -75,7 +72,7 @@ export function useRealtimeOrders(storeId: string | undefined) {
             });
           }
 
-          // Atualiza a tela sempre (mesmo silencioso, é bom para o painel ter a lista atualizada em tempo real)
+          // Atualiza a tela sempre
           queryClient.invalidateQueries({ queryKey: ['orders', storeId] });
         }
       )

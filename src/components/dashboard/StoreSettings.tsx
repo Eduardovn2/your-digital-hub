@@ -166,20 +166,20 @@ export function StoreSettings({ store }: { store: any }) {
       </div>
 
       <Tabs defaultValue="dados" className="space-y-6">
-        <TabsList className="bg-white/40 backdrop-blur-md border border-white/60 p-1.5 h-auto flex flex-wrap gap-2 justify-start rounded-2xl shadow-sm w-full">
-          <TabsTrigger value="dados" className="rounded-xl px-4 py-2 data-[state=active]:bg-white shadow-sm transition-all">
+        <TabsList className="bg-white/40 backdrop-blur-md border border-white/60 p-1.5 h-auto flex flex-nowrap overflow-x-auto gap-2 justify-start rounded-2xl shadow-sm w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <TabsTrigger value="dados" className="rounded-xl px-4 py-2 data-[state=active]:bg-white shadow-sm transition-all whitespace-nowrap shrink-0">
             <Store className="h-4 w-4 mr-2" /> Loja & Morada
           </TabsTrigger>
-          <TabsTrigger value="entrega" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-orange-600 shadow-sm transition-all">
+          <TabsTrigger value="entrega" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-orange-600 shadow-sm transition-all whitespace-nowrap shrink-0">
             <Truck className="h-4 w-4 mr-2" /> Logística de Entrega
           </TabsTrigger>
-          <TabsTrigger value="pagamentos" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all">
+          <TabsTrigger value="pagamentos" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all whitespace-nowrap shrink-0">
             <Wallet className="h-4 w-4 mr-2" /> Pagamentos (Mercado Pago)
           </TabsTrigger>
-          <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all">
+          <TabsTrigger value="notificacoes" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-sm transition-all whitespace-nowrap shrink-0">
             <Bell className="h-4 w-4 mr-2" /> Notificações
           </TabsTrigger>
-          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 shadow-sm transition-all">
+          <TabsTrigger value="assinatura" className="rounded-xl px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600 shadow-sm transition-all whitespace-nowrap shrink-0">
             <CreditCard className="h-4 w-4 mr-2" /> Assinatura
           </TabsTrigger>
         </TabsList>

@@ -199,10 +199,10 @@ return (
                 </div>
               </div>
 
-              {/* INFOS INFERIORES: HORÁRIO + BOTÕES (Redes e Endereço) */}
+{/* INFOS INFERIORES: HORÁRIO + BOTÕES (Redes e Endereço) */}
               <div className="flex flex-col gap-3 mt-2 md:mt-4">
                 
-                {/* Linha 1: Horário */}
+                {/* Linha 1: Status de Funcionamento + Endereço (Físico) */}
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
                   <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-inner">
                     {isOpen ? (
@@ -224,9 +224,27 @@ return (
                       </span>
                     )}
                   </div>
+
+                  {/* Botão Endereço (Movido para Linha 1) */}
+                  {(store as any).street && (store as any).street !== "null" && (store as any).street.trim() !== "" && (
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        `${(store as any).street}${(store as any).street_number ? `, ${(store as any).street_number}` : ''}${(store as any).city ? ` - ${(store as any).city}` : ''}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 h-9 px-3 md:px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] tracking-wide max-w-full"
+                      title="Ver rota no Google Maps"
+                    >
+                      <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                      <span className="truncate max-w-[150px] md:max-w-[200px]">
+                        {(store as any).street}{(store as any).street_number ? `, ${(store as any).street_number}` : ''}
+                      </span>
+                    </a>
+                  )}
                 </div>
 
-                {/* Linha 2: Botões de Contato e Endereço (Todos Juntos e com Validação Anti-Null) */}
+                {/* Linha 2: Contato e Redes Sociais (Digital) */}
                 <div className="flex flex-wrap items-center gap-2">
                   
                   {/* Botão WhatsApp */}
@@ -253,24 +271,6 @@ return (
                     >
                       <Instagram className="h-3.5 w-3.5" />
                       Instagram
-                    </a>
-                  )}
-
-                  {/* Botão Endereço para o Google Maps */}
-                  {(store as any).street && (store as any).street !== "null" && (store as any).street.trim() !== "" && (
-                    <a 
-                      href={`https://maps.google.com/?q=${encodeURIComponent(
-                        `${(store as any).street}${(store as any).street_number ? `, ${(store as any).street_number}` : ''}${(store as any).city ? ` - ${(store as any).city}` : ''}`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 h-9 px-3 md:px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] tracking-wide max-w-full"
-                      title="Ver rota no Google Maps"
-                    >
-                      <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                      <span className="truncate max-w-[150px] md:max-w-[200px]">
-                        {(store as any).street}{(store as any).street_number ? `, ${(store as any).street_number}` : ''}
-                      </span>
                     </a>
                   )}
                   

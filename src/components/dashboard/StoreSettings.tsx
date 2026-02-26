@@ -290,6 +290,7 @@ export function StoreSettings({ store }: { store: any }) {
         </TabsContent>
 
         {/* --- ABA DE PAGAMENTOS (OAUTH INTEGRADO) --- */}
+{/* --- ABA DE PAGAMENTOS (OAUTH INTEGRADO) --- */}
         <TabsContent value="pagamentos" className="space-y-6 outline-none animate-in fade-in duration-300">
           <Card className="bg-white/60 backdrop-blur-xl border-white/50 shadow-lg rounded-3xl overflow-hidden border-blue-100">
             <CardHeader className="border-b border-white/40 bg-blue-50/50">
@@ -301,7 +302,7 @@ export function StoreSettings({ store }: { store: any }) {
                 Conecte sua conta para aceitar PIX e Cartão de Crédito automaticamente.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-6 space-y-8">
+            <CardContent className="p-6">
               
               {/* CONEXÃO OAUTH */}
               <div className="flex flex-col items-center justify-center py-10 space-y-6 border-2 border-dashed border-blue-100 rounded-[2rem] bg-blue-50/30">
@@ -322,7 +323,9 @@ export function StoreSettings({ store }: { store: any }) {
                       <CheckCircle2 className="h-4 w-4" />
                       <span className="text-[11px] font-black uppercase tracking-widest">Conta Conectada</span>
                     </div>
-                    <Button variant="outline" onClick={handleConnectMP} className="rounded-xl text-[10px] font-bold h-9">Alterar Conta</Button>
+                    <Button variant="outline" onClick={handleConnectMP} className="rounded-xl text-[10px] font-bold h-9">
+                      Alterar Conta
+                    </Button>
                   </div>
                 ) : (
                   <Button onClick={handleConnectMP} className="bg-[#009EE3] hover:bg-[#007EB5] text-white font-black rounded-2xl px-10 h-14 shadow-lg transition-all active:scale-95">
@@ -331,29 +334,6 @@ export function StoreSettings({ store }: { store: any }) {
                 )}
               </div>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200" /></div>
-                <div className="relative flex justify-center text-[10px] uppercase font-bold"><span className="bg-white px-2 text-slate-400">Ou use chaves manuais</span></div>
-              </div>
-
-              {/* CAMPOS MANUAIS */}
-              <div className="grid gap-6 opacity-60 hover:opacity-100 transition-opacity">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Public Key</Label>
-                  <Input placeholder="APP_USR-..." value={formData.mp_public_key} onChange={e => setFormData({...formData, mp_public_key: e.target.value})} className="bg-white/80 border-blue-100 rounded-xl font-mono text-xs" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Access Token</Label>
-                  <Input type="password" placeholder="APP_USR-..." value={formData.mp_access_token} onChange={e => setFormData({...formData, mp_access_token: e.target.value})} className="bg-white/80 border-blue-100 rounded-xl font-mono text-xs" />
-                </div>
-              </div>
-              
-              <div className="flex justify-end pt-4 border-t border-white/50">
-                <Button onClick={handleSave} disabled={loading} className="px-8 py-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all">
-                  {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2"/> : <Save className="h-5 w-5 mr-2"/>}
-                  Salvar Manualmente
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

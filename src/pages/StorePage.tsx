@@ -278,25 +278,6 @@ return (
 
               </div>
             </div>
-
-{/* ENDEREÇO (Desktop e Mobile / Clicável para o Maps) */}
-            {(store as any).street && (
-              <a 
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                  `${(store as any).street}${(store as any).street_number ? `, ${(store as any).street_number}` : ''}${(store as any).city ? ` - ${(store as any).city}` : ''}`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-[11px] md:text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 flex-shrink-0 font-bold self-start mt-2 transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer max-w-full"
-                title="Ver rota no Google Maps"
-              >
-                <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                <span className="truncate">
-                  {(store as any).street}{(store as any).street_number ? `, ${(store as any).street_number}` : ''}
-                </span>
-              </a>
-            )}
-            
           </GlassCard>
         </div>
       </div>

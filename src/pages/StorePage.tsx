@@ -199,82 +199,66 @@ return (
                 </div>
               </div>
 
-{/* INFOS INFERIORES: HORÁRIO + BOTÕES (Redes e Endereço) */}
-              <div className="flex flex-col gap-3 mt-2 md:mt-4">
+{/* INFOS INFERIORES: MAIS COMPACTO E COM NÚMERO */}
+              <div className="flex flex-col gap-2 mt-2 md:mt-3">
                 
-{/* Linha 1: Status + Endereço (Forçados na mesma linha no Mobile) */}
-                <div className="flex items-center gap-2 w-full overflow-hidden">
+                {/* Linha 1: Status + Endereço (Lado a Lado) */}
+                <div className="flex items-center gap-2 w-full">
                   
-                  {/* Bloco de Horário - Reduzi margens e usei shrink-0 para não esmagar o status */}
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 shadow-inner shrink-0">
-                    {isOpen ? (
-                      <span className="text-emerald-700 dark:text-emerald-400 font-black bg-white dark:bg-slate-900 px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] uppercase tracking-wider shadow-sm">
-                        <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" /> Aberto
-                      </span>
-                    ) : (
-                      <span className="text-red-600 dark:text-red-400 font-black bg-white dark:bg-slate-900 px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] uppercase tracking-wider shadow-sm">
-                        <div className="h-1 w-1 rounded-full bg-red-500" /> Fechado
-                      </span>
-                    )}
-                    
-                    {/* Horas em formato ultra curto no mobile */}
-                    {hours?.closing_time && (
-                      <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 whitespace-nowrap">
-                        {isOpen ? `até ${hours.closing_time.substring(0, 5)}` : 'Fechado'}
-                      </span>
-                    )}
+                  {/* Status Aberto/Fechado - Versão Slim */}
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 shadow-inner shrink-0">
+                    <span className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider shadow-sm ${isOpen ? 'bg-white dark:bg-slate-900 text-emerald-600' : 'bg-white dark:bg-slate-900 text-red-600'}`}>
+                      <div className={`h-1 w-1 rounded-full ${isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                      {isOpen ? 'Aberto' : 'Fechado'}
+                    </span>
                   </div>
 
-                  {/* Botão Endereço - flex-1 e truncate para caber na mesma linha */}
-                  {(store as any).street && (store as any).street !== "null" && (store as any).street.trim() !== "" && (
+                  {/* Botão Endereço - Agora com Número e sem esticar */}
+                  {(store as any).street && (store as any).street !== "null" && (
                     <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                        `${(store as any).street}${(store as any).street_number ? `, ${(store as any).street_number}` : ''}`
-                      )}`}
+                      href={`http://maps.google.com/?q=${encodeURIComponent(`${(store as any).street}, ${(store as any).street_number} - ${(store as any).city}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 flex items-center gap-1.5 h-8 px-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl border border-slate-200 dark:border-slate-700 transition-all shadow-sm min-w-0"
+                      className="flex items-center gap-1.5 h-7 px-2 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-all min-w-0 flex-shrink"
                     >
                       <MapPin className="h-3 w-3 text-indigo-500 shrink-0" />
-                      <span className="text-[10px] truncate">
-                        {(store as any).street}
+                      <span className="text-[10px] font-bold truncate">
+                        {(store as any).street}{(store as any).street_number ? `, ${(store as any).street_number}` : ''}
                       </span>
                     </a>
                   )}
                 </div>
 
-                {/* Linha 2: Contato e Redes Sociais (Digital) */}
-                <div className="flex flex-wrap items-center gap-2">
+                {/* Linha 2: Redes Sociais - Botões Menores */}
+                <div className="flex items-center gap-2">
                   
-                  {/* Botão WhatsApp */}
-                  {(store as any).phone && (store as any).phone !== "null" && (store as any).phone.replace(/\D/g, "").length > 0 && (
+                  {/* WhatsApp Slim */}
+                  {(store as any).phone && (store as any).phone !== "null" && (
                     <a 
                       href={`https://wa.me/55${(store as any).phone.replace(/\D/g, "")}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="flex items-center gap-1.5 h-9 px-3 md:px-4 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
+                      className="flex items-center gap-1.5 h-8 px-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-bold rounded-lg text-[10px] uppercase tracking-wider hover:bg-emerald-100 transition-colors"
                     >
-                      <Phone className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Pedir no</span> WhatsApp
+                      <Phone className="h-3 w-3" />
+                      <span>WhatsApp</span>
                     </a>
                   )}
 
-                  {/* Botão Instagram */}
-                  {(store as any).instagram && (store as any).instagram !== "null" && (store as any).instagram.trim() !== "" && (
+                  {/* Instagram Slim */}
+                  {(store as any).instagram && (store as any).instagram !== "null" && (
                     <a 
-                      href={`https://instagram.com/${(store as any).instagram.replace('@', '').trim()}`} 
+                      href={`https://instagram.com/${(store as any).instagram.replace('@', '')}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="flex items-center gap-1.5 h-9 px-3 md:px-4 bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50 text-pink-600 dark:text-pink-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
-                      title="Visitar Instagram"
+                      className="flex items-center gap-1.5 h-8 px-3 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 font-bold rounded-lg text-[10px] uppercase tracking-wider hover:bg-pink-100 transition-colors"
                     >
-                      <Instagram className="h-3.5 w-3.5" />
-                      Instagram
+                      <Instagram className="h-3 w-3" />
+                      <span>Instagram</span>
                     </a>
                   )}
                   
                 </div>
-
               </div>
             </div>
           </GlassCard>

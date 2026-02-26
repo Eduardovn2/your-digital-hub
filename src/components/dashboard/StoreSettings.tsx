@@ -139,7 +139,7 @@ export function StoreSettings({ store }: { store: any }) {
         </Button>
       </div>
 
-<Tabs defaultValue="perfil" className="space-y-8">
+<Tabs defaultValue="perfil" className="space-y-8 w-full max-w-[100vw] overflow-hidden px-1">
         
         {/* NAVEGAÇÃO DE ABAS ORGANIZADA COM AVISO MOBILE */}
         <div className="space-y-2">
@@ -150,8 +150,12 @@ export function StoreSettings({ store }: { store: any }) {
             <ChevronRight className="h-3 w-3" />
           </div>
 
-          <div className="relative w-full">
-            <TabsList className="bg-slate-100/50 dark:bg-slate-900 p-1.5 h-auto flex flex-nowrap overflow-x-auto gap-2 rounded-2xl w-full no-scrollbar">
+          {/* O segredo está aqui: w-full e padding lateral para não cortar os botões */}
+          <div className="relative w-full -mx-4 px-4 md:mx-0 md:px-0">
+            {/* Usamos overflow-x-auto, snap-x (para scroll suave), e pb-2 (padding bottom)
+              para garantir que nenhum botão fique cortado na parte de baixo ou dos lados.
+            */}
+            <TabsList className="bg-slate-100/50 dark:bg-slate-900 p-1.5 flex flex-nowrap overflow-x-auto gap-2 rounded-2xl w-full no-scrollbar snap-x snap-mandatory">
               {[
                 { id: "perfil", label: "Perfil", icon: User, color: "text-indigo-500" },
                 { id: "horarios", label: "Funcionamento", icon: Clock, color: "text-amber-500" },
@@ -161,16 +165,25 @@ export function StoreSettings({ store }: { store: any }) {
                 { id: "notificacoes", label: "Alertas", icon: Bell, color: "text-pink-500" },
                 { id: "assinatura", label: "Plano", icon: CreditCard, color: "text-purple-500" }
               ].map(tab => (
-                <TabsTrigger key={tab.id} value={tab.id} className="rounded-xl px-5 py-3 data-[state=active]:bg-white data-[state=active]:shadow-md font-bold text-slate-500 transition-all shrink-0">
+                <TabsTrigger 
+                  key={tab.id} 
+                  value={tab.id} 
+                  // Adicionado 'snap-start' para o scroll parar certinho no botão
+                  className="rounded-xl px-5 py-3 data-[state=active]:bg-white data-[state=active]:shadow-md font-bold text-slate-500 transition-all shrink-0 snap-start h-auto"
+                >
                   <tab.icon className={`h-4 w-4 mr-2 ${tab.color}`} /> {tab.label}
                 </TabsTrigger>
               ))}
             </TabsList>
             
-            {/* Sombra direita (fade) para o mobile */}
-            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-50 dark:from-slate-950 to-transparent pointer-events-none md:hidden rounded-r-2xl" />
+            {/* Sombra direita (fade) para o mobile indicando scroll */}
+            <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-slate-50 dark:from-slate-950 to-transparent pointer-events-none md:hidden rounded-r-2xl" />
+            
+            {/* Sombra ESQUERDA (NOVO) para indicar que pode voltar para o perfil */}
+            <div className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-slate-50 dark:from-slate-950 to-transparent pointer-events-none md:hidden rounded-l-2xl" />
           </div>
         </div>
+
         {/* --- ABA 1: PERFIL (BRANDING) --- */}
         <TabsContent value="perfil" className="outline-none animate-in slide-in-from-bottom-2 duration-500">
           <div className="max-w-4xl mx-auto space-y-8">

@@ -202,43 +202,42 @@ return (
 {/* INFOS INFERIORES: HORÁRIO + BOTÕES (Redes e Endereço) */}
               <div className="flex flex-col gap-3 mt-2 md:mt-4">
                 
-                {/* Linha 1: Status de Funcionamento + Endereço (Físico) */}
-                <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-inner">
+{/* Linha 1: Status + Endereço (Forçados na mesma linha no Mobile) */}
+                <div className="flex items-center gap-2 w-full overflow-hidden">
+                  
+                  {/* Bloco de Horário - Reduzi margens e usei shrink-0 para não esmagar o status */}
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 shadow-inner shrink-0">
                     {isOpen ? (
-                      <span className="text-emerald-700 dark:text-emerald-400 font-black bg-white dark:bg-slate-900 px-3 py-1 rounded-lg flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wider shadow-sm">
-                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Aberto
+                      <span className="text-emerald-700 dark:text-emerald-400 font-black bg-white dark:bg-slate-900 px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] uppercase tracking-wider shadow-sm">
+                        <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" /> Aberto
                       </span>
                     ) : (
-                      <span className="text-red-600 dark:text-red-400 font-black bg-white dark:bg-slate-900 px-3 py-1 rounded-lg flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wider shadow-sm">
-                        <div className="h-1.5 w-1.5 rounded-full bg-red-500" /> Fechado
+                      <span className="text-red-600 dark:text-red-400 font-black bg-white dark:bg-slate-900 px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] uppercase tracking-wider shadow-sm">
+                        <div className="h-1 w-1 rounded-full bg-red-500" /> Fechado
                       </span>
                     )}
                     
-                    {hours?.opening_time && hours?.closing_time && (
-                      <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold px-3 flex items-center gap-1.5 uppercase tracking-wide">
-                        <Clock className="h-3 w-3 opacity-50" />
-                        {isOpen 
-                          ? `Hoje até ${hours.closing_time.substring(0, 5)}` 
-                          : `Abre às ${hours.opening_time.substring(0, 5)}`}
+                    {/* Horas em formato ultra curto no mobile */}
+                    {hours?.closing_time && (
+                      <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 whitespace-nowrap">
+                        {isOpen ? `até ${hours.closing_time.substring(0, 5)}` : 'Fechado'}
                       </span>
                     )}
                   </div>
 
-                  {/* Botão Endereço (Movido para Linha 1) */}
+                  {/* Botão Endereço - flex-1 e truncate para caber na mesma linha */}
                   {(store as any).street && (store as any).street !== "null" && (store as any).street.trim() !== "" && (
                     <a 
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                        `${(store as any).street}${(store as any).street_number ? `, ${(store as any).street_number}` : ''}${(store as any).city ? ` - ${(store as any).city}` : ''}`
+                        `${(store as any).street}${(store as any).street_number ? `, ${(store as any).street_number}` : ''}`
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 h-9 px-3 md:px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] tracking-wide max-w-full"
-                      title="Ver rota no Google Maps"
+                      className="flex-1 flex items-center gap-1.5 h-8 px-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl border border-slate-200 dark:border-slate-700 transition-all shadow-sm min-w-0"
                     >
-                      <MapPin className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                      <span className="truncate max-w-[150px] md:max-w-[200px]">
-                        {(store as any).street}{(store as any).street_number ? `, ${(store as any).street_number}` : ''}
+                      <MapPin className="h-3 w-3 text-indigo-500 shrink-0" />
+                      <span className="text-[10px] truncate">
+                        {(store as any).street}
                       </span>
                     </a>
                   )}

@@ -139,26 +139,38 @@ export function StoreSettings({ store }: { store: any }) {
         </Button>
       </div>
 
-      <Tabs defaultValue="perfil" className="space-y-8">
-        {/* NAVEGAÇÃO DE ABAS ORGANIZADA */}
-        <div className="relative">
-          <TabsList className="bg-slate-100/50 dark:bg-slate-900 p-1.5 h-auto flex flex-nowrap overflow-x-auto gap-2 rounded-2xl w-full no-scrollbar">
-            {[
-              { id: "perfil", label: "Perfil", icon: User, color: "text-indigo-500" },
-              { id: "horarios", label: "Funcionamento", icon: Clock, color: "text-amber-500" },
-              { id: "endereco", label: "Endereço", icon: MapPin, color: "text-emerald-500" },
-              { id: "entrega", label: "Logística", icon: Truck, color: "text-orange-500" },
-              { id: "pagamentos", label: "Pagamentos", icon: Wallet, color: "text-blue-500" },
-              { id: "notificacoes", label: "Alertas", icon: Bell, color: "text-pink-500" },
-              { id: "assinatura", label: "Plano", icon: CreditCard, color: "text-purple-500" }
-            ].map(tab => (
-              <TabsTrigger key={tab.id} value={tab.id} className="rounded-xl px-5 py-3 data-[state=active]:bg-white data-[state=active]:shadow-md font-bold text-slate-500 transition-all shrink-0">
-                <tab.icon className={`h-4 w-4 mr-2 ${tab.color}`} /> {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+<Tabs defaultValue="perfil" className="space-y-8">
+        
+        {/* NAVEGAÇÃO DE ABAS ORGANIZADA COM AVISO MOBILE */}
+        <div className="space-y-2">
+          
+          {/* Dica visual que só aparece no mobile */}
+          <div className="flex md:hidden items-center justify-end gap-1 px-2 text-[10px] font-black uppercase tracking-wider text-indigo-500 animate-pulse">
+            <span>Deslize as opções</span>
+            <ChevronRight className="h-3 w-3" />
+          </div>
 
+          <div className="relative w-full">
+            <TabsList className="bg-slate-100/50 dark:bg-slate-900 p-1.5 h-auto flex flex-nowrap overflow-x-auto gap-2 rounded-2xl w-full no-scrollbar">
+              {[
+                { id: "perfil", label: "Perfil", icon: User, color: "text-indigo-500" },
+                { id: "horarios", label: "Funcionamento", icon: Clock, color: "text-amber-500" },
+                { id: "endereco", label: "Endereço", icon: MapPin, color: "text-emerald-500" },
+                { id: "entrega", label: "Logística", icon: Truck, color: "text-orange-500" },
+                { id: "pagamentos", label: "Pagamentos", icon: Wallet, color: "text-blue-500" },
+                { id: "notificacoes", label: "Alertas", icon: Bell, color: "text-pink-500" },
+                { id: "assinatura", label: "Plano", icon: CreditCard, color: "text-purple-500" }
+              ].map(tab => (
+                <TabsTrigger key={tab.id} value={tab.id} className="rounded-xl px-5 py-3 data-[state=active]:bg-white data-[state=active]:shadow-md font-bold text-slate-500 transition-all shrink-0">
+                  <tab.icon className={`h-4 w-4 mr-2 ${tab.color}`} /> {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            {/* Sombra direita (fade) para o mobile */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-50 dark:from-slate-950 to-transparent pointer-events-none md:hidden rounded-r-2xl" />
+          </div>
+        </div>
         {/* --- ABA 1: PERFIL (BRANDING) --- */}
         <TabsContent value="perfil" className="outline-none animate-in slide-in-from-bottom-2 duration-500">
           <div className="max-w-4xl mx-auto space-y-8">

@@ -126,9 +126,8 @@ export default function StorePage() {
       </div>
     );
   }
-
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 font-sans transition-colors duration-300 overflow-x-hidden antialiased tracking-tight">
+return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 font-sans transition-colors duration-300 antialiased tracking-tight">
       
       {/* Header Fixo */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -282,7 +281,8 @@ export default function StorePage() {
 
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Busca e Filtros */}
-        <div className="sticky top-16 z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md py-4 space-y-4">
+        {/* Ajustado o top-[60px] para encaixar perfeitamente debaixo do header e adicionado -mx-4 px-4 para cobrir a tela toda no mobile */}
+        <div className="sticky top-[60px] md:top-[70px] z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md py-3 md:py-4 space-y-3 md:space-y-4 -mx-4 px-4 md:mx-0 md:px-0">
           <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
             <Input 
@@ -295,11 +295,11 @@ export default function StorePage() {
 
           {!searchTerm && categories.length > 0 && (
             <Tabs value={activeCategory} onValueChange={scrollToCategory} className="w-full">
-              <TabsList className="w-full justify-start overflow-x-auto bg-transparent p-0 h-auto gap-2 no-scrollbar py-2">
+              <TabsList className="w-full justify-start overflow-x-auto bg-transparent p-0 h-auto gap-2 no-scrollbar py-2 snap-x">
                 {categories.map((cat) => (
                   <TabsTrigger 
                     key={cat} value={cat}
-                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:text-slate-400 px-6 py-3 data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-bold shadow-sm whitespace-nowrap transition-all"
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:text-slate-400 px-6 py-3 data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-bold shadow-sm whitespace-nowrap transition-all snap-start"
                   >
                     {translateCategory(cat)}
                   </TabsTrigger>

@@ -171,10 +171,37 @@ export function StoreSettings({ store }: { store: any }) {
           </div>
         </div>
 
-        {/* --- DADOS --- */}
+{/* --- DADOS --- */}
         <TabsContent value="dados" className="space-y-6 outline-none animate-in slide-in-from-bottom-2 duration-500">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
+            
+            {/* 1. SIDEBAR DE DICAS (Agora aparece PRIMEIRO no mobile: order-1) */}
+            <div className="space-y-6 order-1 md:order-2">
+                <Card className="border-none shadow-lg bg-gradient-to-br from-indigo-600 to-indigo-800 text-white rounded-3xl overflow-hidden">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-tighter">
+                            <Sparkles className="h-4 w-4" /> Dica de Mestre
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-xs text-indigo-100/80 leading-relaxed font-medium">
+                        Lojas com Banner e Logo personalizados vendem até <span className="text-white font-black">40% mais</span>. Certifique-se de usar fotos reais dos seus produtos!
+                    </CardContent>
+                </Card>
+                
+                <Card className="border-none shadow-lg bg-white dark:bg-slate-900 rounded-3xl overflow-hidden">
+                   <div className="p-1 bg-emerald-500 w-full" />
+                   <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-black uppercase text-slate-400 tracking-widest">Estado da Loja</CardTitle>
+                   </CardHeader>
+                   <CardContent className="flex items-center gap-3">
+                       <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+                       <span className="font-bold text-slate-700 dark:text-slate-200">Sua loja está online</span>
+                   </CardContent>
+                </Card>
+            </div>
+
+            {/* 2. FORMULÁRIOS (Agora aparece DEPOIS no mobile: order-2) */}
+            <div className="md:col-span-2 space-y-6 order-2 md:order-1">
                 {/* Identidade Visual */}
                 <Card className="border-none shadow-xl bg-white dark:bg-slate-900 overflow-hidden rounded-3xl">
                     <div className="h-1.5 bg-indigo-500 w-full" />
@@ -291,30 +318,6 @@ export function StoreSettings({ store }: { store: any }) {
                 </div>
             </div>
 
-            {/* Sidebar de Dicas */}
-            <div className="space-y-6">
-                <Card className="border-none shadow-lg bg-gradient-to-br from-indigo-600 to-indigo-800 text-white rounded-3xl overflow-hidden">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-tighter">
-                            <Sparkles className="h-4 w-4" /> Dica de Mestre
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-indigo-100/80 leading-relaxed font-medium">
-                        Lojas com Banner e Logo personalizados vendem até <span className="text-white font-black">40% mais</span>. Certifique-se de usar fotos reais dos seus produtos!
-                    </CardContent>
-                </Card>
-                
-                <Card className="border-none shadow-lg bg-white dark:bg-slate-900 rounded-3xl overflow-hidden">
-                   <div className="p-1 bg-amber-500 w-full" />
-                   <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-black uppercase text-slate-400 tracking-widest">Estado da Loja</CardTitle>
-                   </CardHeader>
-                   <CardContent className="flex items-center gap-3">
-                       <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
-                       <span className="font-bold text-slate-700 dark:text-slate-200">Sua loja está online</span>
-                   </CardContent>
-                </Card>
-            </div>
           </div>
         </TabsContent>
 

@@ -71,15 +71,20 @@ const normalizeStatus = (status: string | null | undefined) => {
 };
 
 // --- BADGE ---
-const OrderStatusBadge = ({ status }: { status: string }) => {
+// Adicionamos o paymentMethod nas propriedades da etiqueta
+const OrderStatusBadge = ({ status, paymentMethod }: { status: string, paymentMethod?: string }) => {
   const statusKey = normalizeStatus(status);
+  
+  // Verifica se o pagamento é em dinheiro
+  const isDinheiro = ['dinheiro', 'cash'].includes((paymentMethod || "").toLowerCase());
 
-const styles = {
+  const styles = {
     pending: { 
        bg: "bg-slate-100 dark:bg-slate-800", 
        text: "text-slate-600 dark:text-slate-400", 
        icon: Clock, 
-       label: "Aguardando Pagamento" // <--- Mude de "Pendente" para isto
+       // A MÁGICA: Se for dinheiro, muda a frase!
+       label: isDinheiro ? "Aguardando Loja" : "Aguardando Pagamento" 
     },
     accepted: { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-700 dark:text-blue-400", icon: ClipboardList, label: "Na Fila" },
     preparing: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", icon: UtensilsCrossed, label: "Preparando" },
@@ -537,7 +542,7 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                                                     </span>
                                                 </div>
                                                 <div className="pt-1 flex justify-between items-center w-full">
-                                                    <OrderStatusBadge status={activeOrder.status} />
+                                                    <OrderStatusBadge status={activeOrder.status} paymentMethod={activeOrder.payment_method} />
                                                 </div>
                                             </div>
                                         </div>
@@ -708,7 +713,7 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                                                                 {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                                             </p>
                                                         </div>
-                                                        <OrderStatusBadge status={order.status} />
+                                                        <OrderStatusBadge status={order.status} paymentMethod={order.payment_method} />
                                                     </div>
 
                                                     {/* LISTA DE ITENS */}

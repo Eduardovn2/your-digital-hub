@@ -32,23 +32,34 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
   const updateProduct = useUpdateProduct();
   const uploadImage = useUploadProductImage();
   
-  // Puxa os produtos existentes da loja para extrair as categorias personalizadas
   const { data: existingProducts } = useProducts(storeId);
   
-  // Cria uma lista inteligente com as categorias que o lojista já inventou antes
-  const customCategories = useMemo(() => {
-    if (!existingProducts) return [];
-    const uniqueCats = new Set<string>();
-    
-    existingProducts.forEach(p => {
-      // Se tiver categoria e ela NÃO estiver na nossa lista padrão (CATEGORIES)
-      if (p.category && !CATEGORIES.some(c => c.value === p.category)) {
-        uniqueCats.add(p.category);
-      }
-    });
-    
-    return Array.from(uniqueCats);
-  }, [existingProducts]);
+  // ESTADO: Controla se mostramos a lista ou o campo de digitar
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+
+  // MÁGICA: Junta as categorias padrão com as que o lojista já criou!
+  const allCategories = useMemo(() => {
+    const base = [...CATEGORIES];
+    const added = new Set(base.map(c => c.value)); // Controle para não repetir nomes
+
+    // Se estiver a editar um produto com categoria exótica, garante que ela aparece
+    if (product?.category && !added.has(product.category)) {
+      base.push({ value: product.category, label: `✨ ${product.category}` });
+      added.add(product.category);
+    }
+
+    // Varre os produtos e extrai categorias novas inventadas pelo lojista
+    if (existingProducts) {
+      existingProducts.forEach(p => {
+        if (p.category && !added.has(p.category)) {
+          base.push({ value: p.category, label: `✨ ${p.category}` });
+          added.add(p.category);
+        }
+      });
+    }
+
+    return base;
+  }, [existingProducts, product]);
 
   const [formData, setFormData] = useState({
     name: product?.name || "",
@@ -59,7 +70,6 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
     image_url: product?.image_url || "",
   });
 
-  // ESTADO DOS COMPLEMENTOS
   const [complements, setComplements] = useState<any[]>(product?.complements || []);
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -103,11 +113,7 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
           ...group,
           items: [
             ...group.items,
-            { 
-              id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(), 
-              name: "", 
-              price: "" 
-            }
+            { id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(), name: "", price: "" }
           ]
         };
       }
@@ -147,7 +153,9 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Converte os preços dos itens de string para número antes de salvar
+    // Se deixou a categoria em branco ao criar uma nova, volta ao padrão
+    const finalCategory = formData.category.trim() === "" ? "Outros" : formData.category;
+
     const formattedComplements = complements.map(group => ({
       ...group,
       items: group.items.map((item: any) => ({
@@ -160,7 +168,7 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
       name: formData.name,
       description: formData.description || null,
       price: parseFloat(formData.price.toString().replace(',', '.')),
-      category: formData.category,
+      category: finalCategory,
       popular: formData.popular,
       image_url: formData.image_url || null,
       store_id: storeId,
@@ -234,36 +242,69 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
                   />
                 </div>
                 
-                {/* CAMPO DE CATEGORIA INTELIGENTE */}
+                {/* CAMPO DE CATEGORIA HÍBRIDO */}
                 <div className="space-y-2">
                   <Label className="font-bold flex items-center gap-1">
                     Categoria <span className="text-red-500">*</span>
                   </Label>
                   
-                  <Input
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={(e) => handleChange("category", e.target.value)}
-                    placeholder="Ex: Hambúrgueres..."
-                    required
-                    list="category-suggestions"
-                    className="bg-slate-50 dark:bg-slate-900 w-full"
-                  />
-                  
-                  <datalist id="category-suggestions">
-                    {/* 1. Categorias padrão */}
-                    {CATEGORIES.map(cat => (
-                      <option key={cat.value} value={cat.value} />
-                    ))}
-                    {/* 2. Categorias que o lojista já inventou nesta loja */}
-                    {customCategories.map(cat => (
-                      <option key={cat} value={cat} />
-                    ))}
-                  </datalist>
+                  {!isCreatingCategory ? (
+                    <Select 
+                      value={allCategories.some(c => c.value === formData.category) ? formData.category : ""}
+                      onValueChange={(v) => {
+                        if (v === "NEW_CATEGORY") {
+                          setIsCreatingCategory(true);
+                          handleChange("category", ""); // Limpa para digitar
+                        } else {
+                          handleChange("category", v);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="bg-slate-50 dark:bg-slate-900 w-full">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allCategories.map(cat => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                        <div className="h-px bg-slate-200 dark:bg-slate-800 my-1" />
+                        <SelectItem value="NEW_CATEGORY" className="text-indigo-600 font-bold focus:text-indigo-700 focus:bg-indigo-50 dark:focus:bg-indigo-900/20 cursor-pointer">
+                          <span className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" /> Criar nova categoria...
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                      <Input
+                        value={formData.category}
+                        onChange={(e) => handleChange("category", e.target.value)}
+                        placeholder="Nome da categoria..."
+                        required
+                        autoFocus
+                        className="bg-white border-indigo-300 focus-visible:ring-indigo-500 w-full"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          setIsCreatingCategory(false);
+                          handleChange("category", "Hambúrgueres"); // Volta ao padrão
+                        }}
+                        className="flex-shrink-0 text-slate-400 hover:text-red-500"
+                        title="Cancelar nova categoria"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                   
                   <p className="text-[10px] text-slate-500 font-medium leading-tight mt-1">
-                    Escolha da lista ou digite para criar uma nova.
+                    {isCreatingCategory ? "Digite o nome e salve o produto." : "Escolha ou crie uma nova para organizar a loja."}
                   </p>
                 </div>
               </div>

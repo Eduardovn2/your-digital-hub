@@ -217,20 +217,33 @@ export function StoreProductForm({ storeId, product, onClose }: StoreProductForm
                     required
                   />
                 </div>
+                {/* CAMPO DE CATEGORIA LIVRE E OBRIGATÓRIA */}
                 <div className="space-y-2">
-                  <Label className="font-bold">Categoria</Label>
-                  <Select value={formData.category} onValueChange={(v) => handleChange("category", v)}>
-                    <SelectTrigger className="bg-slate-50 dark:bg-slate-900">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="font-bold flex items-center gap-1">
+                    Categoria <span className="text-red-500">*</span>
+                  </Label>
+                  
+                  <Input
+                    id="category"
+                    name="category"
+                    value={formData.category}
+                    onChange={(e) => handleChange("category", e.target.value)}
+                    placeholder="Ex: Hambúrgueres, Promoção..."
+                    required
+                    list="category-suggestions"
+                    className="bg-slate-50 dark:bg-slate-900 w-full"
+                  />
+                  
+                  {/* Datalist cria as sugestões automáticas baseadas no seu array CATEGORIES */}
+                  <datalist id="category-suggestions">
+                    {CATEGORIES.map(cat => (
+                      <option key={cat.value} value={cat.value} />
+                    ))}
+                  </datalist>
+                  
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Escolha da lista ou digite um novo nome.
+                  </p>
                 </div>
               </div>
             </div>

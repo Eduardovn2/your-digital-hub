@@ -12,22 +12,44 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({ order, paper
 
   return (
     <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
+      {/* MÁGICA DE IMPRESSÃO TÉRMICA: 
+        Força o navegador a usar o papel em rolo (auto altura) e remove quebras de página
+      */}
+      <style>
+        {`
+          @media print {
+            @page {
+              margin: 0;
+              size: ${paperSize === "58mm" ? "58mm" : "80mm"} auto;
+            }
+            body, html {
+              margin: 0 !important;
+              padding: 0 !important;
+              height: auto !important;
+              overflow: visible !important;
+            }
+          }
+        `}
+      </style>
+
       <div
         ref={ref}
         className="print-receipt"
         style={{
-          width: "100%", // MÁGICA 1: Força o HTML a expandir-se até ao limite do papel
-          minWidth: paperSize === "58mm" ? "200px" : "280px", // Evita que o navegador encolha a div
+          width: "100%",
+          minWidth: paperSize === "58mm" ? "200px" : "280px", 
           margin: "0 auto",
-          padding: "0", // Remove margens internas para encostar na borda
+          padding: "0", 
           boxSizing: "border-box",
           fontFamily: "'Courier New', Courier, monospace", 
-          fontSize: paperSize === "58mm" ? "12px" : "14px", // Letras ligeiramente maiores
+          fontSize: paperSize === "58mm" ? "12px" : "14px",
           lineHeight: "1.2",
           color: "black",
           backgroundColor: "white",
           whiteSpace: "pre-wrap",
-          wordWrap: "break-word" 
+          wordWrap: "break-word",
+          overflow: "visible", // Garante que nada fique escondido
+          height: "auto"       // Força a altura dinâmica
         }}
       >
         {/* CABEÇALHO */}
@@ -118,8 +140,8 @@ export const ReceiptTemplate = forwardRef<HTMLDivElement, Props>(({ order, paper
           <div style={{ marginTop: "2px" }}>Obrigado pela preferência!</div>
         </div>
         
-        {/* Espaço extra no final para a guilhotina da impressora não cortar o texto */}
-        <div style={{ height: "15mm" }} />
+        {/* Espaço extra GRANDE no final para a guilhotina da impressora cortar no lugar certo (em branco) */}
+        <div style={{ height: "35mm" }} />
       </div>
     </div>
   );

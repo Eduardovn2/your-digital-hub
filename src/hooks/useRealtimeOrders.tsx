@@ -52,8 +52,10 @@ export function useRealtimeOrders(storeId: string | undefined) {
 
           // Cenário B: O pedido foi atualizado (UPDATE)
           if (payload.eventType === 'UPDATE') {
-            // Se o Webhook do Mercado Pago mudou o status de 'pending' para 'accepted'
-            if (oldOrder?.status === 'pending' && newOrder?.status === 'accepted') {
+            const isDinheiro = ['dinheiro', 'cash'].includes(newOrder.payment_method?.toLowerCase());
+            
+            // Só toca no UPDATE se for um pedido online (PIX/Cartão) que acabou de ser pago
+            if (!isDinheiro && oldOrder?.status === 'pending' && newOrder?.status === 'accepted') {
               shouldNotify = true;
               notificationTitle = "Pagamento Aprovado! Novo pedido na fila.";
             }

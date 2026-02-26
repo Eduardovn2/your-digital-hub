@@ -365,9 +365,16 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
     ];
     
     items.forEach(item => {
-        linhas.push(`${item.quantity}x - ${item.name}`);
-        linhas.push(`(R$ ${Number(item.price).toFixed(2).replace('.', ',')})`);
-        linhas.push(`R$ ${(Number(item.price) * (item.quantity || 1)).toFixed(2).replace('.', ',')}`);
+        linhas.push(`*${item.quantity}x - ${item.name}*`); // Colocamos em negrito no WhatsApp
+        
+        // --- MÁGICA DOS COMPLEMENTOS AQUI ---
+        if (item.observation) {
+            linhas.push(`   ↳ ${item.observation}`); // Adiciona uma setinha elegante
+        }
+        // ------------------------------------
+        
+        linhas.push(`   Unid: R$ ${Number(item.price).toFixed(2).replace('.', ',')}`);
+        linhas.push(`   Subtotal: R$ ${(Number(item.price) * (item.quantity || 1)).toFixed(2).replace('.', ',')}`);
         linhas.push(`____________`);
     });
     

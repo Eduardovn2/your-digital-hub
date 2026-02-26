@@ -11,6 +11,7 @@ import {
   Store, MapPin, Truck, Bell, Save, Loader2, Search, 
   Camera, ImageIcon, CreditCard, Wallet, CheckCircle2,
   ChevronRight, Sparkles, Settings, Info, Clock, User,
+  Instagram
 } from "lucide-react";
 import { toast } from "sonner";
 import { DeliverySettings } from "./DeliverySettings"; 
@@ -30,6 +31,7 @@ export function StoreSettings({ store }: { store: any }) {
     name: store?.name || "",
     description: store?.description || "",
     phone: formatPhone(store?.phone || ""),
+    instagram: store?.instagram || "",
     zip_code: store?.zip_code || "",
     street: store?.street || "",
     street_number: store?.street_number || "",
@@ -205,7 +207,7 @@ export function StoreSettings({ store }: { store: any }) {
                   </div>
                 </div>
               </div>
-              <CardContent className="pt-16 pb-10 px-10 space-y-8">
+<CardContent className="pt-16 pb-10 px-10 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <Label className="font-black text-xs uppercase tracking-widest text-slate-400">Nome da Loja</Label>
@@ -216,9 +218,30 @@ export function StoreSettings({ store }: { store: any }) {
                     <Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner font-mono text-lg font-black text-indigo-600" value={formData.phone} onChange={e => setFormData({...formData, phone: formatPhone(e.target.value)})} />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-black text-xs uppercase tracking-widest text-slate-400">Descrição / Biografia</Label>
-                  <Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner font-medium" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Uma frase curta que define o seu negócio..." />
+
+                {/* Bloco dividido para Descrição e Instagram */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <Label className="font-black text-xs uppercase tracking-widest text-slate-400">Descrição / Biografia</Label>
+                    <Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner font-medium" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Uma frase curta que define o seu negócio..." />
+                  </div>
+                  {/* --- NOVO CAMPO: INSTAGRAM --- */}
+                  <div className="space-y-2">
+                    {/* Removido o <Instagram /> daqui para evitar o aviso de deprecated */}
+                    <Label className="font-black text-xs uppercase tracking-widest text-slate-400">
+                      Instagram da Loja
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-4 text-slate-400 font-bold">@</span>
+                      <Input 
+                        className="h-14 pl-9 rounded-2xl bg-slate-50 border-none shadow-inner font-bold text-pink-600 placeholder:text-slate-300" 
+                        value={formData.instagram} 
+                        onChange={e => setFormData({...formData, instagram: e.target.value})} 
+                        placeholder="sualoja" 
+                      />
+                    </div>
+                  </div>
+                  {/* ----------------------------- */}
                 </div>
               </CardContent>
             </Card>

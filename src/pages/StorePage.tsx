@@ -262,12 +262,24 @@ return (
               </div>
             </div>
 
-            {/* ENDEREÇO NO CANTO (Desktop) */}
+{/* ENDEREÇO NO CANTO (Desktop / Clicável para o Maps) */}
             {(store as any).street && (
-              <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 flex-shrink-0 font-bold self-start mt-2">
+              <a 
+                // Monta a URL do Maps com a Rua, Número e Cidade (se existirem) para o GPS ser exato
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  `${(store as any).street}${(store as any).street_number ? `, ${(store as any).street_number}` : ''}${(store as any).city ? ` - ${(store as any).city}` : ''}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden lg:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 flex-shrink-0 font-bold self-start mt-2 transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                title="Ver rota no Google Maps"
+              >
                 <MapPin className="h-3.5 w-3.5 text-indigo-500" />
-                <span className="truncate max-w-[200px]">{(store as any).street}</span>
-              </div>
+                <span className="truncate max-w-[220px]">
+                  {/* Mostra a Rua e o Número visualmente */}
+                  {(store as any).street}{(store as any).street_number ? `, ${(store as any).street_number}` : ''}
+                </span>
+              </a>
             )}
             
           </GlassCard>

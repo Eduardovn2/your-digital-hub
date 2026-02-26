@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { MenuItemCard } from "@/components/MenuItemCard";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Search, Star, AlertCircle } from "lucide-react";
+import { MapPin, Search, Star, AlertCircle, Clock } from "lucide-react";
 import CartDrawer from "@/components/CartDrawer";
 import { useCart } from "@/contexts/CartContext";
 import { Input } from "@/components/ui/input";
@@ -112,7 +112,7 @@ export default function StorePage() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center space-y-4 transition-colors duration-300">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-slate-500 dark:text-slate-400 animate-pulse">Carregando cardápio...</p>
+        <p className="text-slate-500 dark:text-slate-400 animate-pulse font-bold tracking-tight">Carregando cardápio...</p>
       </div>
     );
   }
@@ -128,7 +128,7 @@ export default function StorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 font-sans transition-colors duration-300 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 font-sans transition-colors duration-300 overflow-x-hidden antialiased tracking-tight">
       
       {/* Header Fixo */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -138,8 +138,8 @@ export default function StorePage() {
       }`}>
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center">
-            <h1 className={`font-bold text-lg transition-opacity duration-300 ${
-              isScrolled ? "opacity-100 text-slate-800 dark:text-white" : "opacity-0"
+            <h1 className={`font-black text-lg transition-opacity duration-300 ${
+              isScrolled ? "opacity-100 text-slate-900 dark:text-white" : "opacity-0"
             }`}>
               {store.name}
             </h1>
@@ -152,9 +152,9 @@ export default function StorePage() {
       </header>
 
       {/* Banner de Capa */}
-      <div className="relative h-64 md:h-80 w-full mb-20"> 
+      <div className="relative h-[22rem] md:h-[26rem] w-full mb-28 md:mb-20"> 
         <div className="absolute inset-0 overflow-hidden rounded-b-[2.5rem] shadow-lg">
-           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 pointer-events-none" />
+           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-10 pointer-events-none" />
            <img 
              src={store.banner_url || "https://images.unsplash.com/photo-1550547660-d9450f859349?w=1200&h=400&fit=crop"} 
              alt="Capa" 
@@ -163,72 +163,96 @@ export default function StorePage() {
         </div>
         
         {/* Card de Perfil da Loja */}
-        <div className="absolute -bottom-16 left-0 right-0 z-20 px-4">
-          <GlassCard className="container mx-auto max-w-4xl p-4 md:p-6 flex flex-row items-center gap-4 md:gap-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-white/40 dark:border-slate-800/40 shadow-xl">
-            <div className="h-16 w-16 md:h-24 md:w-24 rounded-2xl overflow-hidden border-4 border-white dark:border-slate-800 shadow-md flex-shrink-0 bg-white dark:bg-slate-800">
-              <img src={store.logo_url || "https://github.com/shadcn.png"} alt="Logo" className="w-full h-full object-cover" />
-            </div>
+        <div className="absolute -bottom-20 md:-bottom-12 left-0 right-0 z-20 px-4">
+          <GlassCard className="container mx-auto max-w-4xl p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-white/40 dark:border-slate-800/40 shadow-2xl rounded-[2rem]">
             
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4">
-                
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-xl md:text-3xl font-bold text-slate-900 dark:text-white truncate">{store.name}</h1>
-                  {store.description && (
-                    <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 italic break-words">
-                      {store.description}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-400 mt-2">
-                    <span className="flex items-center gap-1 font-medium"><Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /> 4.9</span>
-                    {isOpen ? (
-                      <span className="text-green-600 dark:text-green-400 font-bold bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full flex items-center gap-1 text-xs">
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Aberto
-                      </span>
-                    ) : (
-                      <span className="text-red-500 dark:text-red-400 font-bold bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full text-xs">Fechado</span>
-                    )}
-                  </div>
-                </div>
-                
-                {(store as any).street && (
-                  <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-slate-400 bg-white/80 dark:bg-slate-800/80 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm border dark:border-slate-700 flex-shrink-0">
-                    <MapPin className="h-3 w-3 text-primary" />
-                    <span className="truncate max-w-[200px] md:max-w-xs">{(store as any).street}</span>
-                  </div>
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              {/* LOGO */}
+              <div className="h-20 w-20 md:h-24 md:w-24 rounded-[1.5rem] overflow-hidden border-4 border-white dark:border-slate-800 shadow-md flex-shrink-0 bg-white dark:bg-slate-800 relative z-30 -mt-8 md:mt-0">
+                <img src={store.logo_url || "https://github.com/shadcn.png"} alt="Logo" className="w-full h-full object-cover" />
+              </div>
+              
+              {/* NOME E DESCRIÇÃO MOBILE (Fica ao lado da logo no mobile) */}
+              <div className="flex-1 min-w-0 md:hidden mt-2">
+                <h1 className="text-xl font-black text-slate-900 dark:text-white truncate">{store.name}</h1>
+                {store.description && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 italic font-medium break-words">
+                    {store.description}
+                  </p>
                 )}
               </div>
             </div>
+            
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              
+              {/* NOME E DESCRIÇÃO DESKTOP */}
+              <div className="hidden md:block">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white truncate">{store.name}</h1>
+                    {store.description && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-1 italic font-medium break-words">
+                        {store.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* INFOS INFERIORES: AVALIAÇÃO + STATUS DE HORÁRIO */}
+              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-3 md:mt-4">
+                
+                {/* Estrela / Nota */}
+                <span className="flex items-center gap-1 font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl text-xs shadow-inner">
+                  <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" /> 4.9
+                </span>
+
+                {/* Bloco Integrado de Horário (Gourmet) */}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-inner">
+                  {isOpen ? (
+                    <span className="text-emerald-700 dark:text-emerald-400 font-black bg-white dark:bg-slate-900 px-3 py-1 rounded-lg flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wider shadow-sm">
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Aberto
+                    </span>
+                  ) : (
+                    <span className="text-red-600 dark:text-red-400 font-black bg-white dark:bg-slate-900 px-3 py-1 rounded-lg flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wider shadow-sm">
+                      <div className="h-1.5 w-1.5 rounded-full bg-red-500" /> Fechado
+                    </span>
+                  )}
+                  
+                  {/* O horário formatado aparece aqui perfeitamente alinhado */}
+                  {hours?.opening_time && hours?.closing_time && (
+                    <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold px-3 flex items-center gap-1.5 uppercase tracking-wide">
+                      <Clock className="h-3 w-3 opacity-50" />
+                      {isOpen 
+                        ? `Hoje até ${hours.closing_time.substring(0, 5)}` 
+                        : `Abre às ${hours.opening_time.substring(0, 5)}`}
+                    </span>
+                  )}
+                </div>
+                
+              </div>
+            </div>
+
+            {/* ENDEREÇO NO CANTO (Desktop) */}
+            {(store as any).street && (
+              <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 flex-shrink-0 font-bold self-start mt-2">
+                <MapPin className="h-3.5 w-3.5 text-indigo-500" />
+                <span className="truncate max-w-[200px]">{(store as any).street}</span>
+              </div>
+            )}
+            
           </GlassCard>
-        </div>
-      </div>
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          {isOpen ? (
-            <span className="text-green-600 font-bold bg-green-100 px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
-              <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Aberto
-            </span>
-          ) : (
-            <span className="text-red-500 font-bold bg-red-100 px-2 py-0.5 rounded-full text-xs">Fechado</span>
-          )}
-          
-          {/* MOSTRA O HORÁRIO DE HOJE */}
-          {hours && (
-            <span className="text-slate-400 text-[10px] font-medium">
-              Hoje: {hours.opening_time} às {hours.closing_time}
-            </span>
-          )}
         </div>
       </div>
 
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Busca e Filtros */}
-        <div className="sticky top-16 z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm py-4 space-y-4">
+        <div className="sticky top-16 z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md py-4 space-y-4">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-600" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
             <Input 
               placeholder="O que você procura hoje?" 
-              className="pl-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 dark:text-white h-12 rounded-xl" 
+              className="pl-11 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 dark:text-white h-14 rounded-2xl shadow-sm font-medium focus-visible:ring-indigo-500" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -240,7 +264,7 @@ export default function StorePage() {
                 {categories.map((cat) => (
                   <TabsTrigger 
                     key={cat} value={cat}
-                    className="rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:text-slate-400 px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground shadow-sm whitespace-nowrap"
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 dark:text-slate-400 px-6 py-3 data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-bold shadow-sm whitespace-nowrap transition-all"
                   >
                     {translateCategory(cat)}
                   </TabsTrigger>
@@ -254,10 +278,10 @@ export default function StorePage() {
         <div className="mt-6 pb-20 space-y-12">
           {categories.length > 0 ? (
             categories.map((category) => (
-              <div key={category} id={`category-${category}`} className="scroll-mt-48 animate-fade-in">
-                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
+              <div key={category} id={`category-${category}`} className="scroll-mt-52 animate-in fade-in duration-500">
+                <h2 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-3">
                   {translateCategory(category)}
-                  <span className="text-xs font-normal text-slate-400 dark:text-slate-600 bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded-full">
+                  <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-full">
                     {groupedProducts[category].length}
                   </span>
                 </h2>
@@ -270,9 +294,12 @@ export default function StorePage() {
               </div>
             ))
           ) : (
-            <div className="py-12 text-center">
-              <Search className="h-10 w-10 text-slate-300 dark:text-slate-800 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-600 dark:text-slate-400">Nenhum item encontrado</h3>
+            <div className="py-16 text-center bg-white dark:bg-slate-900 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-800">
+              <div className="bg-slate-50 dark:bg-slate-800 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="h-8 w-8 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-200">Nenhum item encontrado</h3>
+              <p className="text-slate-500 font-medium mt-1">Tente buscar por outra palavra-chave.</p>
             </div>
           )}
         </div>

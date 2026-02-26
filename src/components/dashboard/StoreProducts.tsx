@@ -33,7 +33,7 @@ export function StoreProducts({ storeId }: StoreProductsProps) {
     );
   }
 
-return (
+  return (
     <div className="space-y-4">
       {/* Adicionado flex-wrap e gap-4 para não estourar a tela no mobile */}
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -63,6 +63,7 @@ return (
               key={product.id}
               className="bg-card border rounded-xl p-4 flex items-center gap-4"
             >
+              {/* Mudei flex-shrink-0 para não amassar a imagem */}
               <div className="h-16 w-16 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                 {product.image_url ? (
                   <img
@@ -77,24 +78,31 @@ return (
                 )}
               </div>
 
+              {/* O min-w-0 que protege o layout */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-medium truncate">{product.name}</h3>
+                
+                {/* Adicionado flex-wrap no título para a badge "Popular" não estourar */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-medium truncate max-w-full">{product.name}</h3>
                   {product.popular && (
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">
                       Popular
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground truncate">
+                
+                {/* A MÁGICA AQUI: Tirei o truncate e coloquei line-clamp-2 e break-words */}
+                <p className="text-sm text-muted-foreground mt-1 break-words whitespace-normal line-clamp-2">
                   {product.description || "Sem descrição"}
                 </p>
+                
                 <p className="text-sm font-semibold text-primary mt-1">
                   R$ {Number(product.price).toFixed(2).replace('.', ',')}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Botões isolados para não esmagarem */}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Button
                   variant="outline"
                   size="icon"

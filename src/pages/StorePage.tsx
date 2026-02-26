@@ -162,18 +162,20 @@ export default function StorePage() {
            />
         </div>
         
-        {/* Card de Perfil da Loja */}
+
+{/* Card de Perfil da Loja */}
         <div className="absolute -bottom-20 md:-bottom-12 left-0 right-0 z-20 px-4">
-          <GlassCard className="container mx-auto max-w-4xl p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-white/40 dark:border-slate-800/40 shadow-2xl rounded-[2rem]">
+          {/* ADICIONADO !overflow-visible AQUI PARA A FOTO NÃO CORTAR */}
+          <GlassCard className="container mx-auto max-w-4xl p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-white/40 dark:border-slate-800/40 shadow-2xl rounded-[2rem] !overflow-visible">
             
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              {/* LOGO */}
-              <div className="h-20 w-20 md:h-24 md:w-24 rounded-[1.5rem] overflow-hidden border-4 border-white dark:border-slate-800 shadow-md flex-shrink-0 bg-white dark:bg-slate-800 relative z-30 -mt-8 md:mt-0">
+            <div className="flex items-center gap-4 w-full md:w-auto relative">
+              {/* LOGO - Ajustado o -mt-10 para saltar perfeitamente para fora do cartão no mobile */}
+              <div className="h-20 w-20 md:h-24 md:w-24 rounded-[1.5rem] overflow-hidden border-4 border-white dark:border-slate-800 shadow-md flex-shrink-0 bg-white dark:bg-slate-800 relative z-30 -mt-12 md:mt-0">
                 <img src={store.logo_url || "https://github.com/shadcn.png"} alt="Logo" className="w-full h-full object-cover" />
               </div>
               
-              {/* NOME E DESCRIÇÃO MOBILE (Fica ao lado da logo no mobile) */}
-              <div className="flex-1 min-w-0 md:hidden mt-2">
+              {/* NOME E DESCRIÇÃO MOBILE */}
+              <div className="flex-1 min-w-0 md:hidden mt-1">
                 <h1 className="text-xl font-black text-slate-900 dark:text-white truncate">{store.name}</h1>
                 {store.description && (
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 italic font-medium break-words">
@@ -200,7 +202,7 @@ export default function StorePage() {
               </div>
 
               {/* INFOS INFERIORES: AVALIAÇÃO + STATUS DE HORÁRIO */}
-              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-3 md:mt-4">
+              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-1 md:mt-4">
                 
                 {/* Estrela / Nota */}
                 <span className="flex items-center gap-1 font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl text-xs shadow-inner">
@@ -219,7 +221,6 @@ export default function StorePage() {
                     </span>
                   )}
                   
-                  {/* O horário formatado aparece aqui perfeitamente alinhado */}
                   {hours?.opening_time && hours?.closing_time && (
                     <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold px-3 flex items-center gap-1.5 uppercase tracking-wide">
                       <Clock className="h-3 w-3 opacity-50" />

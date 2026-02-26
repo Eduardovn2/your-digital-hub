@@ -106,10 +106,10 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
 
           <Button
             onClick={handleQuickAdd}
-            className={`w-full h-10 text-white dark:text-slate-900 rounded-lg text-xs font-bold uppercase tracking-wider active:scale-95 transition-transform shadow-md ${
+            className={`w-full h-10 text-white dark:text-white rounded-lg text-xs font-bold uppercase tracking-wider active:scale-95 transition-all shadow-lg backdrop-blur-md border border-white/20 ${
               hasComplements 
-                ? "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400" // Cor diferente para produtos com opções
-                : "bg-slate-900 dark:bg-slate-100 hover:bg-black dark:hover:bg-white"
+                ? "bg-indigo-600/60 hover:bg-indigo-600/80 dark:bg-indigo-500/50 dark:hover:bg-indigo-500/70" // Efeito Glass Indigo
+                : "bg-slate-900/70 hover:bg-slate-900/90 dark:bg-white/10 dark:hover:bg-white/20" // Efeito Glass Dark/White
             }`}
           >
             {hasComplements ? "Opções" : "Adicionar"}

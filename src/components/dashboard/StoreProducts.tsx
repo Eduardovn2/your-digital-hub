@@ -33,9 +33,10 @@ export function StoreProducts({ storeId }: StoreProductsProps) {
     );
   }
 
-  return (
+return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Adicionado flex-wrap e gap-4 para não estourar a tela no mobile */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-xl font-semibold">Produtos ({products?.length || 0})</h2>
         <Button onClick={() => setShowForm(true)} className="bg-primary">
           <Plus className="h-4 w-4 mr-2" />

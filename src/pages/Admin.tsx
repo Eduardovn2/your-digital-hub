@@ -166,9 +166,9 @@ const navigationItems = [
     </div>
   );
 
-  // --- DASHBOARD PRINCIPAL ---
+// --- DASHBOARD PRINCIPAL ---
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans overflow-x-hidden max-w-[100vw]">
       
       {/* SIDEBAR DESKTOP - Escondida no mobile (hidden md:flex) */}
       <aside className="hidden md:flex w-72 bg-slate-900 text-white flex-shrink-0 flex-col sticky top-0 h-screen">
@@ -176,7 +176,7 @@ const navigationItems = [
       </aside>
 
       {/* ÁREA DE CONTEÚDO */}
-      <main className="flex-1 overflow-y-auto min-h-screen bg-slate-50">
+      <main className="flex-1 overflow-x-hidden overflow-y-auto min-h-screen bg-slate-50">
         <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
           
           {/* HEADER RESPONSIVO */}
@@ -188,7 +188,7 @@ const navigationItems = [
                 <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-slate-600 hover:bg-slate-100">
-                      <Menu className="h-6 w-6" /> {/* Ícone dos 3 traços */}
+                      <Menu className="h-6 w-6" />
                     </Button>
                   </SheetTrigger>
                   
@@ -217,8 +217,6 @@ const navigationItems = [
 
           {/* RENDERIZAÇÃO DAS ABAS */}
           <div className="animate-in fade-in duration-500">
-            {/* O PULO DO GATO: Usamos 'store!' para dizer ao TypeScript que o store existe aqui */}
-            
             {activeTab === "dashboard" && (
               <div className="space-y-8">
                 <DashboardStats storeId={store!.id} />

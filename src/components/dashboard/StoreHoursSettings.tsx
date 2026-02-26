@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, Clock } from "lucide-react";
+import { Loader2, Save, Clock, CalendarDays, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 
@@ -14,42 +14,38 @@ interface StoreHoursSettingsProps {
 }
 
 const DAYS_OF_WEEK = [
-  { id: 0, label: "Domingo" },
   { id: 1, label: "Segunda" },
   { id: 2, label: "Terça" },
   { id: 3, label: "Quarta" },
   { id: 4, label: "Quinta" },
   { id: 5, label: "Sexta" },
   { id: 6, label: "Sábado" },
+  { id: 0, label: "Domingo" },
 ];
 
 export function StoreHoursSettings({ storeId }: StoreHoursSettingsProps) {
   const queryClient = useQueryClient();
   
-  // Estado local alinhado com seu Banco de Dados
   const [openingTime, setOpeningTime] = useState("18:00");
   const [closingTime, setClosingTime] = useState("23:00");
   const [daysOpen, setDaysOpen] = useState<number[]>([]);
   const [isAutoControl, setIsAutoControl] = useState(true);
   const [recordId, setRecordId] = useState<string | null>(null);
 
-  // 1. Busca configurações existentes
   const { data: settings, isLoading } = useQuery({
     queryKey: ["store-hours", storeId],
     queryFn: async () => {
-      // Tenta buscar a configuração única desta loja
       const { data, error } = await supabase
         .from("store_hours")
         .select("*")
         .eq("store_id", storeId)
-        .maybeSingle(); // Usa maybeSingle pois pode não existir ainda
+        .maybeSingle();
 
       if (error) throw error;
       return data;
     },
   });
 
-  // 2. Carrega dados no estado
   useEffect(() => {
     if (settings) {
       setOpeningTime(settings.opening_time || "18:00");
@@ -60,7 +56,6 @@ export function StoreHoursSettings({ storeId }: StoreHoursSettingsProps) {
     }
   }, [settings]);
 
-  // 3. Função para alternar dias
   const toggleDay = (dayId: number) => {
     setDaysOpen(prev => 
       prev.includes(dayId) 
@@ -69,7 +64,6 @@ export function StoreHoursSettings({ storeId }: StoreHoursSettingsProps) {
     );
   };
 
-  // 4. Mutação para Salvar
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -80,115 +74,147 @@ export function StoreHoursSettings({ storeId }: StoreHoursSettingsProps) {
         is_auto_control: isAutoControl
       };
 
-      let error;
-      
       if (recordId) {
-        // Atualiza existente
-        const { error: updateError } = await supabase
+        const { error } = await supabase
           .from("store_hours")
           .update(payload)
           .eq("id", recordId);
-        error = updateError;
+        if (error) throw error;
       } else {
-        // Cria novo
-        const { error: insertError } = await supabase
+        const { error } = await supabase
           .from("store_hours")
           .insert([payload]);
-        error = insertError;
+        if (error) throw error;
       }
-
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["store-hours"] });
-      toast.success("Horários atualizados!");
+      toast.success("Horários de funcionamento atualizados! 🕒");
     },
     onError: (error) => toast.error("Erro ao salvar: " + error.message),
   });
 
-  if (isLoading) return <Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" />;
+  if (isLoading) return (
+    <div className="flex items-center justify-center p-12">
+      <Loader2 className="animate-spin h-8 w-8 text-amber-500" />
+    </div>
+  );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Horário de Funcionamento</CardTitle>
-        <CardDescription>
-          Defina os dias e o horário padrão que sua loja opera.
+    <Card className="border-none shadow-xl bg-white dark:bg-slate-900 overflow-hidden rounded-[2.5rem]">
+      {/* Barra de destaque colorida */}
+      <div className="h-2 bg-gradient-to-r from-amber-400 to-orange-500 w-full" />
+      
+      <CardHeader className="pb-4">
+        <CardTitle className="text-xl font-black flex items-center gap-3">
+          <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-xl">
+            <Clock className="h-5 w-5 text-amber-600" />
+          </div>
+          Funcionamento
+        </CardTitle>
+        <CardDescription className="font-medium">
+          Automatize a abertura e fecho da sua loja online.
         </CardDescription>
       </CardHeader>
+
       <CardContent className="space-y-8">
         
-        {/* Controle Automático */}
-        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
-          <div className="space-y-0.5">
-            <Label className="text-base">Abrir/Fechar Automaticamente</Label>
-            <p className="text-sm text-slate-500">
-              O site mudará status baseado nos horários abaixo.
+        {/* Switch Principal Gourmet */}
+        <div className={`flex items-center justify-between p-5 rounded-3xl border-2 transition-all ${
+          isAutoControl 
+            ? "bg-amber-50/50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/30" 
+            : "bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-800"
+        }`}>
+          <div className="space-y-1">
+            <Label className="text-base font-bold text-slate-800 dark:text-slate-200">Controlo Automático</Label>
+            <p className="text-xs text-slate-500 font-medium max-w-[200px] leading-tight">
+              O site mudará o estado (Aberto/Fechado) sozinho.
             </p>
           </div>
           <Switch 
             checked={isAutoControl} 
             onCheckedChange={setIsAutoControl}
+            className="data-[state=checked]:bg-amber-500"
           />
         </div>
 
-        <div className={!isAutoControl ? "opacity-50 pointer-events-none" : ""}>
-          {/* Seleção de Dias */}
-          <div className="space-y-3 mb-6">
-            <Label>Dias de Funcionamento</Label>
+        <div className={`space-y-8 transition-all duration-500 ${!isAutoControl ? "opacity-30 grayscale pointer-events-none scale-95" : "opacity-100"}`}>
+          
+          {/* Seleção de Dias com Visual de Botão */}
+          <div className="space-y-4">
+            <Label className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <CalendarDays className="h-3 w-3" /> Dias de Atendimento
+            </Label>
             <div className="flex flex-wrap gap-2">
               {DAYS_OF_WEEK.map((day) => {
                 const isSelected = daysOpen.includes(day.id);
                 return (
-                  <div 
+                  <button 
                     key={day.id}
+                    type="button"
                     onClick={() => toggleDay(day.id)}
-                    className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                    className={`px-4 py-3 rounded-2xl text-xs font-black transition-all border-2 ${
                       isSelected 
-                        ? "bg-primary text-white border-primary shadow-sm" 
-                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                        ? "bg-amber-500 text-white border-amber-400 shadow-lg shadow-amber-200 dark:shadow-none scale-105" 
+                        : "bg-white dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-800 hover:border-amber-200"
                     }`}
                   >
-                    {day.label.slice(0, 3)}
-                  </div>
+                    {day.label.slice(0, 3).toUpperCase()}
+                  </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Seleção de Horário (Global) */}
+          {/* Inputs de Horário Estilizados */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Abertura</Label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hora de Abertura</Label>
+              <div className="relative group">
+                <Clock className="absolute left-4 top-4 h-4 w-4 text-slate-300 group-focus-within:text-amber-500 transition-colors" />
                 <Input 
                   type="time" 
-                  className="pl-9"
+                  className="pl-11 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none font-bold text-slate-700 dark:text-slate-200 shadow-inner"
                   value={openingTime}
                   onChange={(e) => setOpeningTime(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Fechamento</Label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hora de Fecho</Label>
+              <div className="relative group">
+                <Clock className="absolute left-4 top-4 h-4 w-4 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
                 <Input 
                   type="time" 
-                  className="pl-9"
+                  className="pl-11 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none font-bold text-slate-700 dark:text-slate-200 shadow-inner"
                   value={closingTime}
                   onChange={(e) => setClosingTime(e.target.value)}
                 />
               </div>
             </div>
           </div>
+
+          {/* Dica de Mestre Integrada */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl flex gap-3 items-start border border-blue-100 dark:border-blue-900/30">
+            <Sparkles className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-blue-700 dark:text-blue-400 font-medium leading-relaxed">
+              Dica: Manter os horários atualizados evita que receba pedidos quando a cozinha está fechada, melhorando a sua nota com os clientes!
+            </p>
+          </div>
         </div>
 
-        <div className="flex justify-end pt-4 border-t">
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="w-full sm:w-auto">
-            {saveMutation.isPending ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-            Salvar Configurações
+        <div className="pt-2">
+          <Button 
+            onClick={() => saveMutation.mutate()} 
+            disabled={saveMutation.isPending} 
+            className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-xs shadow-xl transition-all hover:scale-[1.02] active:scale-95"
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="animate-spin mr-2 h-5 w-5" />
+            ) : (
+              <Save className="mr-2 h-5 w-5 text-amber-400" />
+            )}
+            Atualizar Funcionamento
           </Button>
         </div>
       </CardContent>

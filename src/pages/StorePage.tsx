@@ -8,7 +8,7 @@ import CartDrawer from "@/components/CartDrawer";
 import { useCart } from "@/contexts/CartContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle"; // Importando o novo botão
+import { ThemeToggle } from "@/components/ThemeToggle"; 
 
 import { useStoreBySlug } from "@/hooks/useStores";
 import { useProducts, productToMenuItem } from "@/hooks/useProducts";
@@ -50,20 +50,16 @@ export default function StorePage() {
       setStoreId(store.id);
     }
 
-    // Função otimizada
     const handleScroll = () => {
       const threshold = 50;
       const isOverThreshold = window.scrollY > threshold;
 
-      // SÓ atualiza o estado se o valor REALMENTE mudou
       setIsScrolled((prev) => {
         if (prev !== isOverThreshold) return isOverThreshold;
         return prev;
       });
     };
 
-    // O 'passive: true' avisa ao navegador que não vamos cancelar o scroll,
-    // o que libera a renderização da página para ser muito mais fluida no mobile.
     window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => window.removeEventListener("scroll", handleScroll);
@@ -132,7 +128,7 @@ export default function StorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 font-sans transition-colors duration-300 overflow-x-hidden">
       
       {/* Header Fixo */}
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -175,10 +171,11 @@ export default function StorePage() {
             
             <div className="flex-1 min-w-0">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4">
-                <div>
+                
+                <div className="min-w-0 flex-1">
                   <h1 className="text-xl md:text-3xl font-bold text-slate-900 dark:text-white truncate">{store.name}</h1>
                   {store.description && (
-                    <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 italic">
+                    <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 italic break-words">
                       {store.description}
                     </p>
                   )}
@@ -195,7 +192,7 @@ export default function StorePage() {
                 </div>
                 
                 {(store as any).street && (
-                  <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-slate-400 bg-white/80 dark:bg-slate-800/80 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm border dark:border-slate-700">
+                  <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-slate-400 bg-white/80 dark:bg-slate-800/80 px-3 py-1 rounded-full backdrop-blur-sm shadow-sm border dark:border-slate-700 flex-shrink-0">
                     <MapPin className="h-3 w-3 text-primary" />
                     <span className="truncate max-w-[200px] md:max-w-xs">{(store as any).street}</span>
                   </div>

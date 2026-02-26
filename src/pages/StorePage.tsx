@@ -233,10 +233,11 @@ export default function StorePage() {
                   </div>
                 </div>
 
-                {/* Linha 2: Botões de Contato (WhatsApp e Instagram) */}
+{/* Linha 2: Botões de Contato (WhatsApp e Instagram) */}
                 <div className="flex items-center gap-2">
-                  {/* Se tiver telefone, mostra o botão do WhatsApp */}
-                  {(store as any).phone && (
+                  
+                  {/* Validação rigorosa: Só mostra se o telefone existir, não for a palavra "null" e tiver números */}
+                  {(store as any).phone && (store as any).phone !== "null" && (store as any).phone.replace(/\D/g, "").length > 0 && (
                     <a 
                       href={`https://wa.me/55${(store as any).phone.replace(/\D/g, "")}`} 
                       target="_blank" 
@@ -244,22 +245,24 @@ export default function StorePage() {
                       className="flex items-center gap-2 h-9 px-4 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
                     >
                       <Phone className="h-3.5 w-3.5" />
-                      Pedir pelo WhatsApp
+                      Pedir no WhatsApp
                     </a>
                   )}
 
-                  {/* Se tiver Instagram, mostra o botão do Insta */}
-                  {(store as any).instagram && (
+                  {/* Validação rigorosa: Só mostra se o instagram existir, não for "null" e não for vazio */}
+                  {(store as any).instagram && (store as any).instagram !== "null" && (store as any).instagram.trim() !== "" && (
                     <a 
-                      href={`https://instagram.com/${(store as any).instagram.replace('@', '')}`} 
+                      href={`https://instagram.com/${(store as any).instagram.replace('@', '').trim()}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="flex items-center gap-1.5 h-9 px-3 bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50 text-pink-600 dark:text-pink-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
+                      className="flex items-center gap-1.5 h-9 px-4 bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50 text-pink-600 dark:text-pink-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
                       title="Visitar Instagram"
                     >
-                      <Instagram className="h-4 w-4" />
+                      <Instagram className="h-3.5 w-3.5" />
+                      Instagram
                     </a>
                   )}
+                  
                 </div>
 
               </div>

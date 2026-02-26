@@ -199,16 +199,11 @@ return (
                 </div>
               </div>
 
-              {/* INFOS INFERIORES: AVALIAÇÃO + STATUS DE HORÁRIO + REDES SOCIAIS */}
               <div className="flex flex-col gap-3 mt-2 md:mt-4">
                 
-                {/* Linha 1: Estrela e Horário */}
+                {/* Linha 1: Horário */}
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                  {/* Estrela / Nota */}
-                  <span className="flex items-center gap-1 font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl text-xs shadow-inner">
-                    <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" /> 4.9
-                  </span>
-
+                  
                   {/* Bloco Integrado de Horário (Gourmet) */}
                   <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-inner">
                     {isOpen ? (
@@ -232,7 +227,7 @@ return (
                   </div>
                 </div>
 
-{/* Linha 2: Botões de Contato (WhatsApp e Instagram) */}
+                {/* Linha 2: Botões de Contato (WhatsApp e Instagram) */}
                 <div className="flex items-center gap-2">
                   
                   {/* Validação rigorosa: Só mostra se o telefone existir, não for a palavra "null" e tiver números */}

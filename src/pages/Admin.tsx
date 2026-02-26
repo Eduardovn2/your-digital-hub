@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useSearchParams } from "react-router-dom"; 
 
 import { 
-  Menu, // <--- O ícone dos 3 traços
+  Menu, 
   Store, 
   LayoutDashboard, 
   UtensilsCrossed, 
@@ -28,7 +28,6 @@ import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useQueryClient } from "@tanstack/react-query";
 
-// Imports condicionais seguros
 import { OrdersList } from "@/components/dashboard/OrdersList";
 import { StoreProducts } from "@/components/dashboard/StoreProducts";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
@@ -37,9 +36,8 @@ import { toast } from "sonner";
 export default function Admin() {
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams(); // <-- NOVO
+  const [searchParams, setSearchParams] = useSearchParams(); 
   
-  // Busca a loja do utilizador
   const { 
     data: store, 
     isLoading, 
@@ -52,22 +50,20 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Força uma atualização dos dados sempre que entrar na página
-useEffect(() => {
+  useEffect(() => {
     const paymentStatus = searchParams.get("payment");
     
     if (paymentStatus === "success") {
-      toast.success("Pagamento aprovado! Bem-vindo ao VianaEccomerce 🎉");
+      toast.success("Pagamento aprovado! Bem-vindo ao VianaEcommerce 🎉");
       searchParams.delete("payment");
       setSearchParams(searchParams);
     } else if (paymentStatus === "pending") {
-      toast.info("Seu pagamento está sendo processado. Você terá acesso total assim que for confirmado.");
+      toast.info("Seu pagamento está sendo processado.");
       searchParams.delete("payment");
       setSearchParams(searchParams);
     }
   }, [searchParams, setSearchParams]);
 
-  // Força uma atualização dos dados...
   useEffect(() => {
     if (user?.id) {
       refetch();
@@ -83,7 +79,6 @@ useEffect(() => {
     );
   }
 
-  // --- TELA DE CONFIGURAÇÃO INICIAL (Se não houver loja) ---
   if (!store && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
@@ -92,7 +87,7 @@ useEffect(() => {
             <div className="bg-primary/10 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto">
               <Rocket className="h-10 w-10 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900">Bem-vindo ao VianaEccomerce</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Bem-vindo ao VianaEcommerce</h1>
             <p className="text-slate-500">Parece que ainda não tem uma loja ativa.</p>
             <Button variant="ghost" size="sm" onClick={() => refetch()} className="text-primary hover:bg-primary/10">
                 <RefreshCw className="h-4 w-4 mr-2" /> Verificar novamente
@@ -109,55 +104,55 @@ useEffect(() => {
     );
   }
 
-  // Definição dos itens de navegação
-const navigationItems = [
-  { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
-  { id: "orders", label: "Pedidos", icon: ShoppingBag },
-  { id: "menu", label: "Cardápio", icon: UtensilsCrossed },
-  { id: "printing", label: "Impressora", icon: Printer }, // <--- NOVO ITEM
-  { id: "settings", label: "Configurações", icon: Settings },
-];
-  // Componente reutilizável para o conteúdo da barra lateral
+  const navigationItems = [
+    { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
+    { id: "orders", label: "Pedidos", icon: ShoppingBag },
+    { id: "menu", label: "Cardápio", icon: UtensilsCrossed },
+    { id: "printing", label: "Impressora", icon: Printer },
+    { id: "settings", label: "Configurações", icon: Settings },
+  ];
+
+  // SIDEBAR GOURMETIZADA
   const SidebarContent = () => (
-    <div className="flex flex-col h-full text-white"> {/* Adicionado text-white para garantir cor no mobile */}
-      <div className="p-6 border-b border-slate-800">
+    <div className="flex flex-col h-full bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950 text-white"> 
+      <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-blue-600 flex items-center justify-center font-bold text-white shrink-0">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-400 flex items-center justify-center font-bold text-white shrink-0 shadow-lg shadow-indigo-500/20">
               {store?.name?.substring(0,1).toUpperCase() || "V"}
             </div>
             <div className="truncate">
-              <h1 className="font-bold text-lg leading-none truncate text-white">{store?.name}</h1>
-              <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Online
+              <h1 className="font-bold text-lg leading-none truncate">{store?.name}</h1>
+              <p className="text-[10px] text-indigo-300/60 mt-1 flex items-center gap-1 font-black uppercase tracking-tighter">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Loja Online
               </p>
             </div>
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
         {navigationItems.map((item) => (
           <button
             key={item.id}
             onClick={() => {
               setActiveTab(item.id);
-              setIsMobileMenuOpen(false); // Fecha o menu mobile ao clicar
+              setIsMobileMenuOpen(false);
             }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
               activeTab === item.id 
-                ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ? "bg-white/10 text-white border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md" 
+                : "text-slate-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className={`h-5 w-5 transition-colors ${activeTab === item.id ? "text-indigo-400" : "text-slate-500"}`} />
             {item.label}
           </button>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-800 mt-auto">
+      <div className="p-4 border-t border-white/5 bg-black/20">
         <Button 
           variant="ghost" 
-          className="w-full justify-start text-red-400 hover:bg-red-900/10 hover:text-red-300" 
+          className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all" 
           onClick={() => signOut()}
         >
           <LogOut className="h-4 w-4 mr-2" /> Sair
@@ -166,24 +161,22 @@ const navigationItems = [
     </div>
   );
 
-// --- DASHBOARD PRINCIPAL ---
+  // ESTRUTURA COM SCROLL INDEPENDENTE
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans overflow-x-hidden max-w-[100vw]">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-50 font-sans">
       
-      {/* SIDEBAR DESKTOP - Escondida no mobile (hidden md:flex) */}
-      <aside className="hidden md:flex w-72 bg-slate-900 text-white flex-shrink-0 flex-col sticky top-0 h-screen">
+      {/* SIDEBAR DESKTOP - Fixa na lateral esquerda */}
+      <aside className="hidden md:flex w-72 flex-shrink-0 flex-col h-full border-r border-slate-200">
         <SidebarContent />
       </aside>
 
-      {/* ÁREA DE CONTEÚDO */}
-      <main className="flex-1 overflow-x-hidden overflow-y-auto min-h-screen bg-slate-50">
+      {/* ÁREA DE CONTEÚDO - Apenas esta parte rola (overflow-y-auto) */}
+      <main className="flex-1 overflow-y-auto h-full bg-slate-50 relative">
         <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
           
           {/* HEADER RESPONSIVO */}
-          <header className="flex justify-between items-center mb-8 bg-white p-4 rounded-2xl shadow-sm md:bg-transparent md:p-0 md:shadow-none">
+          <header className="flex justify-between items-center mb-8 bg-white p-4 rounded-2xl shadow-sm md:bg-transparent md:p-0 md:shadow-none sticky top-0 z-10 md:relative">
             <div className="flex items-center gap-3">
-              
-              {/* BOTÃO HAMBURGER MOBILE - Só aparece no mobile (md:hidden) */}
               <div className="md:hidden">
                 <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                   <SheetTrigger asChild>
@@ -191,9 +184,7 @@ const navigationItems = [
                       <Menu className="h-6 w-6" />
                     </Button>
                   </SheetTrigger>
-                  
-                  {/* CONTEÚDO DA GAVETA MOBILE */}
-                  <SheetContent side="left" className="bg-slate-900 p-0 border-none w-72">
+                  <SheetContent side="left" className="p-0 border-none w-72">
                     <SidebarContent />
                   </SheetContent>
                 </Sheet>
@@ -216,7 +207,7 @@ const navigationItems = [
           </header>
 
           {/* RENDERIZAÇÃO DAS ABAS */}
-          <div className="animate-in fade-in duration-500">
+          <div className="animate-in fade-in duration-500 pb-10">
             {activeTab === "dashboard" && (
               <div className="space-y-8">
                 <DashboardStats storeId={store!.id} />

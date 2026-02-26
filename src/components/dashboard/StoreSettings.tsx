@@ -152,11 +152,10 @@ export function StoreSettings({ store }: { store: any }) {
           <div className="relative w-full">
             {/* O SEGREDO É O JUSTIFY-START: Garante que a primeira aba nunca some */}
             <TabsList className="bg-slate-100/50 dark:bg-slate-900 p-1.5 flex justify-start flex-nowrap overflow-x-auto gap-2 rounded-2xl w-full no-scrollbar snap-x snap-mandatory">
-              {[
+             {[
                 { id: "perfil", label: "Perfil", icon: User, color: "text-indigo-500" },
                 { id: "horarios", label: "Funcionamento", icon: Clock, color: "text-amber-500" },
-                { id: "endereco", label: "Endereço", icon: MapPin, color: "text-emerald-500" },
-                { id: "entrega", label: "Logística", icon: Truck, color: "text-orange-500" },
+                { id: "entrega", label: "Endereço & Entrega", icon: MapPin, color: "text-emerald-500" }, 
                 { id: "pagamentos", label: "Pagamentos", icon: Wallet, color: "text-blue-500" },
                 { id: "notificacoes", label: "Alertas", icon: Bell, color: "text-pink-500" },
                 { id: "assinatura", label: "Plano", icon: CreditCard, color: "text-purple-500" }
@@ -243,34 +242,43 @@ export function StoreSettings({ store }: { store: any }) {
           </div>
         </TabsContent>
 
-        {/* --- ABA 3: ENDEREÇO --- */}
-        <TabsContent value="endereco" className="outline-none animate-in slide-in-from-bottom-2 duration-500">
-          <div className="max-w-3xl mx-auto">
-            <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-white">
+
+{/* --- ABA 3: ENDEREÇO E LOGÍSTICA UNIFICADA --- */}
+        <TabsContent value="entrega" className="outline-none animate-in slide-in-from-bottom-2 duration-500 space-y-8">
+          
+          {/* 1. CARTÃO DE ENDEREÇO DA LOJA */}
+          <div className="max-w-4xl mx-auto">
+            <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white">
               <CardHeader className="bg-emerald-50/30 border-b border-emerald-100/50 pb-6">
                 <CardTitle className="text-xl font-black flex items-center gap-2 text-emerald-900">
-                  <MapPin className="h-6 w-6 text-emerald-600" /> Localização da Loja
+                  <MapPin className="h-6 w-6 text-emerald-600" /> Local de Origem
                 </CardTitle>
-                <CardDescription>Defina onde o seu negócio está sediado para o cálculo de entregas.</CardDescription>
+                <CardDescription>De onde os seus pedidos irão sair. Usado para calcular rotas e distâncias.</CardDescription>
               </CardHeader>
               <CardContent className="p-10 grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="space-y-2">
                   <Label className="font-black text-xs uppercase text-slate-400">CEP</Label>
                   <div className="relative">
-                    <Input className="h-14 rounded-2xl bg-slate-50 border-none pr-10 font-black text-lg shadow-inner" value={formData.zip_code} onChange={handleCepChange} maxLength={9} />
-                    <div className="absolute right-4 top-4.5">{loadingCep ? <Loader2 className="animate-spin text-indigo-600 h-5 w-5"/> : <Search className="text-slate-300 h-5 w-5"/>}</div>
+                    <Input className="h-14 rounded-2xl bg-slate-50 border-none pr-10 font-black text-lg shadow-inner focus:ring-emerald-500" value={formData.zip_code} onChange={handleCepChange} maxLength={9} />
+                    <div className="absolute right-4 top-4.5">{loadingCep ? <Loader2 className="animate-spin text-emerald-600 h-5 w-5"/> : <Search className="text-slate-300 h-5 w-5"/>}</div>
                   </div>
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <Label className="font-black text-xs uppercase text-slate-400">Rua / Logradouro</Label>
-                  <Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
+                  <Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner font-bold focus:ring-emerald-500" value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
                 </div>
-                <div className="space-y-2"><Label className="font-black text-xs uppercase text-slate-400">Número</Label><Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner text-center font-black" value={formData.street_number} onChange={e => setFormData({...formData, street_number: e.target.value})} /></div>
-                <div className="space-y-2"><Label className="font-black text-xs uppercase text-slate-400">Bairro</Label><Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} /></div>
-                <div className="space-y-2"><Label className="font-black text-xs uppercase text-slate-400">Cidade</Label><Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner font-bold" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /></div>
+                <div className="space-y-2"><Label className="font-black text-xs uppercase text-slate-400">Número</Label><Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner text-center font-black focus:ring-emerald-500" value={formData.street_number} onChange={e => setFormData({...formData, street_number: e.target.value})} /></div>
+                <div className="space-y-2"><Label className="font-black text-xs uppercase text-slate-400">Bairro</Label><Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner font-bold focus:ring-emerald-500" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} /></div>
+                <div className="space-y-2"><Label className="font-black text-xs uppercase text-slate-400">Cidade</Label><Input className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner font-bold focus:ring-emerald-500" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /></div>
               </CardContent>
             </Card>
           </div>
+
+          {/* 2. COMPONENTE DE LOGÍSTICA E TAXAS DE ENTREGA */}
+          <div className="max-w-4xl mx-auto">
+            <DeliverySettings storeId={store.id} />
+          </div>
+
         </TabsContent>
 
         <TabsContent value="entrega" className="outline-none animate-in slide-in-from-bottom-2 duration-500">

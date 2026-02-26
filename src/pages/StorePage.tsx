@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { MenuItemCard } from "@/components/MenuItemCard";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Search, Star, AlertCircle, Clock } from "lucide-react";
+import { MapPin, Search, Star, AlertCircle, Clock, Phone, Instagram } from "lucide-react";
 import CartDrawer from "@/components/CartDrawer";
 import { useCart } from "@/contexts/CartContext";
 import { Input } from "@/components/ui/input";
@@ -165,11 +165,10 @@ export default function StorePage() {
 
 {/* Card de Perfil da Loja */}
         <div className="absolute -bottom-20 md:-bottom-12 left-0 right-0 z-20 px-4">
-          {/* ADICIONADO !overflow-visible AQUI PARA A FOTO NÃO CORTAR */}
           <GlassCard className="container mx-auto max-w-4xl p-4 md:p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-white/40 dark:border-slate-800/40 shadow-2xl rounded-[2rem] !overflow-visible">
             
             <div className="flex items-center gap-4 w-full md:w-auto relative">
-              {/* LOGO - Ajustado o -mt-10 para saltar perfeitamente para fora do cartão no mobile */}
+              {/* LOGO */}
               <div className="h-20 w-20 md:h-24 md:w-24 rounded-[1.5rem] overflow-hidden border-4 border-white dark:border-slate-800 shadow-md flex-shrink-0 bg-white dark:bg-slate-800 relative z-30 -mt-12 md:mt-0">
                 <img src={store.logo_url || "https://github.com/shadcn.png"} alt="Logo" className="w-full h-full object-cover" />
               </div>
@@ -201,36 +200,68 @@ export default function StorePage() {
                 </div>
               </div>
 
-              {/* INFOS INFERIORES: AVALIAÇÃO + STATUS DE HORÁRIO */}
-              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-1 md:mt-4">
+              {/* INFOS INFERIORES: AVALIAÇÃO + STATUS DE HORÁRIO + REDES SOCIAIS */}
+              <div className="flex flex-col gap-3 mt-2 md:mt-4">
                 
-                {/* Estrela / Nota */}
-                <span className="flex items-center gap-1 font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl text-xs shadow-inner">
-                  <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" /> 4.9
-                </span>
+                {/* Linha 1: Estrela e Horário */}
+                <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                  {/* Estrela / Nota */}
+                  <span className="flex items-center gap-1 font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl text-xs shadow-inner">
+                    <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" /> 4.9
+                  </span>
 
-                {/* Bloco Integrado de Horário (Gourmet) */}
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-inner">
-                  {isOpen ? (
-                    <span className="text-emerald-700 dark:text-emerald-400 font-black bg-white dark:bg-slate-900 px-3 py-1 rounded-lg flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wider shadow-sm">
-                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Aberto
-                    </span>
-                  ) : (
-                    <span className="text-red-600 dark:text-red-400 font-black bg-white dark:bg-slate-900 px-3 py-1 rounded-lg flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wider shadow-sm">
-                      <div className="h-1.5 w-1.5 rounded-full bg-red-500" /> Fechado
-                    </span>
+                  {/* Bloco Integrado de Horário (Gourmet) */}
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-inner">
+                    {isOpen ? (
+                      <span className="text-emerald-700 dark:text-emerald-400 font-black bg-white dark:bg-slate-900 px-3 py-1 rounded-lg flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wider shadow-sm">
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Aberto
+                      </span>
+                    ) : (
+                      <span className="text-red-600 dark:text-red-400 font-black bg-white dark:bg-slate-900 px-3 py-1 rounded-lg flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wider shadow-sm">
+                        <div className="h-1.5 w-1.5 rounded-full bg-red-500" /> Fechado
+                      </span>
+                    )}
+                    
+                    {hours?.opening_time && hours?.closing_time && (
+                      <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold px-3 flex items-center gap-1.5 uppercase tracking-wide">
+                        <Clock className="h-3 w-3 opacity-50" />
+                        {isOpen 
+                          ? `Hoje até ${hours.closing_time.substring(0, 5)}` 
+                          : `Abre às ${hours.opening_time.substring(0, 5)}`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Linha 2: Botões de Contato (WhatsApp e Instagram) */}
+                <div className="flex items-center gap-2">
+                  {/* Se tiver telefone, mostra o botão do WhatsApp */}
+                  {(store as any).phone && (
+                    <a 
+                      href={`https://wa.me/55${(store as any).phone.replace(/\D/g, "")}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex items-center gap-2 h-9 px-4 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                      Pedir pelo WhatsApp
+                    </a>
                   )}
-                  
-                  {hours?.opening_time && hours?.closing_time && (
-                    <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold px-3 flex items-center gap-1.5 uppercase tracking-wide">
-                      <Clock className="h-3 w-3 opacity-50" />
-                      {isOpen 
-                        ? `Hoje até ${hours.closing_time.substring(0, 5)}` 
-                        : `Abre às ${hours.opening_time.substring(0, 5)}`}
-                    </span>
+
+                  {/* Se tiver Instagram, mostra o botão do Insta */}
+                  {(store as any).instagram && (
+                    <a 
+                      href={`https://instagram.com/${(store as any).instagram.replace('@', '')}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex items-center gap-1.5 h-9 px-3 bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50 text-pink-600 dark:text-pink-400 font-bold rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95 text-[11px] uppercase tracking-wider"
+                      title="Visitar Instagram"
+                    >
+                      <Instagram className="h-4 w-4" />
+                    </a>
                   )}
                 </div>
-                
+
               </div>
             </div>
 

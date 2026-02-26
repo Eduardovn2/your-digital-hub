@@ -49,6 +49,7 @@ export function productToMenuItem(product: Product): MenuItem {
     image: product.image_url || "/placeholder.svg",
     category: product.category,
     popular: product.popular || false,
+    complements: product.complements // <--- ESTA LINHA É FUNDAMENTAL!
   };
 }
 

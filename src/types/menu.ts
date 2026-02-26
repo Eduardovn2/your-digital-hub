@@ -6,6 +6,7 @@ export interface MenuItem {
   image: string;
   category: string;
   popular?: boolean;
+  complements?: any;
 }
 
 export interface CartItem extends MenuItem {

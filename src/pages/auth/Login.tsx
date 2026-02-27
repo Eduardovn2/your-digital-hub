@@ -34,7 +34,7 @@ export default function Login() {
   const handleGoogleLogin = async () => {
       try {
         // Define a URL fixa para garantir que não vá para localhost
-        const redirectUrl = "https://vianaeccomerce.vercel.app/admin"; 
+        const redirectUrl = "https://www.vianaeccomerce.com.br/admin"; 
 
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',

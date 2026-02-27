@@ -44,26 +44,37 @@ export function StoreSettings({ store }: { store: any }) {
     mp_public_key: store?.mp_public_key || ""
   });
 
-  // --- LÓGICA MERCADO PAGO (PRESERVADA) ---
+// --- LÓGICA MERCADO PAGO (CORRIGIDA) ---
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
+    
     if (code && store?.id) {
+      // 1. Limpa a URL IMEDIATAMENTE para evitar duplo disparo do React
+      window.history.replaceState({}, document.title, window.location.pathname);
+
       const handleTokenExchange = async () => {
+        // 2. Guarda o ID do toast de loading para atualizá-lo depois
+        const toastId = toast.loading("Finalizando conexão com Mercado Pago...");
+        
         try {
-          toast.loading("Finalizando conexão com Mercado Pago...");
           const { error } = await supabase.functions.invoke('exchange-mp-token', {
             body: { code, storeId: store.id }
           });
+          
           if (error) throw error;
-          toast.success("Conta conectada com sucesso! 🚀");
-          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          // 3. Substitui o loading por sucesso usando o mesmo ID
+          toast.success("Conta conectada com sucesso! 🚀", { id: toastId });
           setTimeout(() => window.location.reload(), 1500);
+          
         } catch (err) {
           console.error(err);
-          toast.error("Erro ao conectar conta.");
+          // 4. Substitui o loading por erro usando o mesmo ID
+          toast.error("Erro ao conectar conta do Mercado Pago.", { id: toastId });
         }
       };
+      
       handleTokenExchange();
     }
   }, [store?.id]);

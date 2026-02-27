@@ -85,7 +85,9 @@ export function StoreSettings({ store }: { store: any }) {
     }
   }, [store?.id]);
 
-  const handleConnectMP = () => {
+const handleConnectMP = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault(); // <-- Bloqueia o "F5" acidental
+    
     const authUrl = `https://auth.mercadopago.com.br/authorization?client_id=${MP_CLIENT_ID}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
     window.location.href = authUrl;
   };
@@ -410,7 +412,11 @@ export function StoreSettings({ store }: { store: any }) {
                     </p>
                   </div>
                 ) : (
-                  <Button onClick={handleConnectMP} className="bg-[#009EE3] hover:bg-[#007EB5] text-white font-black rounded-[2rem] px-12 h-16 shadow-2xl transition-all hover:scale-105 active:scale-95 group">
+                  <Button 
+                    type="button" //
+                    onClick={handleConnectMP} 
+                    className="bg-[#009EE3] hover:bg-[#007EB5] text-white font-black rounded-[2rem] px-12 h-16 shadow-2xl transition-all hover:scale-105 active:scale-95 group"
+                  >
                     <CreditCard className="mr-3 h-5 w-5 group-hover:rotate-12 transition-transform" />
                     CONECTAR MINHA CONTA AGORA
                   </Button>

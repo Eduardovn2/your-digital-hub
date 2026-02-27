@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,17 +44,22 @@ export function StoreSettings({ store }: { store: any }) {
     mp_public_key: store?.mp_public_key || ""
   });
 
-// --- LÓGICA MERCADO PAGO (CORRIGIDA) ---
+// --- LÓGICA MERCADO PAGO (CORRIGIDA COM PROTEÇÃO ANTI-DUPLICAÇÃO) ---
+  const isProcessingCode = useRef(false); // Escudo para evitar disparo duplo
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     
-    if (code && store?.id) {
-      // 1. Limpa a URL IMEDIATAMENTE para evitar duplo disparo do React
+    // Só entra se tiver o código, o id da loja E se ainda não estiver processando
+    if (code && store?.id && !isProcessingCode.current) {
+      isProcessingCode.current = true; // Trava o portão imediatamente!
+      
+      // 1. Limpa a URL antes mesmo de fazer a requisição para o backend
       window.history.replaceState({}, document.title, window.location.pathname);
 
       const handleTokenExchange = async () => {
-        // 2. Guarda o ID do toast de loading para atualizá-lo depois
+        // Usar um ID fixo para o toast permite substituí-lo e evitar que fique girando para sempre
         const toastId = toast.loading("Finalizando conexão com Mercado Pago...");
         
         try {
@@ -64,14 +69,15 @@ export function StoreSettings({ store }: { store: any }) {
           
           if (error) throw error;
           
-          // 3. Substitui o loading por sucesso usando o mesmo ID
+          // Sucesso: Substitui o loading pela mensagem verde
           toast.success("Conta conectada com sucesso! 🚀", { id: toastId });
           setTimeout(() => window.location.reload(), 1500);
           
         } catch (err) {
-          console.error(err);
-          // 4. Substitui o loading por erro usando o mesmo ID
-          toast.error("Erro ao conectar conta do Mercado Pago.", { id: toastId });
+          console.error("Erro MP:", err);
+          isProcessingCode.current = false; // Libera caso tenha dado um erro real
+          // Erro: Substitui o loading pela mensagem vermelha
+          toast.error("Erro ao conectar conta. Tente novamente.", { id: toastId });
         }
       };
       

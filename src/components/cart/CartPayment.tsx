@@ -1,7 +1,8 @@
-import { Banknote, CreditCard, Coins, AlertTriangle } from "lucide-react";
+import { Banknote, CreditCard, Coins, AlertTriangle, Lock } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { SiPix } from "react-icons/si"; // <-- Adicionámos o ícone do PIX aqui
+import { SiPix } from "react-icons/si";
+import { useEffect } from "react";
 
 interface CartPaymentProps {
   pagamento: "pix" | "cartão" | "dinheiro";
@@ -9,6 +10,7 @@ interface CartPaymentProps {
   trocoPara: string;
   setTrocoPara: (value: string) => void;
   totalFinal: number;
+  hasMercadoPago?: boolean; // <-- NOVA PROP PARA BLINDAR O CHECKOUT
 }
 
 const parseCurrency = (value: string) => {
@@ -21,9 +23,23 @@ export function CartPayment({
   setPagamento, 
   trocoPara, 
   setTrocoPara, 
-  totalFinal 
+  totalFinal,
+  hasMercadoPago = false // Por padrão, bloqueia até termos certeza que a loja tem MP
 }: CartPaymentProps) {
   
+  // SEGREDO AQUI: Se a loja não tem MP e o usuário tentar burlar, força para dinheiro
+  useEffect(() => {
+    if (!hasMercadoPago && (pagamento === "pix" || pagamento === "cartão")) {
+      setPagamento("dinheiro");
+    }
+  }, [hasMercadoPago, pagamento, setPagamento]);
+
+  const paymentOptions = [
+    { id: "pix", label: "Pix", icon: SiPix, color: "text-emerald-600", requiresMP: true },
+    { id: "cartão", label: "Cartão", icon: CreditCard, color: "text-yellow-500", requiresMP: true },
+    { id: "dinheiro", label: "Dinheiro", icon: Coins, color: "text-emerald-500", requiresMP: false }
+  ];
+
   return (
     <div className="relative p-5 space-y-4 rounded-2xl border border-white/40 bg-white/60 backdrop-blur-md shadow-sm overflow-hidden transition-all hover:bg-white/70">
       <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
@@ -34,29 +50,48 @@ export function CartPayment({
       </Label>
 
       <div className="relative grid grid-cols-3 gap-3">
-        {["pix", "cartão", "dinheiro"].map((m) => (
-          <button
-            key={m}
-            onClick={() => setPagamento(m as any)}
-            className={`relative overflow-hidden p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all duration-200 group border ${
-              pagamento === m
-                ? "bg-slate-900 border-slate-900 text-white shadow-lg scale-[1.02]"
-                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300"
-            }`}
-          >
-            {/* Ícones com cores condicionais (Coloridos se inativos, Brancos se ativos) */}
-            {m === "pix" && <SiPix className={`h-5 w-5 drop-shadow-sm transition-colors ${pagamento === m ? "text-white" : "text-emerald-600"}`} />}
-            {m === "cartão" && <CreditCard className={`h-5 w-5 drop-shadow-sm transition-colors ${pagamento === m ? "text-white" : "text-yellow-500"}`} />}
-            {m === "dinheiro" && <Coins className={`h-5 w-5 drop-shadow-sm transition-colors ${pagamento === m ? "text-white" : "text-emerald-500"}`} />}
-            
-            <span className="text-[9px] font-black uppercase tracking-wider">
-              {m === "dinheiro" ? "Dinheiro" : m === "cartão" ? "Cartão" : "Pix"}
-            </span>
-          </button>
-        ))}
+        {paymentOptions.map((option) => {
+          const isDisabled = option.requiresMP && !hasMercadoPago;
+          const isSelected = pagamento === option.id;
+
+          return (
+            <button
+              key={option.id}
+              type="button"
+              disabled={isDisabled}
+              onClick={() => setPagamento(option.id as any)}
+              className={`relative overflow-hidden p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all duration-200 group border ${
+                isSelected
+                  ? "bg-slate-900 border-slate-900 text-white shadow-lg scale-[1.02]"
+                  : isDisabled 
+                    ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed opacity-60 grayscale"
+                    : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300"
+              }`}
+            >
+              <option.icon className={`h-5 w-5 drop-shadow-sm transition-colors ${
+                isSelected ? "text-white" : isDisabled ? "text-slate-300" : option.color
+              }`} />
+              
+              <span className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                {option.label}
+                {isDisabled && <Lock className="h-2.5 w-2.5 mb-0.5" />}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Seção de Troco */}
+      {/* AVISO SE A LOJA NÃO TIVER MERCADO PAGO */}
+      {!hasMercadoPago && (
+        <div className="relative flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200/50 mt-1 animate-in fade-in">
+          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
+            Esta loja não está a aceitar pagamentos online de momento. <b>Apenas dinheiro na entrega.</b>
+          </p>
+        </div>
+      )}
+
+      {/* Seção de Troco (Renderizada apenas se for Dinheiro) */}
       {pagamento === "dinheiro" && (
         <div className="relative animate-in fade-in slide-in-from-top-2 duration-300 space-y-3 pt-1">
           <div className="space-y-1.5">

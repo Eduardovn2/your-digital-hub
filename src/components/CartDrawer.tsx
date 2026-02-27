@@ -147,6 +147,29 @@ export default function CartDrawer() {
   const [isRepaying, setIsRepaying] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
+  const [hasMercadoPago, setHasMercadoPago] = useState(false);
+
+// --- NOVO: BUSCA A CONFIGURAÇÃO ASSIM QUE O CARRINHO ABRE ---
+  useEffect(() => {
+    if (!storeId) return;
+    
+    const checkPaymentMethods = async () => {
+      // Usamos select("*") para evitar que o TypeScript bloqueie a query
+      const { data } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("id", storeId)
+        .single();
+        
+      // Forçamos o tipo com (data as any) para ele ignorar o aviso de tipagem
+      setHasMercadoPago(!!(data as any)?.mp_access_token);
+    };
+    
+    checkPaymentMethods();
+  }, [storeId]);
+  // -----------------------------------------------------------
+  // -----------------------------------------------------------
+
   // Atualiza o relógio a cada 10 segundos para o cronômetro
   useEffect(() => {
     if (!open) return;
@@ -648,6 +671,7 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                                     trocoPara={trocoPara}
                                     setTrocoPara={setTrocoPara}
                                     totalFinal={totalFinal}
+                                    hasMercadoPago={hasMercadoPago}
                                 />
 
                                 {/* RESUMO DOS VALORES (TOTAL DA COMPRA) */}

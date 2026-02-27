@@ -124,20 +124,33 @@ export function StoreSettings({ store }: { store: any }) {
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
       
-      {/* HEADER FIXO DE GESTÃO */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 shadow-sm sticky top-0 z-20 backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200">
-            <Settings className="h-6 w-6 text-white" />
+
+{/* HEADER FIXO DE GESTÃO */}
+      <div className="flex items-center justify-between gap-3 bg-white/80 dark:bg-slate-900/80 p-4 md:p-6 rounded-3xl md:rounded-[2rem] border border-slate-100 shadow-sm sticky top-0 z-30 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="p-2 md:p-3 bg-indigo-600 rounded-xl md:rounded-2xl shadow-md shadow-indigo-200/50">
+            <Settings className="h-5 w-5 md:h-6 md:w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Configurações</h2>
-            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Painel Administrativo</p>
+            <h2 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Configurações</h2>
+            <p className="text-[9px] md:text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1 hidden sm:block">Painel Administrativo</p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-8 rounded-xl font-black shadow-xl shadow-indigo-200 transition-all active:scale-95">
-          {loading ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-4 w-4"/>}
-          GUARDAR ALTERAÇÕES
+        
+        <Button 
+          onClick={handleSave} 
+          disabled={loading} 
+          className="bg-indigo-600 hover:bg-indigo-700 text-white h-10 md:h-12 px-4 md:px-8 rounded-xl font-black shadow-lg shadow-indigo-200/50 transition-all active:scale-95 text-xs md:text-sm shrink-0"
+        >
+          {loading ? (
+            <Loader2 className="animate-spin h-4 w-4 md:mr-2" />
+          ) : (
+            <Save className="h-4 w-4 md:mr-2" />
+          )}
+          
+          {/* Mostra texto completo no PC, e texto curto no Mobile */}
+          <span className="hidden md:inline">GUARDAR ALTERAÇÕES</span>
+          <span className="inline md:hidden ml-2">SALVAR</span>
         </Button>
       </div>
 

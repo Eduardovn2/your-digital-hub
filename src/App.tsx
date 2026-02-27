@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import {ProtectedRoute} from "./pages/auth/ProtectedRoute";
 import PaymentMock from "./pages/subscription/PaymentMock";
 import { SubscriptionGuard } from "./pages/auth/SubscriptionGuard";
+import PrivacyPolicy from "./pages/PrivacyPolicy"; // 1. Adicione o import
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,8 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+
+                <Route path="/privacidade" element={<PrivacyPolicy />} />
                 
                 <Route
                   path="/admin"

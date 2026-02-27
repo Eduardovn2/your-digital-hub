@@ -33,6 +33,64 @@ import { StoreProducts } from "@/components/dashboard/StoreProducts";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { toast } from "sonner";
 
+// 1. MOVIDO PARA FORA: Constantes de navegação
+const navigationItems = [
+  { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
+  { id: "orders", label: "Pedidos", icon: ShoppingBag },
+  { id: "menu", label: "Cardápio", icon: UtensilsCrossed },
+  { id: "printing", label: "Impressora", icon: Printer },
+  { id: "settings", label: "Configurações", icon: Settings },
+];
+
+// 2. MOVIDO PARA FORA: Componente Sidebar separado para não ser recriado no mobile
+const SidebarContent = ({ store, activeTab, setActiveTab, setIsMobileMenuOpen, signOut }: any) => (
+  <div className="flex flex-col h-full bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950 text-white font-sans antialiased"> 
+    <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
+      <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-400 flex items-center justify-center font-black text-white shrink-0 shadow-lg shadow-indigo-500/20">
+            {store?.name?.substring(0,1).toUpperCase() || "V"}
+          </div>
+          <div className="truncate">
+            <h1 className="font-black text-lg leading-none truncate tracking-tight">{store?.name || "Minha Loja"}</h1>
+            <p className="text-[10px] text-indigo-300/60 mt-1 flex items-center gap-1 font-black uppercase tracking-tighter">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Loja Online
+            </p>
+          </div>
+      </div>
+    </div>
+
+    <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+      {navigationItems.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => {
+            setActiveTab(item.id);
+            setIsMobileMenuOpen(false);
+          }}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black transition-all duration-300 tracking-tight ${
+            activeTab === item.id 
+              ? "bg-white/10 text-white border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md" 
+              : "text-slate-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <item.icon className={`h-5 w-5 transition-colors ${activeTab === item.id ? "text-indigo-400" : "text-slate-500"}`} />
+          {item.label}
+        </button>
+      ))}
+    </nav>
+
+    <div className="p-4 border-t border-white/5 bg-black/20">
+      <Button 
+        variant="ghost" 
+        className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold" 
+        onClick={() => signOut()}
+      >
+        <LogOut className="h-4 w-4 mr-2" /> Sair
+      </Button>
+    </div>
+  </div>
+);
+
 export default function Admin() {
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
@@ -45,6 +103,7 @@ export default function Admin() {
     isError 
   } = useMyStore(user?.id);
   
+  // Realtime lida graciosamente com ID indefinido
   useRealtimeOrders(store?.id);
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -79,7 +138,8 @@ export default function Admin() {
     );
   }
 
-  if (!store && !isLoading) {
+  // Corrigido para verificar também isError, evitando travar
+  if ((!store || isError) && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 font-sans antialiased">
         <div className="max-w-2xl w-full space-y-8">
@@ -104,64 +164,9 @@ export default function Admin() {
     );
   }
 
-  const navigationItems = [
-    { id: "dashboard", label: "Visão Geral", icon: LayoutDashboard },
-    { id: "orders", label: "Pedidos", icon: ShoppingBag },
-    { id: "menu", label: "Cardápio", icon: UtensilsCrossed },
-    { id: "printing", label: "Impressora", icon: Printer },
-    { id: "settings", label: "Configurações", icon: Settings },
-  ];
-
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950 text-white font-sans antialiased"> 
-      <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-400 flex items-center justify-center font-black text-white shrink-0 shadow-lg shadow-indigo-500/20">
-              {store?.name?.substring(0,1).toUpperCase() || "V"}
-            </div>
-            <div className="truncate">
-              <h1 className="font-black text-lg leading-none truncate tracking-tight">{store?.name}</h1>
-              <p className="text-[10px] text-indigo-300/60 mt-1 flex items-center gap-1 font-black uppercase tracking-tighter">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Loja Online
-              </p>
-            </div>
-        </div>
-      </div>
-
-      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-        {navigationItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => {
-              setActiveTab(item.id);
-              setIsMobileMenuOpen(false);
-            }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black transition-all duration-300 tracking-tight ${
-              activeTab === item.id 
-                ? "bg-white/10 text-white border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md" 
-                : "text-slate-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <item.icon className={`h-5 w-5 transition-colors ${activeTab === item.id ? "text-indigo-400" : "text-slate-500"}`} />
-            {item.label}
-          </button>
-        ))}
-      </nav>
-
-      <div className="p-4 border-t border-white/5 bg-black/20">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold" 
-          onClick={() => signOut()}
-        >
-          <LogOut className="h-4 w-4 mr-2" /> Sair
-        </Button>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-slate-50 font-sans antialiased tracking-tight">
+    // Trocado h-screen por min-h-screen para evitar problemas no mobile Safari/Chrome
+    <div className="flex min-h-screen w-full bg-slate-50 font-sans antialiased tracking-tight overflow-hidden">
       <style>
         {`
           .admin-container *, .admin-container button, .admin-container input {
@@ -170,11 +175,19 @@ export default function Admin() {
         `}
       </style>
       
+      {/* Sidebar Desktop */}
       <aside className="hidden md:flex w-72 flex-shrink-0 flex-col h-full border-r border-slate-200">
-        <SidebarContent />
+        <SidebarContent 
+           store={store} 
+           activeTab={activeTab} 
+           setActiveTab={setActiveTab} 
+           setIsMobileMenuOpen={setIsMobileMenuOpen}
+           signOut={signOut}
+        />
       </aside>
 
-      <main className="flex-1 overflow-x-hidden overflow-y-auto h-full bg-slate-50 relative admin-container">
+      {/* Trocado h-full por h-screen para scroll correto da main area */}
+      <main className="flex-1 overflow-x-hidden overflow-y-auto h-screen bg-slate-50 relative admin-container">
         <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
           
           <header className="flex justify-between items-center mb-8 bg-white p-4 rounded-2xl shadow-sm md:bg-transparent md:p-0 md:shadow-none sticky top-0 z-10 md:relative">
@@ -187,7 +200,13 @@ export default function Admin() {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left" className="p-0 border-none w-72">
-                    <SidebarContent />
+                    <SidebarContent 
+                      store={store} 
+                      activeTab={activeTab} 
+                      setActiveTab={setActiveTab} 
+                      setIsMobileMenuOpen={setIsMobileMenuOpen}
+                      signOut={signOut}
+                    />
                   </SheetContent>
                 </Sheet>
               </div>
@@ -197,31 +216,35 @@ export default function Admin() {
               </h2>
             </div>
 
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-white border-slate-200 hover:bg-slate-50 transition-colors shadow-sm font-bold rounded-xl"
-              onClick={() => window.open(`/${store!.slug}`, '_blank')}
-            >
-              <Store className="h-4 w-4 mr-2 text-indigo-600" /> 
-              <span className="hidden sm:inline">Ver Loja Online</span>
-            </Button>
+            {/* Proteção store?.slug em vez de store!.slug */}
+            {store?.slug && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-white border-slate-200 hover:bg-slate-50 transition-colors shadow-sm font-bold rounded-xl"
+                onClick={() => window.open(`/${store.slug}`, '_blank')}
+              >
+                <Store className="h-4 w-4 mr-2 text-indigo-600" /> 
+                <span className="hidden sm:inline">Ver Loja Online</span>
+              </Button>
+            )}
           </header>
 
-          <div className="animate-in fade-in duration-500 pb-10">
-            {activeTab === "dashboard" && (
+          {/* Renderização condicional protegida (store?.id && ...) */}
+          <div className="animate-in fade-in duration-500 pb-20">
+            {activeTab === "dashboard" && store?.id && (
               <div className="space-y-8">
-                <DashboardStats storeId={store!.id} />
+                <DashboardStats storeId={store.id} />
                 <div className="mt-8">
                    <h3 className="text-lg font-black mb-4 text-slate-800 tracking-tight">Pedidos Recentes</h3>
-                   <OrdersList storeId={store!.id} /> 
+                   <OrdersList storeId={store.id} /> 
                 </div>
               </div>
             )}
 
-            {activeTab === "orders" && <OrdersList storeId={store!.id} />}
-            {activeTab === "menu" && <StoreProducts storeId={store!.id} />}
-            {activeTab === "settings" && <StoreSettings store={store!} />}
+            {activeTab === "orders" && store?.id && <OrdersList storeId={store.id} />}
+            {activeTab === "menu" && store?.id && <StoreProducts storeId={store.id} />}
+            {activeTab === "settings" && store && <StoreSettings store={store} />}
             {activeTab === "printing" && (
               <div className="max-w-2xl mx-auto">
                 <PrinterSettings />

@@ -4,6 +4,7 @@ import { Check, Star, ShieldCheck, Zap, Smartphone, Globe } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { HeroSection } from "@/components/home/HeroSection";
 
+
 // Dados para prova social
 const EXAMPLE_STORES = [
   {
@@ -167,12 +168,33 @@ export default function Index() {
         </div>
       </section>
 
-      {/* FOOTER Simples */}
+
+{/* FOOTER Atualizado para Google Verification */}
       <footer className="bg-slate-950 text-slate-400 py-12 border-t border-white/5">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm">
-            &copy; {new Date().getFullYear()} VianaEccomerce. Tecnologia para Deliverys.
-          </p>
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="text-center md:text-left">
+              <p className="text-sm">
+                &copy; {new Date().getFullYear()} VianaEccomerce. Tecnologia para Deliverys.
+              </p>
+            </div>
+            
+            {/* Links de Conformidade - CRUCIAL PARA O GOOGLE */}
+            <div className="flex gap-8 text-sm font-medium">
+              <Link 
+                to="/privacidade" 
+                className="hover:text-primary transition-colors decoration-primary/30 underline-offset-4 hover:underline"
+              >
+                Política de Privacidade
+              </Link>
+              <Link 
+                to="/termos" 
+                className="hover:text-primary transition-colors decoration-primary/30 underline-offset-4 hover:underline"
+              >
+                Termos de Serviço
+              </Link>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

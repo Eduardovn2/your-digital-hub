@@ -166,7 +166,7 @@ export function StoreSettings({ store }: { store: any }) {
 
           <div className="relative w-full">
             {/* O SEGREDO É O JUSTIFY-START: Garante que a primeira aba nunca some */}
-            <TabsList className="bg-slate-100/50 dark:bg-slate-900 p-1.5 flex justify-start flex-nowrap overflow-x-auto gap-2 rounded-2xl w-full no-scrollbar snap-x snap-mandatory">
+            <TabsList className="bg-slate-100/50 dark:bg-slate-900 p-1.5 flex justify-start flex-nowrap overflow-x-auto gap-2 rounded-2xl w-full snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
              {[
                 { id: "perfil", label: "Perfil", icon: User, color: "text-indigo-500" },
                 { id: "horarios", label: "Funcionamento", icon: Clock, color: "text-amber-500" },

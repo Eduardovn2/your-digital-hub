@@ -318,7 +318,7 @@ export default function Register() {
           {step === "register" && (
             <div className="mt-8 pt-6 border-t border-slate-200/50 flex flex-col items-center gap-4">
               <div className="flex gap-4 text-xs text-slate-500 font-medium">
-                <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> 7 dias grátis</span>
+                <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-emerald-500" /> 15 dias grátis</span>
               </div>
               <p className="text-sm text-slate-500">
                 Já tem uma conta?{" "}

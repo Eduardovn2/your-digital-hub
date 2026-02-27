@@ -270,7 +270,7 @@ export default function Register() {
                   </div>
 
                   <Button type="submit" className="w-full h-14 font-bold bg-slate-900 text-white rounded-xl shadow-xl hover:bg-black transition-all mt-6 hover:shadow-primary/20" disabled={loading || lockoutTime > 0}>
-                    {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Criar Conta e Receber Código"}
+                    {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Criar Conta"}
                   </Button>
                 </form>
               </>

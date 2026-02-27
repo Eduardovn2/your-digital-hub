@@ -76,7 +76,7 @@ export default function Register() {
         return; // Interrompe a execução aqui! Não vai para a tela de OTP.
       }
 
-      // Se passou pelas travas acima, o usuário é genuinamente novo!
+// Se passou pelas travas acima, o usuário é genuinamente novo!
       if (data.user && !data.session) {
         toast.success("Código enviado para seu e-mail!");
         setStep("verify"); 
@@ -84,7 +84,7 @@ export default function Register() {
       }
 
       toast.success("Conta criada com sucesso!");
-      navigate("/payment-mock");
+      navigate("/admin"); // <--- MUDANÇA 1: Redirecionar para admin
 
     } catch (error: any) {
       console.error("Erro no registro:", error);
@@ -119,10 +119,10 @@ export default function Register() {
         type: 'signup'
       });
 
-      if (error) throw error;
+    if (error) throw error;
 
       toast.success("E-mail verificado com sucesso!");
-      navigate("/payment"); 
+      navigate("/admin"); // <--- MUDANÇA 2: Redirecionar para admin
 
     } catch (error: any) {
       console.error("Erro OTP:", error);
@@ -133,12 +133,12 @@ export default function Register() {
     }
   };
 
-  const handleGoogleSignup = async () => {
+const handleGoogleSignup = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/payment`,
+          redirectTo: `${window.location.origin}/admin`, 
           queryParams: { access_type: 'offline', prompt: 'consent' },
         },
       });

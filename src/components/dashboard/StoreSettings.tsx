@@ -89,6 +89,30 @@ export function StoreSettings({ store }: { store: any }) {
     const authUrl = `https://auth.mercadopago.com.br/authorization?client_id=${MP_CLIENT_ID}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
     window.location.href = authUrl;
   };
+
+// --- NOVA FUNÇÃO PARA DESCONECTAR ---
+  const handleDisconnectMP = async () => {
+    const toastId = toast.loading("A desconectar conta do Mercado Pago...");
+    
+    try {
+      const { error } = await supabase
+        .from('stores')
+        .update({ 
+          mp_access_token: null,
+          mp_public_key: null
+        } as any) // <--- ADICIONE O "as any" AQUI
+        .eq('id', store.id);
+
+      if (error) throw error;
+
+      toast.success("Conta desconectada com sucesso!", { id: toastId });
+      setTimeout(() => window.location.reload(), 1000);
+
+    } catch (err: any) {
+      console.error("Erro ao desconectar:", err);
+      toast.error("Erro ao desconectar a conta.", { id: toastId });
+    }
+  };
   
   // --- UPLOADS (PRESERVADOS) ---
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'banner') => {
@@ -362,14 +386,25 @@ export function StoreSettings({ store }: { store: any }) {
                 </div>
 
                 {formData.mp_access_token ? (
-                  <div className="flex flex-col items-center gap-6">
-                    <div className="flex items-center gap-3 bg-emerald-500 text-white px-10 py-4 rounded-[2rem] shadow-xl shadow-emerald-500/20 animate-in zoom-in-95 duration-500">
+                  <div className="flex flex-col items-center gap-6 w-full max-w-sm mx-auto">
+                    {/* Badge de Sucesso */}
+                    <div className="flex items-center gap-3 bg-emerald-500 text-white px-10 py-4 rounded-[2rem] shadow-xl shadow-emerald-500/20 animate-in zoom-in-95 duration-500 w-full justify-center">
                       <CheckCircle2 className="h-6 w-6" />
                       <span className="text-sm font-black uppercase tracking-widest">Integração Conectada</span>
                     </div>
-                    <Button variant="ghost" onClick={handleConnectMP} className="text-slate-400 hover:text-blue-600 font-bold text-[10px] uppercase underline decoration-2 underline-offset-4">
-                      Trocar conta do Mercado Pago
+                    
+                    {/* Novo Botão de Desconectar que chama a função certa */}
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      onClick={handleDisconnectMP} 
+                      className="w-full text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 font-bold uppercase tracking-wider h-14 rounded-2xl transition-all border-2"
+                    >
+                      Desconectar Conta Atual
                     </Button>
+                    <p className="text-[10px] text-slate-400 font-medium px-4 text-center">
+                      Atenção: Para conectar uma conta diferente, primeiro desconecte a atual.
+                    </p>
                   </div>
                 ) : (
                   <Button onClick={handleConnectMP} className="bg-[#009EE3] hover:bg-[#007EB5] text-white font-black rounded-[2rem] px-12 h-16 shadow-2xl transition-all hover:scale-105 active:scale-95 group">

@@ -91,6 +91,7 @@ export function StoreSettings({ store }: { store: any }) {
   };
 
 // --- NOVA FUNÇÃO PARA DESCONECTAR ---
+// --- NOVA FUNÇÃO PARA DESCONECTAR (LIMPEZA PROFUNDA) ---
   const handleDisconnectMP = async () => {
     const toastId = toast.loading("A desconectar conta do Mercado Pago...");
     
@@ -99,8 +100,10 @@ export function StoreSettings({ store }: { store: any }) {
         .from('stores')
         .update({ 
           mp_access_token: null,
-          mp_public_key: null
-        } as any) // <--- ADICIONE O "as any" AQUI
+          mp_public_key: null,
+          mp_refresh_token: null // <--- O SEGREDO ESTÁ AQUI! Limpar o token antigo
+          // Nota: Se na sua tabela existir uma coluna 'mp_user_id', adicione também: mp_user_id: null
+        } as any) 
         .eq('id', store.id);
 
       if (error) throw error;

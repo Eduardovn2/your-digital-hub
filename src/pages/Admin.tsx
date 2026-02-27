@@ -175,8 +175,8 @@ export default function Admin() {
         `}
       </style>
       
-      {/* Sidebar Desktop */}
-      <aside className="hidden md:flex w-72 flex-shrink-0 flex-col h-full border-r border-slate-200">
+{/* Sidebar Desktop */}
+      <aside className="hidden md:flex w-72 flex-shrink-0 flex-col h-screen border-r border-slate-200">
         <SidebarContent 
            store={store} 
            activeTab={activeTab} 

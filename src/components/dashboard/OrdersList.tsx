@@ -123,20 +123,23 @@ const triggerManualPrint = (order: Order) => {
         />
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <ChefHat className="h-8 w-8 text-primary" />
-            Monitor de Cozinha
-          </h2>
-          <p className="text-slate-500">Gerencie os pedidos em tempo real.</p>
-        </div>
-        <div className="flex items-center gap-2">
-           <Badge variant="outline" className="px-4 py-2 text-base bg-white shadow-sm">
-             {activeOrders.length} Pedidos Ativos
-           </Badge>
-        </div>
-      </div>
+{/* Ajustamos o items-center para items-start no mobile e md:items-center no desktop */}
+<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+  <div>
+    {/* Adicionamos flex-wrap para garantir que o ícone e o texto não quebrem feio em telas minúsculas */}
+    <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2 flex-wrap">
+      <ChefHat className="h-7 w-7 md:h-8 md:w-8 text-primary shrink-0" />
+      <span className="break-words">Monitor de Cozinha</span>
+    </h2>
+    <p className="text-sm md:text-base text-slate-500">Gerencie os pedidos em tempo real.</p>
+  </div>
+  <div className="flex items-center gap-2 w-full md:w-auto">
+     {/* Adicionamos w-full no mobile para o badge acompanhar a largura ou manter o padrão */}
+     <Badge variant="outline" className="px-4 py-2 text-sm md:text-base bg-white shadow-sm border-primary/20 text-primary font-semibold">
+       {activeOrders.length} Pedidos Ativos
+     </Badge>
+  </div>
+</div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {activeOrders.length === 0 ? (

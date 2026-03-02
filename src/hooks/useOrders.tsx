@@ -104,6 +104,26 @@ export function useUpdateOrderStatus() {
 
   return useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+      
+      // SE O STATUS FOR CANCELADO, CHAMAMOS A EDGE FUNCTION DE ESTORNO
+      if (status === 'cancelled') {
+        const { data, error } = await supabase.functions.invoke('refund-mp-payment', {
+          body: { orderId }
+        });
+
+        if (error) {
+          console.error("Erro na Edge Function:", error);
+          throw new Error("Erro ao processar cancelamento/estorno.");
+        }
+
+        if (data?.error) {
+          throw new Error(data.error);
+        }
+
+        return data; // A função já retorna o pedido atualizado ou sucesso
+      }
+
+      // SE FOR QUALQUER OUTRO STATUS, SEGUE O FLUXO NORMAL
       const { data, error } = await supabase
         .from("orders")
         .update({ status: status as any })
@@ -114,16 +134,19 @@ export function useUpdateOrderStatus() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      if (data?.store_id) {
-         queryClient.invalidateQueries({ queryKey: ["orders", data.store_id] });
+    onSuccess: (data, variables) => {
+      // Invalidamos os pedidos para atualizar a lista na tela
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+
+      // Mensagem personalizada se for cancelamento
+      if (variables.status === 'cancelled') {
+        toast.success("Pedido cancelado e estorno processado!");
       } else {
-         queryClient.invalidateQueries({ queryKey: ["orders"] });
+        toast.success("Status atualizado!");
       }
-      toast.success("Status atualizado!");
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao atualizar status: ${error.message}`);
+      toast.error(`Erro: ${error.message}`);
     },
   });
 }

@@ -16,6 +16,7 @@ import { useReactToPrint } from "react-to-print"; // Importe a biblioteca
 import { ReceiptTemplate } from "@/components/printing/ReceiptTemplate"; // Importe o template
 
 const STATUS_CONFIG: Record<string, { label: string, color: string, icon: any, next?: OrderStatus }> = {
+  paid: { label: "Pago (Novo)", color: "bg-emerald-500/20 text-emerald-600 border-emerald-200", icon: CheckCircle2, next: "accepted" },
   pending: { label: "Pendente", color: "bg-yellow-500/20 text-yellow-600 border-yellow-200", icon: AlertCircle, next: "accepted" },
   accepted: { label: "Na Fila", color: "bg-blue-500/20 text-blue-600 border-blue-200", icon: Clock, next: "preparing" },
   preparing: { label: "Preparando", color: "bg-orange-500/20 text-orange-600 border-orange-200", icon: ChefHat, next: "ready" },
@@ -51,43 +52,32 @@ const triggerManualPrint = (order: Order) => {
   };
 
   // Sincroniza e verifica Auto-print
+// Sincroniza e verifica Auto-print
   useEffect(() => {
-    if (initialOrders) {
+    if (initialOrders && initialOrders.length > 0) {
       setOrders(initialOrders);
 
-      // LÓGICA AUTO-PRINT: Verifica se o pedido mais recente é novo e pendente
+      // LÓGICA AUTO-PRINT: Verifica se o pedido mais recente é novo
       const latestOrder = initialOrders[0];
       const savedSettings = localStorage.getItem("printer_settings");
       const settings = savedSettings ? JSON.parse(savedSettings) : { autoPrint: false };
 
-      if (settings.autoPrint && latestOrder?.status === 'pending' && latestOrder.id !== lastPrintedId.current) {
-        lastPrintedId.current = latestOrder.id;
-        triggerManualPrint(latestOrder);
-        toast.info("Impressão automática enviada!");
+      if (settings.autoPrint && latestOrder.id !== lastPrintedId.current) {
+        const isDinheiro = ['dinheiro', 'cash'].includes(latestOrder.payment_method?.toLowerCase());
+        
+        // Usamos (latestOrder.status as string) para o TS aceitar o 'paid'
+        const status = latestOrder.status as string;
+        const deveImprimir = (isDinheiro && status === 'pending') || (status === 'paid');
+
+        if (deveImprimir) {
+          lastPrintedId.current = latestOrder.id;
+          triggerManualPrint(latestOrder);
+          toast.info("Impressão automática enviada!");
+        }
       }
     }
   }, [initialOrders]);
 
-  // Realtime Listener
-  useEffect(() => {
-    if (!storeId) return;
-
-    const channel = supabase
-      .channel('orders-realtime-list')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` }, 
-        (payload) => {
-          console.log("Novo pedido detectado!", payload.new);
-          refetch();
-          // O useEffect acima cuidará de imprimir se o autoPrint estiver ON
-        }
-      )
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` }, 
-        () => refetch()
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [storeId, refetch]);
 
   const handleUpdateStatus = (orderId: string, newStatus: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
@@ -99,17 +89,18 @@ const triggerManualPrint = (order: Order) => {
 
   const activeOrders = orders.filter(o => {
     // 1. Esconde pedidos que já foram finalizados ou cancelados
-    if (['completed', 'cancelled'].includes(o.status)) return false;
+  if (['completed', 'cancelled'].includes(o.status)) return false;
     
     // 2. A MÁGICA: Esconde da cozinha se for PIX/Cartão e ainda não estiver pago
     const isDinheiro = ['dinheiro', 'cash'].includes(o.payment_method?.toLowerCase());
-    
-    if (o.status === 'pending' && !isDinheiro) {
-      return false; // Fica totalmente invisível para a cozinha!
-    }
-    
-    // Se for Dinheiro (mesmo pendente) ou se já estiver pago (accepted para a frente), mostra!
-    return true;
+  
+  // Se for PIX/Cartão e ainda estiver 'pending', ESCONDE (cliente ainda não pagou)
+  if (o.status === 'pending' && !isDinheiro) {
+    return false; 
+  }
+  
+  // Se chegou aqui e o status for 'paid', 'accepted', 'preparing', etc, MOSTRA!
+  return true;
   });
   
   return (

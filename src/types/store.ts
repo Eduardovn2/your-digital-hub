@@ -47,6 +47,7 @@ export type StoreUpdate = Partial<Omit<StoreInsert, "owner_id">>;
 // --- ORDERS / PEDIDOS ---
 export type OrderStatus = 
   | 'pending' 
+  | 'paid' 
   | 'accepted' 
   | 'preparing' 
   | 'ready' 
@@ -90,6 +91,7 @@ export type OrderInsert = Omit<Order, "id" | "created_at" | "updated_at" | "item
 // --- CONFIGURAÇÕES VISUAIS DE STATUS ---
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Pendente',
+  paid: 'Pago',
   accepted: 'Aceito',
   preparing: 'Preparando',
   ready: 'Pronto',
@@ -100,6 +102,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  paid: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
   accepted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   preparing: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
   ready: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',

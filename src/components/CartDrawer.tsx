@@ -154,16 +154,16 @@ export default function CartDrawer() {
   useEffect(() => {
     if (!storeId) return;
     
-    const checkPaymentMethods = async () => {
-      // Usamos select("*") para evitar que o TypeScript bloqueie a query
+  const checkPaymentMethods = async () => {
+      // Verificamos mp_public_key (campo público, visível pelo anon key via RLS)
+      // mp_access_token é sensível e bloqueado pela RLS para clientes não autenticados
       const { data } = await supabase
         .from("stores")
-        .select("*")
+        .select("mp_public_key")
         .eq("id", storeId)
         .single();
         
-      // Forçamos o tipo com (data as any) para ele ignorar o aviso de tipagem
-      setHasMercadoPago(!!(data as any)?.mp_access_token);
+      setHasMercadoPago(!!(data as any)?.mp_public_key);
     };
     
     checkPaymentMethods();

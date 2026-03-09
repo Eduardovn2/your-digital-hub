@@ -655,7 +655,7 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                                                     onChange={e => setTelefone(formatPhoneNumber(e.target.value))} 
                                                     placeholder="(21) 99999-9999" 
                                                     inputMode="tel"
-maxLength={11}
+                                                    maxLength={15}
                                                     className={`bg-white/50 dark:bg-slate-800 h-11 text-sm border-white/60 dark:border-slate-700 rounded-xl shadow-sm transition-colors ${
                                                         telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 
                                                             ? "border-red-300 bg-red-50/30 dark:border-red-500/50 dark:bg-red-900/20" 

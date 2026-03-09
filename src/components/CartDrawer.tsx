@@ -355,12 +355,21 @@ const handleFinalizar = async () => {
         body: { orderId: insertedOrder.id, paymentMethod: pagamento, storeId }
       });
 
-      if (funcError || data.error) throw new Error(data?.error || "Erro ao processar pagamento");
+      // Extrai a mensagem real do erro da Edge Function (quando data é null em respostas não-2xx)
+      if (funcError) {
+        let errMsg = "Erro ao processar pagamento";
+        try {
+          const errBody = await (funcError as any).context?.json();
+          errMsg = errBody?.error || funcError.message || errMsg;
+        } catch { /* ignora erro de parse */ }
+        throw new Error(errMsg);
+      }
+      if (data?.error) throw new Error(data.error);
 
       if (pagamento === "pix") {
         setPixData(data);
         setShowPixScreen(true); // Abre a tela do QR Code dentro da sacola
-        clearCart(); // Bug #11: limpa o carrinho após iniciar pagamento PIX
+        clearCart(); // limpa o carrinho após iniciar pagamento PIX
       } else if (pagamento === "cartão") {
         // Redireciona para o Checkout Pro do Mercado Pago
         window.location.href = data.init_point;
@@ -382,7 +391,16 @@ const handleRepay = async (order: any) => {
         body: { orderId: order.id, paymentMethod: order.payment_method, storeId: order.store_id }
       });
 
-      if (funcError || data.error) throw new Error(data?.error || "Erro ao conectar com Mercado Pago");
+      // Extrai a mensagem real do erro da Edge Function (quando data é null em respostas não-2xx)
+      if (funcError) {
+        let errMsg = "Erro ao conectar com Mercado Pago";
+        try {
+          const errBody = await (funcError as any).context?.json();
+          errMsg = errBody?.error || funcError.message || errMsg;
+        } catch { /* ignora erro de parse */ }
+        throw new Error(errMsg);
+      }
+      if (data?.error) throw new Error(data.error);
 
       if (order.payment_method === 'pix') {
         setPixData(data);
@@ -431,7 +449,7 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
     linhas.push(`Total: ${totalFinal.toFixed(2).replace('.', ',')}`, ``);
     linhas.push(`Pagamento em:     ${pagamento === 'pix' ? 'Pix' : pagamento === 'cartão' ? 'Cartão' : 'Dinheiro'}`);
     
-    if (pagamento === 'dinheiro' && trocoPara) {
+    if (trocoPara) {
         linhas.push(`Troco para: R$ ${parseCurrency(trocoPara).toFixed(2).replace('.', ',')}`);
     }
 

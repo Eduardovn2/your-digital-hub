@@ -36,12 +36,23 @@
 - [x] `src/pages/StorePage.tsx` — remover `(store as any)` casts desnecessários (campos agora tipados em `Store`)
 - [x] `src/pages/StorePage.tsx` — remover import `Star` não usado
 
-## 7. Pendências Conhecidas (Sem Correção de Código)
-- [ ] Edge Functions `process-payment` e `exchange-mp-token` não existem no Supabase
-      → Risco de runtime ao tentar pagamento online via MercadoPago
-      → Solução: criar as Edge Functions ou desabilitar o fluxo de pagamento online
-- [ ] `src/components/dashboard/StoreSettings.tsx` — OAuth MercadoPago chama `exchange-mp-token` (inexistente)
-      → Adicionar tratamento de erro adequado ou criar a Edge Function
+## 7. Edge Functions de Pagamento
+- [x] `supabase/functions/process-payment/index.ts` — Criada e deployada ✅
+      → Cria pagamento PIX (Payments API) ou Checkout Pro (Preferences API) no MP
+      → Salva mp_payment_id no pedido para rastreamento e estorno
+      → notification_url aponta para mp-webhook automaticamente
+- [x] `supabase/functions/mp-webhook/index.ts` — Criada e deployada (--no-verify-jwt) ✅
+      → Recebe notificações IPN e Webhooks do Mercado Pago
+      → Suporta: payment (PIX), merchant_order (Checkout Pro)
+      → Atualiza status do pedido: pending → paid (aprovado) ou cancelled (rejeitado)
+      → Dispara Supabase Realtime → atualiza cliente e admin automaticamente
+- [ ] `exchange-mp-token` — Edge Function para OAuth do MP ainda não criada
+      → Afeta apenas o fluxo de conexão da conta MP no painel admin
+      → Tratamento de erro já existe em StoreSettings.tsx
+
+## 8. Bug do Telefone
+- [x] `src/components/CartDrawer.tsx` — maxLength={11} → maxLength={15}
+      → Input travava em (21) 98786-3 pois maxLength limitava a string formatada
 
 ## Resumo dos Bugs Corrigidos
 | # | Severidade | Arquivo | Descrição |

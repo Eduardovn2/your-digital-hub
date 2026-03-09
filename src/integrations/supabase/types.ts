@@ -194,6 +194,7 @@ export type Database = {
           change_for: number | null
           items: Json
           device_id: string | null
+          mp_payment_id: string | null
           created_at: string
           updated_at: string
         }
@@ -212,6 +213,7 @@ export type Database = {
           change_for?: number | null
           items?: Json
           device_id?: string | null
+          mp_payment_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -230,6 +232,7 @@ export type Database = {
           change_for?: number | null
           items?: Json
           device_id?: string | null
+          mp_payment_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -525,6 +528,7 @@ export type Database = {
           change_for: number | null
           items: Json | null
           device_id: string | null
+          mp_payment_id: string | null
           created_at: string | null
           updated_at: string | null
         }

@@ -113,27 +113,39 @@ export function DashboardStats({ storeId }: DashboardStatsProps) {
     }
   }, [storeId]);
 
-  const handlePinSubmit = () => {
+  // Bug #20: PIN era armazenado em texto puro no localStorage.
+  // Corrigido: usa SHA-256 (Web Crypto API nativa) para hash antes de salvar/comparar.
+  const hashPin = async (pin: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pin);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+
+  const handlePinSubmit = async () => {
     if (pinInput.length !== 4) {
       toast.error("O PIN deve ter 4 números.");
       return;
     }
 
+    const hashedInput = await hashPin(pinInput);
+
     if (!hasStoredPin) {
-      localStorage.setItem("@VianaEccomerce-admin-pin", pinInput);
+      localStorage.setItem("@VianaEccomerce-admin-pin", hashedInput);
       setHasStoredPin(true);
       setAreValuesVisible(true);
       setIsPinDialogOpen(false);
       toast.success("PIN criado com sucesso!");
     } else {
-      const stored = localStorage.getItem("@VianaEccomerce-admin-pin");
-      if (pinInput === stored) {
+      const storedHash = localStorage.getItem("@VianaEccomerce-admin-pin");
+      if (hashedInput === storedHash) {
         setAreValuesVisible(true);
         setIsPinDialogOpen(false);
         toast.success("Acesso liberado.");
       } else {
         toast.error("PIN incorreto.");
-        setPinInput(""); 
+        setPinInput("");
       }
     }
     setPinInput("");

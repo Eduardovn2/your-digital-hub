@@ -34,13 +34,18 @@ DO $$ BEGIN
 END $$;
 
 -- -------------------------------------------------------
--- 2. TABELA orders — Adicionar colunas faltantes
+-- 2. TABELA orders — Adicionar colunas faltantes (incluindo colunas base)
 -- -------------------------------------------------------
 ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS notes          TEXT,
+  ADD COLUMN IF NOT EXISTS subtotal       NUMERIC NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS delivery_fee   NUMERIC NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS total          NUMERIC NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT 'dinheiro',
   ADD COLUMN IF NOT EXISTS change_for     NUMERIC,
   ADD COLUMN IF NOT EXISTS items          JSONB NOT NULL DEFAULT '[]'::jsonb,
-  ADD COLUMN IF NOT EXISTS device_id      TEXT;
+  ADD COLUMN IF NOT EXISTS device_id      TEXT,
+  ADD COLUMN IF NOT EXISTS updated_at     TIMESTAMPTZ NOT NULL DEFAULT now();
 
 -- -------------------------------------------------------
 -- 3. TABELA stores — Adicionar colunas faltantes
@@ -83,15 +88,18 @@ CREATE TABLE IF NOT EXISTS public.delivery_rules (
 
 ALTER TABLE public.delivery_rules ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Regras de entrega são públicas" ON public.delivery_rules;
 CREATE POLICY "Regras de entrega são públicas"
   ON public.delivery_rules FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Donos podem gerenciar regras de entrega" ON public.delivery_rules;
 CREATE POLICY "Donos podem gerenciar regras de entrega"
   ON public.delivery_rules FOR ALL
-  USING (public.is_store_owner(store_id))
-  WITH CHECK (public.is_store_owner(store_id));
+  USING (auth.uid() IN (SELECT owner_id FROM public.stores WHERE id = store_id))
+  WITH CHECK (auth.uid() IN (SELECT owner_id FROM public.stores WHERE id = store_id));
 
+DROP TRIGGER IF EXISTS update_delivery_rules_updated_at ON public.delivery_rules;
 CREATE TRIGGER update_delivery_rules_updated_at
   BEFORE UPDATE ON public.delivery_rules
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -115,19 +123,22 @@ CREATE TABLE IF NOT EXISTS public.customer_addresses (
 
 ALTER TABLE public.customer_addresses ENABLE ROW LEVEL SECURITY;
 
--- Qualquer pessoa pode inserir/ler pelo device_id (sem autenticação)
+DROP POLICY IF EXISTS "Clientes podem salvar seus endereços" ON public.customer_addresses;
 CREATE POLICY "Clientes podem salvar seus endereços"
   ON public.customer_addresses FOR INSERT
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Clientes podem ler seus próprios endereços" ON public.customer_addresses;
 CREATE POLICY "Clientes podem ler seus próprios endereços"
   ON public.customer_addresses FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Clientes podem atualizar seus endereços" ON public.customer_addresses;
 CREATE POLICY "Clientes podem atualizar seus endereços"
   ON public.customer_addresses FOR UPDATE
   USING (true);
 
+DROP TRIGGER IF EXISTS update_customer_addresses_updated_at ON public.customer_addresses;
 CREATE TRIGGER update_customer_addresses_updated_at
   BEFORE UPDATE ON public.customer_addresses
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -144,8 +155,8 @@ SELECT
   id,
   store_id,
   customer_name,
-  public.decrypt_sensitive(customer_phone)   AS customer_phone,
-  public.decrypt_sensitive(customer_address) AS customer_address,
+  customer_phone,
+  customer_address,
   status,
   notes,
   subtotal,
@@ -164,9 +175,12 @@ GRANT SELECT ON public.orders_decrypted TO authenticated;
 -- -------------------------------------------------------
 -- 8. Política para pedidos: clientes podem ver seus próprios pedidos pelo device_id
 -- -------------------------------------------------------
+-- Clientes anônimos podem ver seus próprios pedidos pelo device_id
+-- (Donos de loja já têm acesso via policies existentes nas migrations anteriores)
+DROP POLICY IF EXISTS "Clientes podem ver seus pedidos pelo device_id" ON public.orders;
 CREATE POLICY "Clientes podem ver seus pedidos pelo device_id"
   ON public.orders FOR SELECT
   USING (
-    device_id IS NOT NULL AND device_id = current_setting('request.headers', true)::json->>'x-device-id'
-    OR public.is_store_owner(store_id)
+    device_id IS NOT NULL
+    AND device_id = current_setting('request.headers', true)::json->>'x-device-id'
   );

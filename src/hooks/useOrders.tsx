@@ -30,7 +30,8 @@ export function useOrders(storeId: string | undefined, page: number = 0) {
         throw error;
       }
       
-      return data as (Order & { items: OrderItem[] })[];
+      // Usamos 'unknown' como intermediário pois 'items' vem como Json do Supabase
+      return (data as unknown) as (Order & { items: OrderItem[] })[];
     },
     enabled: !!storeId,
     refetchInterval: 10000, // Garante atualização a cada 10s mesmo sem realtime
@@ -59,31 +60,32 @@ export function useCreateOrder() {
 
   return useMutation({
     mutationFn: async ({ order, items, deliveryZoneId }: CreateOrderParams) => {
-      // Como estamos usando a tabela direta agora, podemos simplificar se o RPC falhar,
-      // mas vamos manter o RPC se ele estiver atualizado. 
-      // Se der erro aqui também, avise que mudamos para insert direto.
-      
-      const rpcPayload = {
-        p_store_id: order.store_id,
-        p_customer_name: order.customer_name,
-        p_customer_phone: order.customer_phone,
-        p_customer_address: order.customer_address,
-        p_notes: order.notes,
-        p_delivery_zone_id: deliveryZoneId || null,
-        p_items: items.map(item => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          notes: item.notes || null
-        }))
-      };
+      // Bug #8: RPC 'create_new_order' não existe no DB.
+      // Substituído por insert direto na tabela 'orders'.
+      const itemsData = items.map(item => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        notes: item.notes || null,
+      }));
 
-      const { data, error } = await supabase.rpc('create_new_order' as any, rpcPayload);
+      const { data, error } = await supabase
+        .from("orders")
+        .insert({
+          store_id: order.store_id,
+          customer_name: order.customer_name,
+          customer_phone: order.customer_phone,
+          customer_address: order.customer_address,
+          notes: order.notes,
+          items: itemsData,
+          status: "pending",
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
 
-      const newOrderId = (data as any)?.id;
-      if (newOrderId) {
-        printOrder(newOrderId, order.store_id).catch(console.error);
+      if (data?.id) {
+        printOrder(data.id, order.store_id).catch(console.error);
       }
 
       return data;
@@ -105,22 +107,39 @@ export function useUpdateOrderStatus() {
   return useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
       
-      // SE O STATUS FOR CANCELADO, CHAMAMOS A EDGE FUNCTION DE ESTORNO
+      // SE O STATUS FOR CANCELADO, TENTA ESTORNO VIA EDGE FUNCTION
+      // Bug #7: Edge Function 'refund-mp-payment' pode não existir.
+      // Usamos try/catch para garantir que o cancelamento funcione mesmo sem ela.
       if (status === 'cancelled') {
-        const { data, error } = await supabase.functions.invoke('refund-mp-payment', {
-          body: { orderId }
-        });
+        // Chama a Edge Function de estorno — ela cancela o pedido no banco E tenta o reembolso MP
+        const { data: refundData, error: refundError } = await supabase.functions.invoke(
+          'refund-mp-payment',
+          { body: { orderId } }
+        );
 
-        if (error) {
-          console.error("Erro na Edge Function:", error);
-          throw new Error("Erro ao processar cancelamento/estorno.");
+        // Erro de rede/invocação da Edge Function (não erro de negócio)
+        if (refundError) {
+          console.warn("[useOrders] refund-mp-payment falhou na invocação, cancelando diretamente:", refundError.message);
+
+          // Fallback: cancela diretamente no banco sem estorno
+          const { data, error } = await supabase
+            .from("orders")
+            .update({ status: "cancelled" as any })
+            .eq("id", orderId)
+            .select()
+            .single();
+
+          if (error) throw error;
+          return { ...data, _refundMessage: "Pedido cancelado. Estorno automático indisponível no momento." };
         }
 
-        if (data?.error) {
-          throw new Error(data.error);
+        // Erro de negócio retornado pela Edge Function (ex: pedido não encontrado)
+        if (refundData?.error) {
+          throw new Error(refundData.error);
         }
 
-        return data; // A função já retorna o pedido atualizado ou sucesso
+        // Sucesso — retorna os dados com a mensagem da Edge Function
+        return refundData;
       }
 
       // SE FOR QUALQUER OUTRO STATUS, SEGUE O FLUXO NORMAL
@@ -134,15 +153,34 @@ export function useUpdateOrderStatus() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidamos os pedidos para atualizar a lista na tela
+    onSuccess: (data: any, variables) => {
+      // Invalida os pedidos para atualizar a lista na tela
       queryClient.invalidateQueries({ queryKey: ["orders"] });
 
-      // Mensagem personalizada se for cancelamento
       if (variables.status === 'cancelled') {
-        toast.success("Pedido cancelado e estorno processado!");
+        // Usa a mensagem retornada pela Edge Function se disponível
+        const msg: string =
+          data?._refundMessage ||
+          data?.message ||
+          "Pedido cancelado com sucesso.";
+
+        const detail: string | undefined = data?.detail;
+
+        if (data?.refunded) {
+          // Estorno MP processado com sucesso
+          toast.success(msg, {
+            description: detail,
+            duration: 8000,
+          });
+        } else {
+          // Cancelado sem estorno (dinheiro, sem token MP, etc.)
+          toast.info(msg, {
+            description: detail,
+            duration: 6000,
+          });
+        }
       } else {
-        toast.success("Status atualizado!");
+        toast.success("Status do pedido atualizado!");
       }
     },
     onError: (error: Error) => {

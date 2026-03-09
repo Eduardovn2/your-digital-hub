@@ -32,12 +32,20 @@ export interface Store {
   show_banner: boolean;
   show_categories: boolean;
   
+  // Integração Instagram
+  instagram: string | null;
+
+  // Integração Mercado Pago
+  mp_access_token: string | null;
+  mp_public_key: string | null;
+  mp_refresh_token: string | null;
+
   // Status
   is_active: boolean;
   is_open: boolean;
   created_at: string;
   updated_at: string;
-  status: string;              
+  status: string;
   expires_at: string | null;
 }
 
@@ -70,6 +78,12 @@ export interface Order {
   // Propriedades de Pagamento (Cruciais para Impressão)
   payment_method: string; 
   change_for: number | null;
+
+  // ID do pagamento no Mercado Pago (necessário para estornos)
+  mp_payment_id: string | null;
+
+  // Identificador do dispositivo do cliente
+  device_id: string | null;
 
   created_at: string;
   updated_at: string;

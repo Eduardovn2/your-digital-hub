@@ -123,6 +123,9 @@ export interface DeliveryZone {
   updated_at: string;
 }
 
+export type DeliveryZoneInsert = Omit<DeliveryZone, "id" | "created_at" | "updated_at">;
+export type DeliveryZoneUpdate = Partial<DeliveryZoneInsert>;
+
 export interface StoreHours {
   id: string;
   store_id: string;
@@ -135,10 +138,18 @@ export interface StoreHours {
 }
 
 export interface PrinterSettings {
-  autoPrint: boolean;
-  paperSize: "58mm" | "80mm";
-  copies: number;
+  id: string;
+  store_id: string;
+  printer_ip: string;
+  printer_port: number;
+  is_enabled: boolean;
+  paper_width: number;
+  created_at: string;
+  updated_at: string;
 }
+
+export type PrinterSettingsInsert = Omit<PrinterSettings, "id" | "created_at" | "updated_at">;
+export type PrinterSettingsUpdate = Partial<PrinterSettingsInsert>;
 
 export const DAYS_OF_WEEK = [
   { value: 0, label: 'Domingo' },

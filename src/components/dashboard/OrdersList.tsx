@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react"; // Adicionado useRef
+import { useEffect, useState, useRef, useCallback } from "react"; // Adicionado useRef, useCallback
 import { useOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
 import { Order, OrderStatus } from "@/types/store";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -42,17 +42,16 @@ const handlePrint = useReactToPrint({
     onAfterPrint: () => setOrderToPrint(null),
   });
 
-  // Função para disparar impressão manualmente
-const triggerManualPrint = (order: Order) => {
+  // Função para disparar impressão manualmente — useCallback para estabilizar a referência
+  const triggerManualPrint = useCallback((order: Order) => {
     setOrderToPrint(order);
     // Pequeno delay para garantir que o React renderizou o template antes de imprimir
     setTimeout(() => {
       handlePrint();
     }, 250);
-  };
+  }, [handlePrint]);
 
   // Sincroniza e verifica Auto-print
-// Sincroniza e verifica Auto-print
   useEffect(() => {
     if (initialOrders && initialOrders.length > 0) {
       setOrders(initialOrders);
@@ -76,7 +75,7 @@ const triggerManualPrint = (order: Order) => {
         }
       }
     }
-  }, [initialOrders]);
+  }, [initialOrders, triggerManualPrint]); // Bug #17: triggerManualPrint adicionado às deps
 
 
   const handleUpdateStatus = (orderId: string, newStatus: OrderStatus) => {

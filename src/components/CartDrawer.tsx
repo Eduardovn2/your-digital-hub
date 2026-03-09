@@ -59,16 +59,17 @@ const formatPhoneNumber = (value: string) => {
 const normalizeStatus = (status: string | null | undefined) => {
   const s = (status || "").toLowerCase().trim();
   if (!s) return "pending";
-  
-  if (['saiu', 'entrega', 'caminho', 'moto', 'delivery', 'delivering', 'ready'].some(k => s.includes(k))) return "delivering";
+
+  // Ordem importa: do mais específico para o mais genérico
   if (['cancel', 'recusado'].some(k => s.includes(k))) return "cancelled";
   if (['complet', 'conclui', 'finaliza', 'entregue', 'delivered', 'done'].some(k => s.includes(k))) return "completed";
-  if (['saiu', 'entrega', 'caminho', 'moto', 'delivery', 'delivering'].some(k => s.includes(k))) return "delivering";
+  if (['saiu', 'caminho', 'moto', 'delivery', 'delivering'].some(k => s.includes(k))) return "delivering";
   if (['pronto', 'retirada', 'ready', 'balcao'].some(k => s.includes(k))) return "ready";
   if (['prepar', 'cozinha', 'forno', 'making', 'preparing'].some(k => s.includes(k))) return "preparing";
-  if (['aceito', 'fila', 'confirmado', 'confirmed', 'accepted'].some(k => s.includes(k))) return "accepted";
-  
-  return "pending"; 
+  // 'paid' = pagamento confirmado → pedido entra na fila da loja
+  if (['aceito', 'fila', 'confirmado', 'confirmed', 'accepted', 'paid'].some(k => s.includes(k))) return "accepted";
+
+  return "pending";
 };
 
 // --- BADGE ---
@@ -304,7 +305,8 @@ const handleFinalizar = async () => {
       product_name: item.name,
       product_price: Number(item.price),
       quantity: item.quantity,
-      subtotal: Number(item.price) * (item.quantity || 1)
+      subtotal: Number(item.price) * (item.quantity || 1),
+      notes: item.observation || null, // Bug #9: salva observação do item
     }));
 
     const orderPayload = {
@@ -358,6 +360,7 @@ const handleFinalizar = async () => {
       if (pagamento === "pix") {
         setPixData(data);
         setShowPixScreen(true); // Abre a tela do QR Code dentro da sacola
+        clearCart(); // Bug #11: limpa o carrinho após iniciar pagamento PIX
       } else if (pagamento === "cartão") {
         // Redireciona para o Checkout Pro do Mercado Pago
         window.location.href = data.init_point;
@@ -397,7 +400,8 @@ const handleRepay = async (order: any) => {
 
 // Função auxiliar para o WhatsApp (mantendo seu layout House Burguer)
 const enviarWhatsApp = (orderId: string, storeData: any) => {
-    const numeroLoja = storeData.phone.replace(/\D/g, ""); 
+    // Bug #10: null check para evitar TypeError se phone for null
+    const numeroLoja = (storeData?.phone ?? "").replace(/\D/g, "");
     const storeLink = `${window.location.origin}/${storeData.slug}`;
     
     const linhas = [
@@ -651,7 +655,7 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                                                     onChange={e => setTelefone(formatPhoneNumber(e.target.value))} 
                                                     placeholder="(21) 99999-9999" 
                                                     inputMode="tel"
-                                                    maxLength={15}
+maxLength={11}
                                                     className={`bg-white/50 dark:bg-slate-800 h-11 text-sm border-white/60 dark:border-slate-700 rounded-xl shadow-sm transition-colors ${
                                                         telefone.length > 0 && telefone.replace(/\D/g, "").length < 11 
                                                             ? "border-red-300 bg-red-50/30 dark:border-red-500/50 dark:bg-red-900/20" 
@@ -799,7 +803,7 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                                                     <div className="flex justify-between items-center pt-3 border-t border-slate-100 dark:border-white/5">
                                                         <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total</span>
                                                         <span className="text-base font-black text-slate-900 dark:text-white">
-                                                            R$ {Number(order.total_amount || order.total).toFixed(2)}
+                                                        R$ {Number(order.total).toFixed(2)}
                                                         </span>
                                                     </div>
 

@@ -33,7 +33,7 @@ export function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   let daysLeftToBlock = 0;
   let isBlocked = false;
 
-  if (store.expires_at!) {
+  if (store.expires_at) {
     const now = new Date();
     const expiresAt = new Date(store.expires_at!);
     const diffTime = now.getTime() - expiresAt.getTime();

@@ -22,7 +22,7 @@ import {
   SheetContent, 
   SheetTrigger 
 } from "@/components/ui/sheet";
-import { PrinterSettings } from "@/components/admin/PrinterSettings";
+import { PrinterSettings } from "@/components/dashboard/PrinterSettings";
 import { StoreSetupForm } from "@/components/dashboard/StoreSetupForm";
 import { StoreSettings } from "@/components/dashboard/StoreSettings";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -245,9 +245,9 @@ export default function Admin() {
             {activeTab === "orders" && store?.id && <OrdersList storeId={store.id} />}
             {activeTab === "menu" && store?.id && <StoreProducts storeId={store.id} />}
             {activeTab === "settings" && store && <StoreSettings store={store} />}
-            {activeTab === "printing" && (
+{activeTab === "printing" && store?.id && (
               <div className="max-w-2xl mx-auto">
-                <PrinterSettings />
+                <PrinterSettings storeId={store.id} />
               </div>
             )}
           </div>

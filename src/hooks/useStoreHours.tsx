@@ -29,7 +29,9 @@ export function isStoreCurrentlyOpen(settings: any) {
   // 1. Hoje é dia de trabalho?
   if (!settings.days_open?.includes(currentDay)) return false;
 
-  // 2. Cálculo de minutos
+  // 2. Cálculo de minutos — com null check para evitar TypeError
+  if (!settings.opening_time || !settings.closing_time) return true;
+
   const currentTime = now.getHours() * 60 + now.getMinutes();
   const [openH, openM] = settings.opening_time.split(":").map(Number);
   const [closeH, closeM] = settings.closing_time.split(":").map(Number);

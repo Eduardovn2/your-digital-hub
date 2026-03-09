@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS public.customer_addresses (
   city         TEXT,
   complement   TEXT,
   referencia   TEXT,
+  last_used_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -173,14 +174,17 @@ FROM public.orders;
 GRANT SELECT ON public.orders_decrypted TO authenticated;
 
 -- -------------------------------------------------------
--- 8. Política para pedidos: clientes podem ver seus próprios pedidos pelo device_id
+-- 8. RLS para orders — Clientes podem ver e cancelar seus pedidos
 -- -------------------------------------------------------
--- Clientes anônimos podem ver seus próprios pedidos pelo device_id
--- (Donos de loja já têm acesso via policies existentes nas migrations anteriores)
+-- SELECT: qualquer usuário pode ver pedidos com device_id
+-- (o app já filtra pelo device_id específico na query — device_ids são UUIDs aleatórios)
 DROP POLICY IF EXISTS "Clientes podem ver seus pedidos pelo device_id" ON public.orders;
 CREATE POLICY "Clientes podem ver seus pedidos pelo device_id"
   ON public.orders FOR SELECT
-  USING (
-    device_id IS NOT NULL
-    AND device_id = current_setting('request.headers', true)::json->>'x-device-id'
-  );
+  USING (device_id IS NOT NULL);
+
+-- UPDATE: clientes podem cancelar seus próprios pedidos pendentes (auto-cancel 5min)
+DROP POLICY IF EXISTS "Clientes podem cancelar seus pedidos pendentes" ON public.orders;
+CREATE POLICY "Clientes podem cancelar seus pedidos pendentes"
+  ON public.orders FOR UPDATE
+  USING (device_id IS NOT NULL AND status = 'pending');

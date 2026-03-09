@@ -20,6 +20,7 @@ export type Database = {
           city: string | null
           complement: string | null
           referencia: string | null
+          last_used_at: string
           created_at: string
           updated_at: string
         }
@@ -33,6 +34,7 @@ export type Database = {
           city?: string | null
           complement?: string | null
           referencia?: string | null
+          last_used_at?: string
           created_at?: string
           updated_at?: string
         }
@@ -46,6 +48,7 @@ export type Database = {
           city?: string | null
           complement?: string | null
           referencia?: string | null
+          last_used_at?: string
           created_at?: string
           updated_at?: string
         }

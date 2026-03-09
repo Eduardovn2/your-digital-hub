@@ -1,8 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import type { Database } from "@/integrations/supabase/types";
+
+type StoreHoursRow = Database["public"]["Tables"]["store_hours"]["Row"];
 
 export function useStoreHours(storeId?: string) {
-  return useQuery({
+  return useQuery<StoreHoursRow | null>({
     queryKey: ["store-hours", storeId],
     queryFn: async () => {
       if (!storeId) return null;

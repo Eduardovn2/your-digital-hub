@@ -1,79 +1,70 @@
-# Plano de Correção — Análise do Repositório
+# TODO - Correções VianaEcommerce
 
-## 1. Migration SQL (Schema do Banco)
-- [x] Criar migration com colunas faltantes em `orders` (payment_method, change_for, items, device_id)
-- [x] Criar migration com colunas faltantes em `stores` (zip_code, street, street_number, neighborhood, city, complement, instagram, mp_access_token, mp_public_key, mp_refresh_token, status, expires_at)
-- [x] Criar migration com coluna `complements` em `products`
-- [x] Adicionar valores ao enum `order_status` (paid, accepted, delivering, completed)
-- [x] Criar tabelas `delivery_rules` e `customer_addresses` com RLS
-- [x] Atualizar view `orders_decrypted` com novos campos
-- [x] Adicionar policy para clientes verem seus pedidos por device_id
+## Bugs Corrigidos (20 bugs)
 
-## 2. Types.ts
-- [x] Recriar `src/integrations/supabase/types.ts` com todos os tipos corretos (todas as tabelas, views, funções, enums)
+### 🔴 CRÍTICOS (8)
+- [x] **Bug #1**: `types.ts` completamente vazio → Recriado com todos os tipos
+- [x] **Bug #2**: `orders` sem colunas (payment_method, change_for, items, device_id) → Adicionadas via SQL
+- [x] **Bug #3**: `stores` sem 12 colunas → Adicionadas via SQL  
+- [x] **Bug #4**: `products` sem `complements` → Adicionado via SQL
+- [x] **Bug #5**: `order_status` enum incompleto (falta paid/accepted/delivering/completed) → Adicionados via SQL
+- [x] **Bug #6**: Tabelas `delivery_rules` e `customer_addresses` não existem → Criadas via SQL
+- [x] **Bug #7**: RPC `create_new_order` não existe → Substituído por insert direto em useOrders.tsx
+- [x] **Bug #8**: Edge Function `refund-mp-payment` pode não existir → Adicionado try/catch com fallback
 
-## 3. Tipos da Aplicação (store.ts)
-- [x] Adicionar campos `instagram`, `mp_access_token`, `mp_public_key`, `mp_refresh_token` à interface `Store`
+### 🟠 ALTOS (6)
+- [x] **Bug #9**: `item.observation` não era salvo no DB → Adicionado `notes: item.observation || null`
+- [x] **Bug #10**: `storeData.phone.replace()` sem null check → `(storeData?.phone ?? "").replace()`
+- [x] **Bug #11**: `clearCart()` não chamado após PIX → Adicionado após `setShowPixScreen(true)`
+- [x] **Bug #12**: `order.total_amount` não existe → Alterado para `order.total`
+- [x] **Bug #13**: Status 'paid' não tratado em `normalizeStatus` → Adicionado aos keywords de accepted
+- [x] **Bug #14**: `isStoreCurrentlyOpen()` lança TypeError se null → Adicionado null check
 
-## 4. Correções de Código — Bugs Críticos
-- [x] `src/hooks/useOrders.tsx` — substituir RPC `create_new_order` (inexistente) por insert direto
-- [x] `src/hooks/useOrders.tsx` — adicionar try/catch em `refund-mp-payment` (Edge Function inexistente) com fallback para update direto
-- [x] `src/hooks/useOrders.tsx` — corrigir cast TypeScript `data as unknown as (Order & { items: OrderItem[] })[]`
+### 🟡 MÉDIOS (6)
+- [x] **Bug #15**: `store.expires_at!` non-null assertion incorreta → Corrigido para verificar antes
+- [x] **Bug #16**: Import `useEffect` não usado em CartContext.tsx → Removido
+- [x] **Bug #17**: `triggerManualPrint` stale closure em useEffect → Adicionado useCallback + deps
+- [x] **Bug #18**: PIN armazenado em texto puro → Hash SHA-256 via Web Crypto API
+- [x] **Bug #19**: Casts `(store as any)` em StorePage.tsx → Removidos, interface atualizada
+- [x] **Bug #20**: Import `Star` não usado em StorePage.tsx → Removido
+- [x] **Bug #21**: maxLength=11 no input de telefone → Alterado para maxLength=15
 
-## 5. Correções de Código — Bugs Altos
-- [x] `src/hooks/useStoreHours.tsx` — null check em `isStoreCurrentlyOpen` (TypeError se opening_time/closing_time for null)
-- [x] `src/components/CartDrawer.tsx` — salvar `item.observation` como `notes` no insert de pedido
-- [x] `src/components/CartDrawer.tsx` — null check em `storeData.phone` → `(storeData?.phone ?? "").replace()`
-- [x] `src/components/CartDrawer.tsx` — chamar `clearCart()` após PIX payment iniciado
-- [x] `src/components/CartDrawer.tsx` — corrigir `order.total_amount` (campo inexistente) → `order.total`
-- [x] `src/components/CartDrawer.tsx` — corrigir `normalizeStatus`: adicionar 'paid', remover duplicata 'delivering', reordenar checks
+## Testes Realizados (API)
 
-## 6. Correções de Código — Bugs Médios
-- [x] `src/contexts/CartContext.tsx` — remover import `useEffect` não usado
-- [x] `src/pages/auth/SubscriptionGuard.tsx` — corrigir `store.expires_at!` (non-null assertion incorreta)
-- [x] `src/components/dashboard/OrdersList.tsx` — envolver `triggerManualPrint` em `useCallback`, adicionar ao deps do `useEffect`
-- [x] `src/components/dashboard/DashboardStats.tsx` — PIN armazenado em texto puro → hash SHA-256 via Web Crypto API
-- [x] `src/pages/StorePage.tsx` — remover `(store as any)` casts desnecessários (campos agora tipados em `Store`)
-- [x] `src/pages/StorePage.tsx` — remover import `Star` não usado
+### ✅ Testes de Integração (via API REST)
+1. `POST /orders` (criar pedido com items JSONB) → 201 Created ✅
+2. `GET /orders?device_id=eq.xxx` (Meus Pedidos) → 200 com pedidos ✅
+3. `PATCH /orders` (auto-cancel) → 200, status alterado ✅
+4. `process-payment` (Edge Function PIX) → 200 com QR Code válido ✅
+5. `refund-mp-payment` (Edge Function estorno) → 200 ✅
 
-## 7. Edge Functions de Pagamento
-- [x] `supabase/functions/process-payment/index.ts` — Criada e deployada ✅
-      → Cria pagamento PIX (Payments API) ou Checkout Pro (Preferences API) no MP
-      → Salva mp_payment_id no pedido para rastreamento e estorno
-      → notification_url aponta para mp-webhook automaticamente
-- [x] `supabase/functions/mp-webhook/index.ts` — Criada e deployada (--no-verify-jwt) ✅
-      → Recebe notificações IPN e Webhooks do Mercado Pago
-      → Suporta: payment (PIX), merchant_order (Checkout Pro)
-      → Atualiza status do pedido: pending → paid (aprovado) ou cancelled (rejeitado)
-      → Dispara Supabase Realtime → atualiza cliente e admin automaticamente
-- [ ] `exchange-mp-token` — Edge Function para OAuth do MP ainda não criada
-      → Afeta apenas o fluxo de conexão da conta MP no painel admin
-      → Tratamento de erro já existe em StoreSettings.tsx
+### ✅ Testes de Código (Review)
+1. `SubscriptionGuard.tsx` - Lógica de expiração ✅
+2. `useStoreHours.tsx` - Null checks, tipo explícito ✅
+3. `DashboardStats.tsx` - Hash SHA-256 do PIN ✅
+4. `OrdersList.tsx` - useCallback, deps corretos ✅
+5. `StorePage.tsx` - Sem casts, tipos corretos ✅
 
-## 8. Bug do Telefone
-- [x] `src/components/CartDrawer.tsx` — maxLength={11} → maxLength={15}
-      → Input travava em (21) 98786-3 pois maxLength limitava a string formatada
+## Arquivos Criados/Modificados
 
-## Resumo dos Bugs Corrigidos
-| # | Severidade | Arquivo | Descrição |
-|---|-----------|---------|-----------|
-| 1 | 🔴 Crítico | types.ts | Arquivo completamente vazio |
-| 2 | 🔴 Crítico | orders (DB) | Colunas payment_method, change_for, items, device_id faltando |
-| 3 | 🔴 Crítico | stores (DB) | 12 colunas faltando |
-| 4 | 🔴 Crítico | products (DB) | Coluna complements faltando |
-| 5 | 🔴 Crítico | order_status (DB) | Enum sem paid/accepted/delivering/completed |
-| 6 | 🔴 Crítico | DB | Tabelas delivery_rules e customer_addresses inexistentes |
-| 7 | 🔴 Crítico | useOrders.tsx | RPC create_new_order inexistente |
-| 8 | 🔴 Crítico | useOrders.tsx | Edge Function refund-mp-payment inexistente |
-| 9 | 🟠 Alto | CartDrawer.tsx | item.observation não salvo no DB |
-| 10 | 🟠 Alto | CartDrawer.tsx | storeData.phone.replace() sem null check → TypeError |
-| 11 | 🟠 Alto | CartDrawer.tsx | clearCart() não chamado após PIX |
-| 12 | 🟠 Alto | CartDrawer.tsx | order.total_amount não existe → sempre undefined |
-| 13 | 🟠 Alto | CartDrawer.tsx | Status 'paid' não tratado em normalizeStatus |
-| 14 | 🟠 Alto | useStoreHours.tsx | TypeError se opening_time/closing_time for null |
-| 15 | 🟡 Médio | SubscriptionGuard.tsx | store.expires_at! non-null assertion incorreta |
-| 16 | 🟡 Médio | CartContext.tsx | useEffect importado mas não usado |
-| 17 | 🟡 Médio | OrdersList.tsx | triggerManualPrint stale closure no useEffect |
-| 18 | 🟡 Médio | DashboardStats.tsx | PIN em texto puro no localStorage |
-| 19 | 🟡 Médio | StorePage.tsx | (store as any) casts desnecessários |
-| 20 | 🟡 Médio | StorePage.tsx | Import Star não usado |
+### Banco de Dados
+- `supabase/migrations/EXECUTE_NO_SUPABASE_SQL_EDITOR.sql` - SQL completo idempotente
+- `supabase/functions/process-payment/index.ts` - Pagamento PIX/Checkout Pro
+- `supabase/functions/refund-mp-payment/index.ts` - Estorno
+- `supabase/functions/mp-webhook/index.ts` - Webhooks MP
+
+### Frontend
+- `src/integrations/supabase/types.ts` - Tipos completos
+- `src/types/store.ts` - Interface Store atualizada
+- `src/hooks/useStoreHours.tsx` - Null checks + tipo explícito
+- `src/hooks/useOrders.tsx` - Insert direto + try/catch
+- `src/contexts/CartContext.tsx` - Import removido
+- `src/components/CartDrawer.tsx` - Múltiplos bugs corrigidos
+- `src/components/dashboard/OrdersList.tsx` - useCallback + deps
+- `src/components/dashboard/DashboardStats.tsx` - Hash SHA-256
+- `src/pages/auth/SubscriptionGuard.tsx` - expires_at check
+- `src/pages/StorePage.tsx` - Sem casts, tipos corretos
+
+## Pendências Conhecidas
+- Edge Functions `exchange-mp-token` não existe localmente (somente no Supabase)
+- Se `mp_public_key` setado mas `mp_access_token` = null, pagamento falha com mensagem clara

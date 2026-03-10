@@ -163,8 +163,18 @@ const handleConnectMP = (e?: React.MouseEvent) => {
 
   const handleSave = async () => {
     setLoading(true);
-    const { error } = await supabase.from("stores").update({ ...formData, phone: formData.phone.replace(/\D/g, "") }).eq("id", store.id);
-    if (error) toast.error("Erro ao salvar.");
+    // Converter checkboxes para booleanos corretamente
+    const updateData = {
+      ...formData,
+      phone: formData.phone.replace(/\D/g, ""),
+      accepts_online_payment: Boolean(formData.accepts_online_payment),
+      accepts_cash_on_delivery: Boolean(formData.accepts_cash_on_delivery)
+    };
+    const { error } = await supabase.from("stores").update(updateData).eq("id", store.id);
+    if (error) {
+      console.error("Erro ao salvar:", error);
+      toast.error("Erro ao salvar: " + error.message);
+    }
     else toast.success("Configurações salvas!");
     setLoading(false);
   };

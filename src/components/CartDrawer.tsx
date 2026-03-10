@@ -152,6 +152,12 @@ export default function CartDrawer() {
   const [acceptsOnlinePayment, setAcceptsOnlinePayment] = useState(true);
   const [acceptsCashOnDelivery, setAcceptsCashOnDelivery] = useState(true);
 
+  // Verificar se a loja tem pelo menos uma opção de pagamento configurada
+  const hasPaymentConfig = acceptsOnlinePayment || acceptsCashOnDelivery;
+  
+  // Se não tem pagamento configurado, considera loja fechada
+  const isStoreAvailable = isOpen && hasPaymentConfig;
+
 // --- NOVO: BUSCA A CONFIGURAÇÃO ASSIM QUE O CARRINHO ABRE ---
   useEffect(() => {
     if (!storeId) return;
@@ -200,10 +206,10 @@ const subtotalReal = items.reduce((acc, item) => acc + (Number(item.price) * (it
   const isFormValid = 
     items.length > 0 && 
     nome.trim().length > 0 && 
-    isPhoneValid && // Agora o código sabe o que é isso
+    isPhoneValid && 
     frete !== null && 
     isAddressValid && 
-    isOpen;
+    isStoreAvailable;
 
   // Lógica do Banner
   const lastOrder = orderHistory[0];
@@ -291,10 +297,12 @@ const fetchOrderHistory = async () => {
 const handleFinalizar = async () => {
 
     // --- ADICIONE ESTA TRAVA NO INÍCIO DA FUNÇÃO ---
-  if (!isOpen) {
+  if (!isStoreAvailable) {
     toast({
       title: "Loja Fechada 🚫",
-      description: "Desculpe, não estamos aceitando pedidos no momento.",
+      description: !hasPaymentConfig 
+        ? "Configure pelo menos uma forma de pagamento para receber pedidos." 
+        : "Desculpe, não estamos aceitando pedidos no momento.",
       variant: "destructive"
     });
     return;
@@ -732,9 +740,9 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
 
                             <Button 
                                 onClick={handleFinalizar} 
-                                disabled={loading || !isFormValid || !isOpen} 
+                                disabled={loading || !isFormValid || !isStoreAvailable} 
                                 className={`w-full h-14 text-base font-black rounded-2xl shadow-2xl transition-all active:scale-95 border ${
-                                    !isOpen
+                                    !isStoreAvailable
                                         ? "bg-slate-400 text-white cursor-not-allowed border-transparent grayscale"
                                         : !isFormValid 
                                             ? "bg-slate-200 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-transparent" 
@@ -743,7 +751,7 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                             >
                                 {loading ? (
                                     <Loader2 className="animate-spin h-5 w-5" />
-                                ) : !isOpen ? (
+                                ) : !isStoreAvailable ? (
                                     "LOJA FECHADA NO MOMENTO"
                                 ) : (
                                     "FINALIZAR PEDIDO"

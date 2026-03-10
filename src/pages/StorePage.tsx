@@ -44,6 +44,11 @@ export default function StorePage() {
   const { data: hours } = useStoreHours(store?.id);
 
   const isOpen = isStoreCurrentlyOpen(hours || null);
+  
+  // Verificar se a loja tem pelo menos uma opção de pagamento configurada
+  const hasPaymentConfig = store?.accepts_online_payment || store?.accepts_cash_on_delivery;
+  
+  // Se não tem pagamento configurado, considera loja fechada
 
   useEffect(() => {
     if (store) {

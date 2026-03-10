@@ -10,7 +10,10 @@ interface CartPaymentProps {
   trocoPara: string;
   setTrocoPara: (value: string) => void;
   totalFinal: number;
-  hasMercadoPago?: boolean; // <-- NOVA PROP PARA BLINDAR O CHECKOUT
+  // Novas props para configuração de pagamento
+  hasMercadoPago?: boolean;
+  acceptsOnlinePayment?: boolean;
+  acceptsCashOnDelivery?: boolean;
 }
 
 const parseCurrency = (value: string) => {
@@ -24,21 +27,51 @@ export function CartPayment({
   trocoPara, 
   setTrocoPara, 
   totalFinal,
-  hasMercadoPago = false // Por padrão, bloqueia até termos certeza que a loja tem MP
+  hasMercadoPago = false,
+  acceptsOnlinePayment = true,
+  acceptsCashOnDelivery = true
 }: CartPaymentProps) {
   
-  // SEGREDO AQUI: Se a loja não tem MP e o usuário tentar burlar, força para dinheiro
+  // Se a loja não tem MP e o usuário tentar burlar, força para dinheiro
   useEffect(() => {
     if (!hasMercadoPago && (pagamento === "pix" || pagamento === "cartão")) {
       setPagamento("dinheiro");
     }
   }, [hasMercadoPago, pagamento, setPagamento]);
 
-  const paymentOptions = [
-    { id: "pix", label: "Pix", icon: SiPix, color: "text-emerald-600", requiresMP: true },
-    { id: "cartão", label: "Cartão", icon: CreditCard, color: "text-yellow-500", requiresMP: true },
-    { id: "dinheiro", label: "Dinheiro", icon: Coins, color: "text-emerald-500", requiresMP: false }
-  ];
+  // Lógica de exibição baseada na configuração da loja
+  // Se aceita apenas entrega → opções de entrega (sem MP)
+  // Se aceita apenas online → apenas Pix/Cartão via MP
+  // Se aceita ambos → todas as opções
+  
+  const paymentOptions = [];
+
+  if (acceptsOnlinePayment && hasMercadoPago) {
+    // Adiciona opções de pagamento online (Pix/Cartão via Mercado Pago)
+    paymentOptions.push(
+      { id: "pix", label: "Pix (Online)", icon: SiPix, color: "text-emerald-600", requiresMP: true, isOnline: true },
+      { id: "cartão", label: "Cartão (Online)", icon: CreditCard, color: "text-yellow-500", requiresMP: true, isOnline: true }
+    );
+  }
+
+  if (acceptsCashOnDelivery) {
+    // Adiciona opções de pagamento na entrega
+    paymentOptions.push(
+      { id: "pix", label: "Pix (Entrega)", icon: SiPix, color: "text-emerald-600", requiresMP: false, isOnline: false },
+      { id: "cartão", label: "Cartão (Entrega)", icon: CreditCard, color: "text-yellow-500", requiresMP: false, isOnline: false },
+      { id: "dinheiro", label: "Dinheiro", icon: Coins, color: "text-emerald-500", requiresMP: false, isOnline: false }
+    );
+  }
+
+  // Se não há opções disponíveis, mostra aviso
+  const hasPaymentOptions = paymentOptions.length > 0;
+
+  // Se não tem nenhuma opção configurada, forçar dinheiro como fallback
+  useEffect(() => {
+    if (!hasPaymentOptions && pagamento !== "dinheiro") {
+      setPagamento("dinheiro");
+    }
+  }, [hasPaymentOptions, pagamento, setPagamento]);
 
   return (
     <div className="relative p-5 space-y-4 rounded-2xl border border-white/40 bg-white/60 backdrop-blur-md shadow-sm overflow-hidden transition-all hover:bg-white/70">

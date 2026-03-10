@@ -40,6 +40,10 @@ export interface Store {
   mp_public_key: string | null;
   mp_refresh_token: string | null;
 
+  // Configuração de Pagamentos
+  accepts_online_payment: boolean;
+  accepts_cash_on_delivery: boolean;
+
   // Status
   is_active: boolean;
   is_open: boolean;

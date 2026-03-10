@@ -149,6 +149,8 @@ export default function CartDrawer() {
   const [now, setNow] = useState(Date.now());
 
   const [hasMercadoPago, setHasMercadoPago] = useState(false);
+  const [acceptsOnlinePayment, setAcceptsOnlinePayment] = useState(true);
+  const [acceptsCashOnDelivery, setAcceptsCashOnDelivery] = useState(true);
 
 // --- NOVO: BUSCA A CONFIGURAÇÃO ASSIM QUE O CARRINHO ABRE ---
   useEffect(() => {
@@ -157,13 +159,17 @@ export default function CartDrawer() {
   const checkPaymentMethods = async () => {
       // Verificamos mp_public_key (campo público, visível pelo anon key via RLS)
       // mp_access_token é sensível e bloqueado pela RLS para clientes não autenticados
+      // Também buscamos as novas colunas de configuração de pagamento
       const { data } = await supabase
         .from("stores")
-        .select("mp_public_key")
+        .select("mp_public_key, accepts_online_payment, accepts_cash_on_delivery")
         .eq("id", storeId)
         .single();
         
       setHasMercadoPago(!!(data as any)?.mp_public_key);
+      // Usa os valores do banco ouDefaults true se null
+      setAcceptsOnlinePayment((data as any)?.accepts_online_payment ?? true);
+      setAcceptsCashOnDelivery((data as any)?.accepts_cash_on_delivery ?? true);
     };
     
     checkPaymentMethods();
@@ -694,6 +700,8 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                                     setTrocoPara={setTrocoPara}
                                     totalFinal={totalFinal}
                                     hasMercadoPago={hasMercadoPago}
+                                    acceptsOnlinePayment={acceptsOnlinePayment}
+                                    acceptsCashOnDelivery={acceptsCashOnDelivery}
                                 />
 
                                 {/* RESUMO DOS VALORES (TOTAL DA COMPRA) */}

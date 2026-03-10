@@ -11,7 +11,7 @@ import {
   Store, MapPin, Truck, Bell, Save, Loader2, Search, 
   Camera, ImageIcon, CreditCard, Wallet, CheckCircle2,
   ChevronRight, Sparkles, Settings, Info, Clock, User,
-  Instagram
+  Instagram, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 import { DeliverySettings } from "./DeliverySettings"; 
@@ -41,7 +41,9 @@ export function StoreSettings({ store }: { store: any }) {
     logo_url: store?.logo_url || "",
     banner_url: store?.banner_url || "",
     mp_access_token: store?.mp_access_token || "",
-    mp_public_key: store?.mp_public_key || ""
+    mp_public_key: store?.mp_public_key || "",
+    accepts_online_payment: store?.accepts_online_payment ?? true,
+    accepts_cash_on_delivery: store?.accepts_cash_on_delivery ?? true
   });
 
 // --- LÓGICA MERCADO PAGO (CORRIGIDA COM PROTEÇÃO ANTI-DUPLICAÇÃO) ---
@@ -378,6 +380,53 @@ const handleConnectMP = (e?: React.MouseEvent) => {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-10">
+              {/* Configuração de Pagamentos */}
+              <div className="mb-8 p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <h4 className="font-black text-sm uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Opções de Pagamento
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Checkbox Pagamento Online */}
+                  <label className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={formData.accepts_online_payment}
+                      onChange={(e) => setFormData({...formData, accepts_online_payment: e.target.checked})}
+                      className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Pagamento Online</span>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">PIX ou Cartão via Mercado Pago</p>
+                    </div>
+                  </label>
+                  
+                  {/* Checkbox Pagamento na Entrega */}
+                  <label className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={formData.accepts_cash_on_delivery}
+                      onChange={(e) => setFormData({...formData, accepts_cash_on_delivery: e.target.checked})}
+                      className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Pagamento na Entrega</span>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">PIX, Cartão ou Dinheiro</p>
+                    </div>
+                  </label>
+                </div>
+                
+                {/* Aviso se nenhuma opção selecionada */}
+                {!formData.accepts_online_payment && !formData.accepts_cash_on_delivery && (
+                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                      Selecione pelo menos uma opção de pagamento para receber pedidos.
+                    </p>
+                  </div>
+                )}
+              </div>
+              
               <div className="flex flex-col items-center justify-center py-12 space-y-10 border-4 border-dashed border-blue-50 rounded-[3rem] bg-blue-50/20">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full max-w-xl px-4 text-center md:text-left">
                     <div className="space-y-2">

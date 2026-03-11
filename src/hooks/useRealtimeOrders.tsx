@@ -70,12 +70,29 @@ export function useRealtimeOrders(storeId: string | undefined) {
           // Executa a notificação
           if (shouldNotify) {
             console.log("🔔 DISPARANDO NOTIFICAÇÃO:", notificationTitle);
+            
+            // 1. Tenta reproduzir o som
             try {
               playNotificationSound();
             } catch (e) {
-              console.error("Erro ao tocar som:", e);
+              console.log("Som bloqueado pelo navegador");
+            }
+            
+            // 2. Tenta usar a API de Notificações do navegador como backup
+            if ("Notification" in window) {
+              if (Notification.permission === "granted") {
+                new Notification(notificationTitle, {
+                  body: `Pedido de ${newOrder.customer_name || 'Cliente'}`,
+                  icon: "/favicon.ico",
+                  tag: "new-order"
+                });
+              } else if (Notification.permission !== "denied") {
+                // Solicita permissão se ainda não foi negada
+                Notification.requestPermission();
+              }
             }
 
+            // 3. Mostra o toast (sempre funciona)
             toast.success(notificationTitle, {
               description: `Pedido de ${newOrder.customer_name || 'Cliente'}`,
               duration: 10000,

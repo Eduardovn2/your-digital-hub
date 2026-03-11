@@ -119,7 +119,7 @@ export function CartPayment({
         <div className="relative flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200/50 mt-1 animate-in fade-in">
           <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
           <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
-            Esta loja não está a aceitar pagamentos online de momento. <b>Apenas dinheiro na entrega.</b>
+            Esta loja não está a aceitar pagamentos online no momento. <b>Apenas dinheiro na entrega.</b>
           </p>
         </div>
       )}

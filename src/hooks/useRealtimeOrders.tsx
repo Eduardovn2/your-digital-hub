@@ -35,10 +35,12 @@ export function useRealtimeOrders(storeId: string | undefined) {
           let notificationTitle = "Novo pedido!";
 
           const isDinheiro = ['dinheiro', 'cash'].includes(newOrder?.payment_method?.toLowerCase());
+          const isPagamentoNaEntrega = ['pix_entrega', 'cartao_entrega'].includes((newOrder?.payment_method || '').toLowerCase());
+          const isPagamentoConfirmado = isDinheiro || isPagamentoNaEntrega;
 
           // 1. Lógica de Notificação
           if (payload.eventType === 'INSERT') {
-            if (isDinheiro) {
+            if (isPagamentoConfirmado) {
               shouldNotify = true;
               notificationTitle = "Novo pedido (Pagar na Entrega)!";
             } else {

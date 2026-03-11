@@ -139,7 +139,7 @@ export default function CartDrawer() {
   
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [pagamento, setPagamento] = useState<"pix" | "cartão" | "dinheiro">("pix");
+  const [pagamento, setPagamento] = useState<"pix" | "cartão" | "dinheiro" | "pix_online" | "cartao_online" | "pix_entrega" | "cartao_entrega">("pix");
   const [trocoPara, setTrocoPara] = useState("");
   
   const [frete, setFrete] = useState<number | null>(null);
@@ -323,6 +323,16 @@ const handleFinalizar = async () => {
       notes: item.observation || null, // Bug #9: salva observação do item
     }));
 
+    // Normaliza o pagamento para salvar no banco (remove sufixo _online/_entrega)
+    const normalizePaymentMethod = (method: string) => {
+      if (method === 'pix_online' || method === 'pix_entrega') return 'pix';
+      if (method === 'cartao_online' || method === 'cartao_entrega') return 'cartão';
+      return method;
+    };
+
+    // Verifica se é pagamento online (que precisa de MP)
+    const isOnlinePayment = pagamento === 'pix_online' || pagamento === 'cartao_online';
+
     const orderPayload = {
       store_id: storeId,
       customer_name: nome,
@@ -331,7 +341,7 @@ const handleFinalizar = async () => {
       delivery_fee: frete,
       subtotal: subtotalReal,
       total: totalFinal,
-      payment_method: pagamento,
+      payment_method: normalizePaymentMethod(pagamento),
       change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
       status: "pending" as const,
       device_id: deviceId,
@@ -363,10 +373,13 @@ const handleFinalizar = async () => {
       setActiveTab("orders");
       setOpen(false);
     } 
-    // CASO B: PIX OU CARTÃO (Chama Mercado Pago via Edge Function)
-    else {
+    // CASO B: PAGAMENTO ONLINE (Pix/Cartão via Mercado Pago)
+    else if (isOnlinePayment) {
+      // Extrai o método de pagamento correto para o MP
+      const mpPaymentMethod = pagamento === 'pix_online' ? 'pix' : 'cartao';
+      
       const { data, error: funcError } = await supabase.functions.invoke('process-payment', {
-        body: { orderId: insertedOrder.id, paymentMethod: pagamento, storeId }
+        body: { orderId: insertedOrder.id, paymentMethod: mpPaymentMethod, storeId }
       });
 
       // Extrai a mensagem real do erro da Edge Function (quando data é null em respostas não-2xx)
@@ -380,14 +393,21 @@ const handleFinalizar = async () => {
       }
       if (data?.error) throw new Error(data.error);
 
-      if (pagamento === "pix") {
+      if (mpPaymentMethod === 'pix') {
         setPixData(data);
         setShowPixScreen(true); // Abre a tela do QR Code dentro da sacola
         clearCart(); // limpa o carrinho após iniciar pagamento PIX
-      } else if (pagamento === "cartão") {
+      } else {
         // Redireciona para o Checkout Pro do Mercado Pago
         window.location.href = data.init_point;
       }
+    }
+    // CASO C: PAGAMENTO NA ENTREGA (Pix/Cartão na entrega via WhatsApp)
+    else if (pagamento === 'pix_entrega' || pagamento === 'cartao_entrega') {
+      enviarWhatsApp(insertedOrder.id, storeData);
+      clearCart();
+      setActiveTab("orders");
+      setOpen(false);
     }
 
   } catch (error: any) {
@@ -436,6 +456,20 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
     const numeroLoja = (storeData?.phone ?? "").replace(/\D/g, "");
     const storeLink = `${window.location.origin}/${storeData.slug}`;
     
+    // Normaliza o método de pagamento para exibição
+    const getPaymentLabel = (method: string) => {
+      switch (method) {
+        case 'pix_online': return 'Pix (Online)';
+        case 'pix_entrega': return 'Pix (Entrega)';
+        case 'cartao_online': return 'Cartão (Online)';
+        case 'cartao_entrega': return 'Cartão (Entrega)';
+        case 'pix': return 'Pix';
+        case 'cartão': return 'Cartão';
+        case 'dinheiro': return 'Dinheiro';
+        default: return method;
+      }
+    };
+    
     const linhas = [
       `${storeData.name}`,
       ``,
@@ -461,7 +495,7 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
     
     linhas.push(``, `Entrega: ${frete === 0 ? 'Grátis' : frete?.toFixed(2).replace('.', ',')}`);
     linhas.push(`Total: ${totalFinal.toFixed(2).replace('.', ',')}`, ``);
-    linhas.push(`Pagamento em:     ${pagamento === 'pix' ? 'Pix' : pagamento === 'cartão' ? 'Cartão' : 'Dinheiro'}`);
+    linhas.push(`Pagamento em: ${getPaymentLabel(pagamento)}`);
     
     if (trocoPara) {
         linhas.push(`Troco para: R$ ${parseCurrency(trocoPara).toFixed(2).replace('.', ',')}`);

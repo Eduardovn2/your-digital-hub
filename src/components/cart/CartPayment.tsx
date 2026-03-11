@@ -5,8 +5,8 @@ import { SiPix } from "react-icons/si";
 import { useEffect } from "react";
 
 interface CartPaymentProps {
-  pagamento: "pix" | "cartão" | "dinheiro";
-  setPagamento: (value: "pix" | "cartão" | "dinheiro") => void;
+  pagamento: "pix" | "cartão" | "dinheiro" | "pix_online" | "cartao_online" | "pix_entrega" | "cartao_entrega";
+  setPagamento: (value: "pix" | "cartão" | "dinheiro" | "pix_online" | "cartao_online" | "pix_entrega" | "cartao_entrega") => void;
   trocoPara: string;
   setTrocoPara: (value: string) => void;
   totalFinal: number;
@@ -32,9 +32,9 @@ export function CartPayment({
   acceptsCashOnDelivery = true
 }: CartPaymentProps) {
   
-  // Se a loja não tem MP e o usuário tentar burlar, força para dinheiro
+  // Se a loja não tem MP e o usuário tentar pagar com opções online, força para dinheiro
   useEffect(() => {
-    if (!hasMercadoPago && (pagamento === "pix" || pagamento === "cartão")) {
+    if (!hasMercadoPago && (pagamento === "pix_online" || pagamento === "cartao_online")) {
       setPagamento("dinheiro");
     }
   }, [hasMercadoPago, pagamento, setPagamento]);
@@ -49,16 +49,16 @@ export function CartPayment({
   if (acceptsOnlinePayment && hasMercadoPago) {
     // Adiciona opções de pagamento online (Pix/Cartão via Mercado Pago)
     paymentOptions.push(
-      { id: "pix", label: "Pix (Online)", icon: SiPix, color: "text-emerald-600", requiresMP: true, isOnline: true },
-      { id: "cartão", label: "Cartão (Online)", icon: CreditCard, color: "text-yellow-500", requiresMP: true, isOnline: true }
+      { id: "pix_online", label: "Pix (Online)", icon: SiPix, color: "text-emerald-600", requiresMP: true, isOnline: true },
+      { id: "cartao_online", label: "Cartão (Online)", icon: CreditCard, color: "text-yellow-500", requiresMP: true, isOnline: true }
     );
   }
 
   if (acceptsCashOnDelivery) {
     // Adiciona opções de pagamento na entrega
     paymentOptions.push(
-      { id: "pix", label: "Pix (Entrega)", icon: SiPix, color: "text-emerald-600", requiresMP: false, isOnline: false },
-      { id: "cartão", label: "Cartão (Entrega)", icon: CreditCard, color: "text-yellow-500", requiresMP: false, isOnline: false },
+      { id: "pix_entrega", label: "Pix (Entrega)", icon: SiPix, color: "text-emerald-600", requiresMP: false, isOnline: false },
+      { id: "cartao_entrega", label: "Cartão (Entrega)", icon: CreditCard, color: "text-yellow-500", requiresMP: false, isOnline: false },
       { id: "dinheiro", label: "Dinheiro", icon: Coins, color: "text-emerald-500", requiresMP: false, isOnline: false }
     );
   }

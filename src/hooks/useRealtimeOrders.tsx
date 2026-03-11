@@ -27,44 +27,49 @@ export function useRealtimeOrders(storeId: string | undefined) {
           filter: `store_id=eq.${storeId}`
         },
         (payload) => {
-          console.log("🔔 Notificação de banco:", payload);
-          
           const newOrder = payload.new as any;
           const oldOrder = payload.old as any;
-          let shouldNotify = false;
-          let notificationTitle = "Novo pedido!";
-
-          // Log para debug
-          console.log("🔔 Evento:", payload.eventType, "Payment:", newOrder?.payment_method, "Status:", newOrder?.status);
+          
+          console.log("📡 Realtime event:", payload.eventType, "Order ID:", newOrder?.id, "Status:", newOrder?.status, "Payment:", newOrder?.payment_method);
+          
+          // Determina o tipo de pagamento
+          const paymentMethod = (newOrder?.payment_method || '').toLowerCase();
+          const isDinheiro = ['dinheiro', 'cash'].includes(paymentMethod);
+          const isPix = paymentMethod === 'pix';
+          const isCartao = paymentMethod === 'cartão';
           
           // Qualquer pedido com status "accepted" já está confirmado (pago na entrega)
-          // Isso inclui: dinheiro, pix (entrega), cartão (entrega)
           const isAccepted = newOrder?.status === 'accepted';
-
-          // 1. Lógica de Notificação
-          if (payload.eventType === 'INSERT') {
-            if (isAccepted) {
-              shouldNotify = true;
-              notificationTitle = "Novo pedido (Pagar na Entrega)!";
+          const isPaid = newOrder?.status === 'paid';
+          
+          // Notificar para pagamentos na entrega (accepted) e pagamentos online confirmados (paid)
+          const shouldNotify = isAccepted || isPaid;
+          
+          // Gerar mensagem apropriada
+          let notificationTitle = "🔥 Novo pedido!";
+          if (isAccepted) {
+            if (isDinheiro) {
+              notificationTitle = "🔥 Novo pedido! (Dinheiro na Entrega)";
+            } else if (isPix) {
+              notificationTitle = "🔥 Novo pedido! (Pix na Entrega)";
+            } else if (isCartao) {
+              notificationTitle = "🔥 Novo pedido! (Cartão na Entrega)";
             } else {
-              console.log("Pedido criado com status:", newOrder?.status, "- Aguardando pagamento...");
+              notificationTitle = "🔥 Novo pedido! (Pagar na Entrega)";
+            }
+          } else if (isPaid) {
+            if (isPix) {
+              notificationTitle = "✅ Pagamento aprovado! (Pix Online)";
+            } else if (isCartao) {
+              notificationTitle = "✅ Pagamento aprovado! (Cartão Online)";
+            } else {
+              notificationTitle = "✅ Pagamento aprovado!";
             }
           }
 
-          if (payload.eventType === 'UPDATE') {
-            const isDinheiro = ['dinheiro', 'cash'].includes(newOrder?.payment_method?.toLowerCase());
-            // Verifica se o status mudou para 'paid' (vindo do Webhook) ou para 'accepted' (pagamento na entrega)
-            const mudouParaPago = oldOrder?.status === 'pending' && newOrder?.status === 'paid';
-            const mudouParaAccepted = oldOrder?.status === 'pending' && newOrder?.status === 'accepted';
-            
-            if ((!isDinheiro && mudouParaPago) || mudouParaAccepted) {
-              shouldNotify = true;
-              notificationTitle = mudouParaAccepted ? "Novo pedido (Pagar na Entrega)!" : "Pagamento Aprovado! Pedido na fila.";
-            }
-          }
-
-          // 2. Executa a notificação (apenas uma vez)
+          // Executa a notificação
           if (shouldNotify) {
+            console.log("🔔 DISPARANDO NOTIFICAÇÃO:", notificationTitle);
             try {
               playNotificationSound();
             } catch (e) {
@@ -75,10 +80,11 @@ export function useRealtimeOrders(storeId: string | undefined) {
               description: `Pedido de ${newOrder.customer_name || 'Cliente'}`,
               duration: 10000,
             });
+          } else {
+            console.log("⏳ Pedido aguardando pagamento - status:", newOrder?.status);
           }
 
-          // 3. Atualiza os dados na tela (Invalidar o cache do React Query)
-          // Isso faz o useOrders() buscar os dados novos automaticamente
+          // Atualiza os dados na tela
           queryClient.invalidateQueries({ queryKey: ['orders', storeId] });
         }
       )

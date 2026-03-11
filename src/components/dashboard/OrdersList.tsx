@@ -81,7 +81,6 @@ const handlePrint = useReactToPrint({
   const handleUpdateStatus = (orderId: string, newStatus: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     updateStatusMutation({ orderId, status: newStatus }, {
-      onSuccess: () => toast.success(`Status: ${STATUS_CONFIG[newStatus]?.label}`),
       onError: () => refetch()
     });
   };

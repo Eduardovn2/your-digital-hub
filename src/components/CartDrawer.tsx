@@ -333,6 +333,11 @@ const handleFinalizar = async () => {
 
     // Verifica se é pagamento online (que precisa de MP)
     const isOnlinePayment = pagamento === 'pix_online' || pagamento === 'cartao_online';
+    // Pagamentos na entrega já estão confirmados (cliente paga quando receber)
+    const isPagamentoNaEntrega = pagamento === 'dinheiro' || pagamento === 'pix_entrega' || pagamento === 'cartao_entrega';
+    
+    // Status inicial do pedido: pagos na entrega já começam como "accepted"
+    const initialStatus: "pending" | "accepted" = isPagamentoNaEntrega ? "accepted" : "pending";
 
     const orderPayload = {
       store_id: storeId,
@@ -344,7 +349,7 @@ const handleFinalizar = async () => {
       total: totalFinal,
       payment_method: normalizePaymentMethod(pagamento),
       change_for: pagamento === "dinheiro" ? parseCurrency(trocoPara) : null,
-      status: "pending" as const,
+      status: initialStatus,
       device_id: deviceId,
       items: itemsData 
     };

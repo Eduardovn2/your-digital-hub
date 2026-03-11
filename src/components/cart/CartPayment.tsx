@@ -47,8 +47,14 @@ export function CartPayment({
         setPagamento("pix_online");
       }
     } else {
-      if (pagamento === "pix_online" || pagamento === "cartao_online") {
-        setPagamento("dinheiro");
+      // Quando muda para "entrega", mantém pix_entrega ou cartao_entrega se já estiver selecionado
+      if (pagamento === "pix_online") {
+        setPagamento("pix_entrega");
+      } else if (pagamento === "cartao_online") {
+        setPagamento("cartao_entrega");
+      } else if (pagamento === "dinheiro" || pagamento === "pix" || pagamento === "cartão") {
+        // Mantém dinheiro ou muda para pix_entrega como padrão
+        setPagamento("pix_entrega");
       }
     }
   }, [pagamentoTipo, hasMercadoPago, pagamento, setPagamento]);

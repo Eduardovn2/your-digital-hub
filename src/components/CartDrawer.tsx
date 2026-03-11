@@ -140,6 +140,7 @@ export default function CartDrawer() {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [pagamento, setPagamento] = useState<"pix" | "cartão" | "dinheiro" | "pix_online" | "cartao_online" | "pix_entrega" | "cartao_entrega">("pix");
+  const [pagamentoTipo, setPagamentoTipo] = useState<"online" | "entrega">("entrega");
   const [trocoPara, setTrocoPara] = useState("");
   
   const [frete, setFrete] = useState<number | null>(null);
@@ -738,6 +739,8 @@ const enviarWhatsApp = (orderId: string, storeData: any) => {
                                 <CartPayment 
                                     pagamento={pagamento}
                                     setPagamento={setPagamento}
+                                    pagamentoTipo={pagamentoTipo}
+                                    setPagamentoTipo={setPagamentoTipo}
                                     trocoPara={trocoPara}
                                     setTrocoPara={setTrocoPara}
                                     totalFinal={totalFinal}

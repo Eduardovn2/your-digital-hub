@@ -1,4 +1,4 @@
-import { Banknote, CreditCard, Coins, AlertTriangle, Lock } from "lucide-react";
+import { Banknote, CreditCard, Coins, AlertTriangle, Smartphone } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SiPix } from "react-icons/si";
@@ -7,10 +7,11 @@ import { useEffect } from "react";
 interface CartPaymentProps {
   pagamento: "pix" | "cartão" | "dinheiro" | "pix_online" | "cartao_online" | "pix_entrega" | "cartao_entrega";
   setPagamento: (value: "pix" | "cartão" | "dinheiro" | "pix_online" | "cartao_online" | "pix_entrega" | "cartao_entrega") => void;
+  pagamentoTipo: "online" | "entrega";
+  setPagamentoTipo: (value: "online" | "entrega") => void;
   trocoPara: string;
   setTrocoPara: (value: string) => void;
   totalFinal: number;
-  // Novas props para configuração de pagamento
   hasMercadoPago?: boolean;
   acceptsOnlinePayment?: boolean;
   acceptsCashOnDelivery?: boolean;
@@ -24,6 +25,8 @@ const parseCurrency = (value: string) => {
 export function CartPayment({ 
   pagamento, 
   setPagamento, 
+  pagamentoTipo,
+  setPagamentoTipo,
   trocoPara, 
   setTrocoPara, 
   totalFinal,
@@ -32,41 +35,40 @@ export function CartPayment({
   acceptsCashOnDelivery = true
 }: CartPaymentProps) {
   
-  // Se a loja não tem MP e o usuário tentar pagar com opções online, força para dinheiro
   useEffect(() => {
-    if (!hasMercadoPago && (pagamento === "pix_online" || pagamento === "cartao_online")) {
-      setPagamento("dinheiro");
+    if (!hasMercadoPago && pagamentoTipo === "online") {
+      setPagamentoTipo("entrega");
     }
-  }, [hasMercadoPago, pagamento, setPagamento]);
+  }, [hasMercadoPago, pagamentoTipo, setPagamentoTipo]);
 
-  // Lógica de exibição baseada na configuração da loja
-  // Se aceita apenas entrega → opções de entrega (sem MP)
-  // Se aceita apenas online → apenas Pix/Cartão via MP
-  // Se aceita ambos → todas as opções
-  
+  useEffect(() => {
+    if (pagamentoTipo === "online" && hasMercadoPago) {
+      if (pagamento !== "pix_online" && pagamento !== "cartao_online") {
+        setPagamento("pix_online");
+      }
+    } else {
+      if (pagamento === "pix_online" || pagamento === "cartao_online") {
+        setPagamento("dinheiro");
+      }
+    }
+  }, [pagamentoTipo, hasMercadoPago, pagamento, setPagamento]);
+
   const paymentOptions = [];
 
-  if (acceptsOnlinePayment && hasMercadoPago) {
-    // Adiciona opções de pagamento online (Pix/Cartão via Mercado Pago)
+  if (pagamentoTipo === "online" && hasMercadoPago) {
     paymentOptions.push(
-      { id: "pix_online", label: "Pix (Online)", icon: SiPix, color: "text-emerald-600", requiresMP: true, isOnline: true },
-      { id: "cartao_online", label: "Cartão (Online)", icon: CreditCard, color: "text-yellow-500", requiresMP: true, isOnline: true }
+      { id: "pix_online", label: "Pix", icon: SiPix, color: "text-emerald-600" },
+      { id: "cartao_online", label: "Cartão", icon: CreditCard, color: "text-yellow-500" }
+    );
+  } else if (pagamentoTipo === "entrega") {
+    paymentOptions.push(
+      { id: "pix_entrega", label: "Pix", icon: SiPix, color: "text-emerald-600" },
+      { id: "cartao_entrega", label: "Cartão", icon: CreditCard, color: "text-yellow-500" },
+      { id: "dinheiro", label: "Dinheiro", icon: Coins, color: "text-emerald-500" }
     );
   }
 
-  if (acceptsCashOnDelivery) {
-    // Adiciona opções de pagamento na entrega
-    paymentOptions.push(
-      { id: "pix_entrega", label: "Pix (Entrega)", icon: SiPix, color: "text-emerald-600", requiresMP: false, isOnline: false },
-      { id: "cartao_entrega", label: "Cartão (Entrega)", icon: CreditCard, color: "text-yellow-500", requiresMP: false, isOnline: false },
-      { id: "dinheiro", label: "Dinheiro", icon: Coins, color: "text-emerald-500", requiresMP: false, isOnline: false }
-    );
-  }
-
-  // Se não há opções disponíveis, mostra aviso
   const hasPaymentOptions = paymentOptions.length > 0;
-
-  // Se não tem nenhuma opção configurada, forçar dinheiro como fallback
   useEffect(() => {
     if (!hasPaymentOptions && pagamento !== "dinheiro") {
       setPagamento("dinheiro");
@@ -82,88 +84,117 @@ export function CartPayment({
         Forma de Pagamento
       </Label>
 
+      {acceptsOnlinePayment && acceptsCashOnDelivery && hasMercadoPago && (
+        <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <div 
+            className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+              pagamentoTipo === "online" 
+                ? "bg-emerald-100 border-2 border-emerald-500 text-emerald-700" 
+                : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"
+            }`}
+            onClick={() => setPagamentoTipo("online")}
+          >
+            <Smartphone className="h-4 w-4" />
+            <span className="text-xs font-bold">Pagar Agora</span>
+          </div>
+          <div 
+            className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+              pagamentoTipo === "entrega" 
+                ? "bg-blue-100 border-2 border-blue-500 text-blue-700" 
+                : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"
+            }`}
+            onClick={() => setPagamentoTipo("entrega")}
+          >
+            <Coins className="h-4 w-4" />
+            <span className="text-xs font-bold">Pagar na Entrega</span>
+          </div>
+        </div>
+      )}
+
+      {!hasMercadoPago || !acceptsOnlinePayment ? (
+        <div className="relative flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200/50 mt-1 animate-in fade-in">
+          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
+            Pagamento online indisponível. <b>Apenas pagamento na entrega.</b>
+          </p>
+        </div>
+      ) : null}
+
       <div className="relative grid grid-cols-3 gap-3">
         {paymentOptions.map((option) => {
-          const isDisabled = option.requiresMP && !hasMercadoPago;
           const isSelected = pagamento === option.id;
 
           return (
             <button
               key={option.id}
               type="button"
-              disabled={isDisabled}
               onClick={() => setPagamento(option.id as any)}
               className={`relative overflow-hidden p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all duration-200 group border ${
                 isSelected
                   ? "bg-slate-900 border-slate-900 text-white shadow-lg scale-[1.02]"
-                  : isDisabled 
-                    ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed opacity-60 grayscale"
-                    : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300"
+                  : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300"
               }`}
             >
               <option.icon className={`h-5 w-5 drop-shadow-sm transition-colors ${
-                isSelected ? "text-white" : isDisabled ? "text-slate-300" : option.color
+                isSelected ? "text-white" : option.color
               }`} />
               
-              <span className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+              <span className="text-[9px] font-black uppercase tracking-wider">
                 {option.label}
-                {isDisabled && <Lock className="h-2.5 w-2.5 mb-0.5" />}
               </span>
             </button>
           );
         })}
       </div>
 
-      {/* AVISO SE A LOJA NÃO TIVER MERCADO PAGO */}
-      {!hasMercadoPago && (
-        <div className="relative flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200/50 mt-1 animate-in fade-in">
-          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
-            Esta loja não está a aceitar pagamentos online no momento. <b>Apenas dinheiro na entrega.</b>
-          </p>
-        </div>
-      )}
-
-      {/* Seção de Troco (Renderizada apenas se for Dinheiro) */}
-      {pagamento === "dinheiro" && (
+      {(pagamento === "dinheiro" || pagamento === "pix_entrega" || pagamento === "cartao_entrega") && (
         <div className="relative animate-in fade-in slide-in-from-top-2 duration-300 space-y-3 pt-1">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-slate-700 font-bold ml-1">
-              Troco para quanto?
-            </Label>
-            <div className="relative group">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold group-focus-within:text-slate-900 transition-colors">
-                R$
-              </span>
-              <Input
-                placeholder="0,00"
-                value={trocoPara}
-                onChange={(e) => setTrocoPara(e.target.value)}
-                className="pl-9 bg-white border-slate-200 h-11 text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all shadow-sm placeholder:font-normal placeholder:text-slate-400 rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-              />
-            </div>
-          </div>
+          {pagamento === "dinheiro" && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-700 font-bold ml-1">
+                Troco para quanto?
+              </Label>
+              <div className="relative group">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold group-focus-within:text-slate-900 transition-colors">
+                  R$
+                </span>
+                <Input
+                  placeholder="0,00"
+                  value={trocoPara}
+                  onChange={(e) => setTrocoPara(e.target.value)}
+                  className="pl-9 bg-white border-slate-200 h-11 text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all shadow-sm placeholder:font-normal placeholder:text-slate-400 rounded-xl"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                />
+              </div>
 
-          {/* BOX RESULTADO */}
-          {trocoPara && parseCurrency(trocoPara) > totalFinal ? (
-            <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200 animate-in zoom-in-95">
-              <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                <Coins className="h-4 w-4 text-slate-400" />
-                Seu troco:
-              </span>
-              <span className="text-lg font-black text-slate-900">
-                R$ {(parseCurrency(trocoPara) - totalFinal).toFixed(2)}
-              </span>
-            </div>
-          ) : null}
+              {trocoPara && parseCurrency(trocoPara) > totalFinal ? (
+                <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200 animate-in zoom-in-95">
+                  <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                    <Coins className="h-4 w-4 text-slate-400" />
+                    Seu troco:
+                  </span>
+                  <span className="text-lg font-black text-slate-900">
+                    R$ {(parseCurrency(trocoPara) - totalFinal).toFixed(2)}
+                  </span>
+                </div>
+              ) : null}
 
-          {trocoPara && parseCurrency(trocoPara) > 0 && parseCurrency(trocoPara) < totalFinal && (
-            <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-center animate-in fade-in">
-              <p className="text-[10px] text-slate-400 font-medium">
-                Valor menor que o total (R$ {totalFinal.toFixed(2)})
+              {trocoPara && parseCurrency(trocoPara) > 0 && parseCurrency(trocoPara) < totalFinal && (
+                <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-center animate-in fade-in">
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    Valor menor que o total (R$ {totalFinal.toFixed(2)})
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {(pagamento === "pix_entrega" || pagamento === "cartao_entrega") && (
+            <div className="bg-blue-50 p-3 rounded-xl border border-blue-200 animate-in fade-in">
+              <p className="text-xs text-blue-700 font-medium">
+                Pagamento será recebido no momento da entrega.
               </p>
             </div>
           )}
@@ -172,3 +203,4 @@ export function CartPayment({
     </div>
   );
 }
+

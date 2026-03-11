@@ -34,21 +34,25 @@ export function useRealtimeOrders(storeId: string | undefined) {
           let shouldNotify = false;
           let notificationTitle = "Novo pedido!";
 
-          const isDinheiro = ['dinheiro', 'cash'].includes(newOrder?.payment_method?.toLowerCase());
-          const isPagamentoNaEntrega = ['pix_entrega', 'cartao_entrega'].includes((newOrder?.payment_method || '').toLowerCase());
-          const isPagamentoConfirmado = isDinheiro || isPagamentoNaEntrega;
+          // Log para debug
+          console.log("🔔 Evento:", payload.eventType, "Payment:", newOrder?.payment_method, "Status:", newOrder?.status);
+          
+          // Qualquer pedido com status "accepted" já está confirmado (pago na entrega)
+          // Isso inclui: dinheiro, pix (entrega), cartão (entrega)
+          const isAccepted = newOrder?.status === 'accepted';
 
           // 1. Lógica de Notificação
           if (payload.eventType === 'INSERT') {
-            if (isPagamentoConfirmado) {
+            if (isAccepted) {
               shouldNotify = true;
               notificationTitle = "Novo pedido (Pagar na Entrega)!";
             } else {
-              console.log("Pedido online criado. Aguardando pagamento...");
+              console.log("Pedido criado com status:", newOrder?.status, "- Aguardando pagamento...");
             }
           }
 
           if (payload.eventType === 'UPDATE') {
+            const isDinheiro = ['dinheiro', 'cash'].includes(newOrder?.payment_method?.toLowerCase());
             // Verifica se o status mudou para 'paid' (vindo do seu Webhook)
             const mudouParaPago = oldOrder?.status === 'pending' && newOrder?.status === 'paid';
             

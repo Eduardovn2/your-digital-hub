@@ -63,10 +63,12 @@ const handlePrint = useReactToPrint({
 
       if (settings.autoPrint && latestOrder.id !== lastPrintedId.current) {
         const isDinheiro = ['dinheiro', 'cash'].includes(latestOrder.payment_method?.toLowerCase());
+        const isPagamentoNaEntrega = ['pix_entrega', 'cartao_entrega'].includes((latestOrder.payment_method || '').toLowerCase());
         
         // Usamos (latestOrder.status as string) para o TS aceitar o 'paid'
         const status = latestOrder.status as string;
-        const deveImprimir = (isDinheiro && status === 'pending') || (status === 'paid');
+        // Imprime se: for dinheiro (pending), pagamento na entrega (pending), ou pago (paid)
+        const deveImprimir = (isDinheiro && status === 'pending') || (isPagamentoNaEntrega && status === 'pending') || (status === 'paid');
 
         if (deveImprimir) {
           lastPrintedId.current = latestOrder.id;
@@ -89,11 +91,14 @@ const handlePrint = useReactToPrint({
     // 1. Esconde pedidos que já foram finalizados ou cancelados
   if (['completed', 'cancelled'].includes(o.status)) return false;
     
-    // 2. A MÁGICA: Esconde da cozinha se for PIX/Cartão e ainda não estiver pago
+    // 2. A MÁGICA: Esconde da cozinha se for PIX/Cartão ONLINE e ainda não estiver pago
+    // Pagamentos na entrega (pix_entrega, cartao_entrega) devem aparecer imediatamente
+    const isPagamentoNaEntrega = ['pix_entrega', 'cartao_entrega'].includes((o.payment_method || '').toLowerCase());
     const isDinheiro = ['dinheiro', 'cash'].includes(o.payment_method?.toLowerCase());
   
-  // Se for PIX/Cartão e ainda estiver 'pending', ESCONDE (cliente ainda não pagou)
-  if (o.status === 'pending' && !isDinheiro) {
+  // Se for PIX/Cartão ONLINE e ainda estiver 'pending', ESCONDE (cliente ainda não pagou)
+  // Mas pix_entrega e cartao_entrega devem aparecer (cliente paga na entrega)
+  if (o.status === 'pending' && !isDinheiro && !isPagamentoNaEntrega) {
     return false; 
   }
   

@@ -53,12 +53,13 @@ export function useRealtimeOrders(storeId: string | undefined) {
 
           if (payload.eventType === 'UPDATE') {
             const isDinheiro = ['dinheiro', 'cash'].includes(newOrder?.payment_method?.toLowerCase());
-            // Verifica se o status mudou para 'paid' (vindo do seu Webhook)
+            // Verifica se o status mudou para 'paid' (vindo do Webhook) ou para 'accepted' (pagamento na entrega)
             const mudouParaPago = oldOrder?.status === 'pending' && newOrder?.status === 'paid';
+            const mudouParaAccepted = oldOrder?.status === 'pending' && newOrder?.status === 'accepted';
             
-            if (!isDinheiro && mudouParaPago) {
+            if ((!isDinheiro && mudouParaPago) || mudouParaAccepted) {
               shouldNotify = true;
-              notificationTitle = "Pagamento Aprovado! Pedido na fila.";
+              notificationTitle = mudouParaAccepted ? "Novo pedido (Pagar na Entrega)!" : "Pagamento Aprovado! Pedido na fila.";
             }
           }
 

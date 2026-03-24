@@ -165,18 +165,15 @@ export default function CartDrawer() {
   useEffect(() => {
     if (!storeId) return;
     
-  const checkPaymentMethods = async () => {
-      // Verificamos mp_public_key (campo público, visível pelo anon key via RLS)
-      // mp_access_token é sensível e bloqueado pela RLS para clientes não autenticados
-      // Também buscamos as novas colunas de configuração de pagamento
+const checkPaymentMethods = async () => {
+      // Query direta - mp_access_token público só para verificar existência (não o valor)
       const { data } = await supabase
         .from("stores")
-        .select("mp_public_key, accepts_online_payment, accepts_cash_on_delivery")
+        .select("mp_public_key, mp_access_token, accepts_online_payment, accepts_cash_on_delivery")
         .eq("id", storeId)
         .maybeSingle();
         
-      setHasMercadoPago(!!(data as any)?.mp_public_key);
-      // Usa os valores do banco ouDefaults true se null
+      setHasMercadoPago(!!(data as any)?.mp_public_key && !!(data as any)?.mp_access_token);
       setAcceptsOnlinePayment((data as any)?.accepts_online_payment ?? true);
       setAcceptsCashOnDelivery((data as any)?.accepts_cash_on_delivery ?? true);
     };

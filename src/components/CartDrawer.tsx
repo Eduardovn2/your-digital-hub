@@ -335,8 +335,8 @@ const handleFinalizar = async () => {
     // Pagamentos na entrega já estão confirmados (cliente paga quando receber)
     const isPagamentoNaEntrega = pagamento === 'dinheiro' || pagamento === 'pix_entrega' || pagamento === 'cartao_entrega';
     
-    // Status inicial do pedido: todos pagos começam como "accepted" / "na fila"
-    const initialStatus: "accepted" = "accepted";
+    // Status inicial do pedido: pagamento online = pending, outros = accepted
+    const initialStatus: "pending" | "accepted" = isOnlinePayment ? "pending" : "accepted";
 
     const orderPayload = {
       store_id: storeId,

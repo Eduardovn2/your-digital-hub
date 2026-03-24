@@ -143,7 +143,7 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
   const salvarNoHistorico = async (dados: AddressData) => {
     if (!deviceId || !dados.cep || !dados.numero) return;
     try {
-        const { data } = await supabase
+        const { data, error: selectError } = await supabase
             .from("customer_addresses" as any)
             .select("id")
             .eq("device_id", deviceId)
@@ -151,15 +151,25 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
             .eq("number", dados.numero)
             .maybeSingle();
 
+        // Se RLS bloquear histórico, não interrompe fluxo de compra
+        if (selectError) {
+          console.warn("[customer_addresses/select] bloqueado por RLS, seguindo sem salvar histórico:", selectError.message);
+          return;
+        }
+
         const existing = data as any;
 
         if (existing && existing.id) {
-            await supabase
+            const { error: updateError } = await supabase
                 .from("customer_addresses" as any)
                 .update({ last_used_at: new Date().toISOString() })
                 .eq("id", existing.id);
+
+            if (updateError) {
+              console.warn("[customer_addresses/update] bloqueado por RLS, seguindo sem salvar histórico:", updateError.message);
+            }
         } else {
-            await supabase
+            const { error: insertError } = await supabase
                 .from("customer_addresses" as any)
                 .insert({
                     device_id: deviceId,
@@ -170,8 +180,14 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
                     city: dados.cidade,
                     complement: dados.complemento
                 });
+
+            if (insertError) {
+              console.warn("[customer_addresses/insert] bloqueado por RLS, seguindo sem salvar histórico:", insertError.message);
+            }
         }
-    } catch (e) { console.log(e); }
+    } catch (e) {
+      console.warn("[customer_addresses] erro não-bloqueante ao salvar histórico:", e);
+    }
   };
 
   async function buscarCoordenadasPorTexto(rua: string, numero: string, bairro: string, cidade: string) {

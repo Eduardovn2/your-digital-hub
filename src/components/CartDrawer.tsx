@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CartPayment } from "./cart/CartPayment";
+import { createClient } from "@supabase/supabase-js";
 import { useCart } from "@/contexts/CartContext";
 import { useDevice } from "@/hooks/useDevice";
 import { Button } from "@/components/ui/button";
@@ -126,6 +127,19 @@ export default function CartDrawer() {
 
   
   const deviceId = useDevice();
+
+  // Cliente auxiliar para incluir header exigido pelas policies RLS de orders
+  const ordersClient = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY,
+    {
+      global: {
+        headers: {
+          ...(deviceId ? { "x-device-id": deviceId } : {})
+        }
+      }
+    }
+  );
 
   const { data: hoursData, isLoading: loadingHours } = useStoreHours(storeId);
     const isOpen = isStoreCurrentlyOpen(hoursData);
@@ -254,7 +268,7 @@ useEffect(() => {
 
 const fetchOrderHistory = async () => {
     if (!deviceId) return;
-    const { data } = await supabase
+    const { data } = await ordersClient
       .from("orders")
       .select("*")
       .eq("device_id", deviceId)
@@ -270,14 +284,14 @@ const fetchOrderHistory = async () => {
           const diffMins = (currentTime - new Date(order.created_at).getTime()) / 60000;
           if (diffMins >= 5) {
             // Cancela no banco automaticamente se passou de 5 minutos!
-            await supabase.from("orders").update({ status: 'cancelled' }).eq('id', order.id);
+            await ordersClient.from("orders").update({ status: 'cancelled' }).eq('id', order.id);
             needsRefresh = true;
           }
         }
       }
 
       if (needsRefresh) {
-        const { data: refreshedData } = await supabase
+        const { data: refreshedData } = await ordersClient
           .from("orders")
           .select("*")
           .eq("device_id", deviceId)
@@ -355,7 +369,7 @@ const handleFinalizar = async () => {
     };
 
     // 1. Salva o pedido no banco primeiro (Sempre necessário)
-    const { data: insertedOrder, error: orderError } = await supabase
+    const { data: insertedOrder, error: orderError } = await ordersClient
       .from("orders")
       .insert(orderPayload)
       .select("id")

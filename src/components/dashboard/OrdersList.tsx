@@ -97,6 +97,7 @@ const handlePrint = useReactToPrint({
   
   // Se for PIX/Cartão ONLINE e ainda estiver 'pending', ESCONDE (cliente ainda não pagou)
   // Mas pix_entrega e cartao_entrega devem aparecer (cliente paga na entrega)
+  // Pix Online só aparece após pagamento (webhook → accepted)
   if (o.status === 'pending' && !isDinheiro && !isPagamentoNaEntrega) {
     return false; 
   }

@@ -102,7 +102,8 @@ export function DeliveryAddressForm({ onAddressComplete, storeId }: Props) {
                     price: Number(r.price)
                 })));
             } else {
-                setRules(DEFAULT_SYSTEM_RULES);
+                // GRÁTIS por padrão até configurar!
+                setRules([{ max_km: 50, price: 0 }]);
             }
         }
       } catch (err) {

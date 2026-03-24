@@ -174,6 +174,12 @@ Deno.serve(async (req) => {
         );
       }
 
+      // ✅ SALVA mp_preference_id para webhook
+      await supabase
+        .from('orders')
+        .update({ mp_payment_id: String(mpData.id) })
+        .eq('id', orderId);
+
       return new Response(
         JSON.stringify({
           preference_id: mpData.id,

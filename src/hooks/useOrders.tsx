@@ -127,9 +127,10 @@ export function useUpdateOrderStatus() {
             .update({ status: "cancelled" as any })
             .eq("id", orderId)
             .select()
-            .single();
+            .maybeSingle();
 
           if (error) throw error;
+          if (!data) throw new Error("Pedido não encontrado para cancelamento.");
           return { ...data, _refundMessage: "Pedido cancelado. Estorno automático indisponível no momento." };
         }
 
@@ -148,9 +149,10 @@ export function useUpdateOrderStatus() {
         .update({ status: status as any })
         .eq("id", orderId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error("Pedido não encontrado ao atualizar status.");
       return data;
     },
     onSuccess: (data: any, variables) => {

@@ -251,11 +251,9 @@ async function updateOrderFromPayment(
   let newStatus: string | null = null;
 
   if (mpStatus === 'approved') {
-    // Só atualiza se ainda estiver pendente (evita regressão de status)
-    if (['pending', 'confirmed'].includes(currentStatus)) {
-      newStatus = 'paid';
-    }
-  } else if (mpStatus === 'pending' || mpStatus === 'in_process') {
+    // Pagamento online aprovado → direto "na fila" (evita status intermediário)
+    newStatus = 'accepted';
+  }
     // Mantém como pending — aguardando compensação bancária
     console.log(`Pagamento ${payment.id} ainda pendente/em processamento`);
   } else if (mpStatus === 'rejected' || mpStatus === 'cancelled') {

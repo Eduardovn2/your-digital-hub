@@ -47,17 +47,15 @@ export function CartPayment({
         setPagamento("pix_online");
       }
     } else {
-      // Quando muda para "entrega", mantém pix_entrega ou cartao_entrega se já estiver selecionado
+      // Quando muda para "entrega" - só converte online → entrega, mantém dinheiro
       if (pagamento === "pix_online") {
         setPagamento("pix_entrega");
       } else if (pagamento === "cartao_online") {
         setPagamento("cartao_entrega");
-      } else if (pagamento === "dinheiro" || pagamento === "pix" || pagamento === "cartão") {
-        // Mantém dinheiro ou muda para pix_entrega como padrão
-        setPagamento("pix_entrega");
       }
+      // Remove force de "pix_entrega" - dinheiro fica livre!
     }
-  }, [pagamentoTipo, hasMercadoPago, pagamento, setPagamento]);
+  }, [pagamentoTipo, hasMercadoPago]);
 
   const paymentOptions = [];
 
@@ -121,7 +119,7 @@ export function CartPayment({
         <div className="relative flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200/50 mt-1 animate-in fade-in">
           <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
           <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
-            Pagamento online indisponível. <b>A loja optou por nao receber pagamentos onlines..</b>
+            <b>A loja optou por nao receber pagamentos onlines.</b>
           </p>
         </div>
       ) : null}

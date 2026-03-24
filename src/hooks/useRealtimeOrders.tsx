@@ -40,10 +40,9 @@ export function useRealtimeOrders(storeId: string | undefined) {
           
           // Qualquer pedido com status "accepted" já está confirmado (pago na entrega)
           const isAccepted = newOrder?.status === 'accepted';
-          const isPaid = newOrder?.status === 'paid';
           
-          // Notificar para pagamentos na entrega (accepted) e pagamentos online confirmados (paid)
-          const shouldNotify = isAccepted || isPaid;
+          // Notificar só quando chega na fila (aceito pelo sistema ou pagamento confirmado)
+          const shouldNotify = isAccepted;
           
           // Gerar mensagem apropriada
           let notificationTitle = "🔥 Novo pedido!";
@@ -56,14 +55,6 @@ export function useRealtimeOrders(storeId: string | undefined) {
               notificationTitle = "🔥 Novo pedido! (Cartão na Entrega)";
             } else {
               notificationTitle = "🔥 Novo pedido! (Pagar na Entrega)";
-            }
-          } else if (isPaid) {
-            if (isPix) {
-              notificationTitle = "✅ Pagamento aprovado! (Pix Online)";
-            } else if (isCartao) {
-              notificationTitle = "✅ Pagamento aprovado! (Cartão Online)";
-            } else {
-              notificationTitle = "✅ Pagamento aprovado!";
             }
           }
 

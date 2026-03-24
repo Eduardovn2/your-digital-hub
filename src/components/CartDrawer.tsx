@@ -256,7 +256,7 @@ useEffect(() => {
 
 const fetchOrderHistory = async () => {
     if (!deviceId) return;
-    const { data } = await ordersClient
+    const { data } = await supabase
       .from("orders")
       .select("*")
       .eq("device_id", deviceId)
@@ -272,14 +272,14 @@ const fetchOrderHistory = async () => {
           const diffMins = (currentTime - new Date(order.created_at).getTime()) / 60000;
           if (diffMins >= 5) {
             // Cancela no banco automaticamente se passou de 5 minutos!
-            await ordersClient.from("orders").update({ status: 'cancelled' }).eq('id', order.id);
+            await supabase.from("orders").update({ status: 'cancelled' }).eq('id', order.id);
             needsRefresh = true;
           }
         }
       }
 
       if (needsRefresh) {
-        const { data: refreshedData } = await ordersClient
+        const { data: refreshedData } = await supabase
           .from("orders")
           .select("*")
           .eq("device_id", deviceId)
@@ -357,7 +357,7 @@ const handleFinalizar = async () => {
     };
 
     // 1. Salva o pedido no banco primeiro (Sempre necessário)
-    const { data: insertedOrder, error: orderError } = await ordersClient
+    const { data: insertedOrder, error: orderError } = await supabase
       .from("orders")
       .insert(orderPayload)
       .select("id")

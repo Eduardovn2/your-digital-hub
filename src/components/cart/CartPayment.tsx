@@ -121,7 +121,7 @@ export function CartPayment({
         <div className="relative flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200/50 mt-1 animate-in fade-in">
           <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
           <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
-            Pagamento online indisponível. <b>Apenas pagamento na entrega.</b>
+            Pagamento online indisponível. <b>A loja optou por nao receber pagamentos onlines..</b>
           </p>
         </div>
       ) : null}

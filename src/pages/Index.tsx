@@ -152,7 +152,7 @@ export default function Index() {
               </div>
               <h3 className="text-xl text-slate-300 font-medium mb-2">Plano Profissional</h3>
               <div className="flex items-baseline justify-center gap-1 mb-6">
-                <span className="text-5xl font-extrabold text-white">R$ 79,90</span>
+                <span className="text-5xl font-extrabold text-white">R$ 69,90</span>
                 <span className="text-slate-400">/mês</span>
               </div>
               <Link to="/register">

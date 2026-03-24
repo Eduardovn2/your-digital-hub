@@ -144,16 +144,13 @@ export function useUpdateOrderStatus() {
       }
 
       // SE FOR QUALQUER OUTRO STATUS, SEGUE O FLUXO NORMAL
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("orders")
         .update({ status: status as any })
-        .eq("id", orderId)
-        .select()
-        .maybeSingle();
+        .eq("id", orderId);
 
       if (error) throw error;
-      if (!data) throw new Error("Pedido não encontrado ao atualizar status.");
-      return data;
+      return { id: orderId, status } as any;
     },
     onSuccess: (data: any, variables) => {
       // Invalida os pedidos para atualizar a lista na tela

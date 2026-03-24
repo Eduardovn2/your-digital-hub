@@ -173,7 +173,7 @@ export default function CartDrawer() {
         .from("stores")
         .select("mp_public_key, accepts_online_payment, accepts_cash_on_delivery")
         .eq("id", storeId)
-        .single();
+        .maybeSingle();
         
       setHasMercadoPago(!!(data as any)?.mp_public_key);
       // Usa os valores do banco ouDefaults true se null
@@ -361,16 +361,17 @@ const handleFinalizar = async () => {
       .from("orders")
       .insert(orderPayload)
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (orderError) throw orderError;
+    if (!insertedOrder?.id) throw new Error("Pedido não foi criado. Tente novamente.");
 
     // 2. BUSCA DADOS DA LOJA (Necessário para WhatsApp ou MP)
     const { data: storeData } = await supabase
       .from("stores")
       .select("phone, name, slug, mp_access_token")
       .eq("id", storeId)
-      .single();
+      .maybeSingle();
 
     // --- FLUXO HÍBRIDO DE PAGAMENTO ---
 

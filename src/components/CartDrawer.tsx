@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CartPayment } from "./cart/CartPayment";
-import { createClient } from "@supabase/supabase-js";
 import { useCart } from "@/contexts/CartContext";
 import { useDevice } from "@/hooks/useDevice";
 import { Button } from "@/components/ui/button";
@@ -129,17 +128,6 @@ export default function CartDrawer() {
   const deviceId = useDevice();
 
   // Cliente auxiliar para incluir header exigido pelas policies RLS de orders
-  const ordersClient = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY,
-    {
-      global: {
-        headers: {
-          ...(deviceId ? { "x-device-id": deviceId } : {})
-        }
-      }
-    }
-  );
 
   const { data: hoursData, isLoading: loadingHours } = useStoreHours(storeId);
     const isOpen = isStoreCurrentlyOpen(hoursData);

@@ -3,3 +3,5 @@ node_modules
 Cisco_Cópia/vpn/log/
 .env
 Cisco_Cópia/vpn/log/
+.vercel
+.env*.local

@@ -45,9 +45,10 @@ export default function CartDrawer() {
   const [activeTab, setActiveTab] = useState("cart");
   const [loading, setLoading] = useState(false);
   const [orderHistory, setOrderHistory] = useState<any[]>([]);
-  const [frete, setFrete] = useState<number | null>(null);
+const [frete, setFrete] = useState<number | null>(null);
+const [showPickupToggle, setShowPickupToggle] = useState(true); // FORÇA VISÍVEL
 
-  const [isPickupMode, setIsPickupMode] = useState(false);
+const [isPickupMode, setIsPickupMode] = useState(true); // TEMP DEBUG
 
   const hasPaymentConfig = acceptsOnlinePayment || acceptsCashOnDelivery;
   const isStoreAvailable = isOpen && hasPaymentConfig;

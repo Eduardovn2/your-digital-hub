@@ -63,6 +63,7 @@ export type OrderStatus =
   | 'accepted' 
   | 'preparing' 
   | 'ready' 
+  | 'awaiting_pickup'
   | 'delivering' 
   | 'completed' 
   | 'cancelled';
@@ -73,6 +74,7 @@ export interface Order {
   customer_name: string;
   customer_phone: string;
   customer_address: string | null;
+  pickup_order: boolean;
   status: OrderStatus;
   notes: string | null;
   subtotal: number;
@@ -91,7 +93,7 @@ export interface Order {
 
   created_at: string;
   updated_at: string;
-  items?: OrderItem[]; // Agora aponta para a interface abaixo
+  items?: OrderItem[]; 
 }
 
 export interface OrderItem {
@@ -113,6 +115,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   accepted: 'Aceito',
   preparing: 'Preparando',
   ready: 'Pronto',
+  awaiting_pickup: 'Aguardando Retirada',
   delivering: 'Em entrega',
   completed: 'Concluído',
   cancelled: 'Cancelado'
@@ -124,6 +127,7 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   accepted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   preparing: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
   ready: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+  awaiting_pickup: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
   delivering: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
   completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'

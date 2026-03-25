@@ -23,7 +23,14 @@ interface CartContextType {
   setStoreId: (id: string) => void;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
-  customerId: string; // <--- 1. ADICIONEI O ID NA TIPAGEM
+  customerId: string;
+  // Pickup/Entrega
+  pickupMode: boolean;
+  setPickupMode: (pickup: boolean) => void;
+  deliveryAddress: string;
+  setDeliveryAddress: (address: string) => void;
+  deliveryFee: number;
+  setDeliveryFee: (fee: number) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -33,7 +40,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [storeId, setStoreId] = useState<string>(""); 
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // <--- 2. INICIALIZA O ID DO CLIENTE (Roda apenas 1 vez ao carregar a página)
+  // Pickup/Entrega state
+  const [pickupMode, setPickupModeLocal] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState(0);
+
+  const setPickupMode = (pickup: boolean) => {
+    setPickupModeLocal(pickup);
+    if (pickup) {
+      setDeliveryAddress("");
+      setDeliveryFee(0);
+    }
+  };
+
+  // <--- INICIALIZA O ID DO CLIENTE
   const [customerId] = useState(() => getOrCreateCustomerId());
 
   const addToCart = (newItem: CartItem) => {
@@ -79,6 +99,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return acc + (Number(item.quantity) || 1);
   }, 0);
 
+  const pickupTotal = pickupMode ? total : total + deliveryFee;
+
   return (
     <CartContext.Provider 
       value={{ 
@@ -86,13 +108,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addToCart, 
         removeFromCart, 
         clearCart, 
-        total,
+        total: pickupTotal,
         totalItems,
         storeId, 
         setStoreId,
         isCartOpen,
         setIsCartOpen,
-        customerId // <--- 3. EXPORTANDO O ID PARA O APP USAR
+        customerId,
+        // Pickup/Entrega
+        pickupMode,
+        setPickupMode,
+        deliveryAddress,
+        setDeliveryAddress,
+        deliveryFee,
+        setDeliveryFee
       }}
     >
       {children}

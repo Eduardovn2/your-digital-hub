@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { 
-  Clock, CheckCircle2, Truck, ChefHat, XCircle, 
+  Clock, CheckCircle2, Truck, ChefHat, XCircle, MapPinOff,
   Printer, MapPin, AlertCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,9 +19,10 @@ const STATUS_CONFIG: Record<string, { label: string, color: string, icon: any, n
   pending: { label: "Pendente", color: "bg-yellow-500/20 text-yellow-600 border-yellow-200", icon: AlertCircle, next: "accepted" },
   accepted: { label: "Na Fila", color: "bg-blue-500/20 text-blue-600 border-blue-200", icon: Clock, next: "preparing" },
   preparing: { label: "Preparando", color: "bg-orange-500/20 text-orange-600 border-orange-200", icon: ChefHat, next: "ready" },
-  ready: { label: "Pronto", color: "bg-green-500/20 text-green-600 border-green-200", icon: CheckCircle2, next: "delivering" },
+  ready: { label: "Pronto", color: "bg-green-500/20 text-green-600 border-green-200", icon: CheckCircle2, next: "awaiting_pickup" },
+  awaiting_pickup: { label: "Aguardando Retirada", color: "bg-purple-500/20 text-purple-600 border-purple-200", icon: MapPinOff, next: "completed" },
   delivering: { label: "Em Entrega", color: "bg-indigo-500/20 text-indigo-600 border-indigo-200", icon: Truck, next: "completed" },
-  completed: { label: "Entregue", color: "bg-slate-200 text-slate-600 border-slate-300", icon: CheckCircle2 },
+  completed: { label: "Concluído", color: "bg-slate-200 text-slate-600 border-slate-300", icon: CheckCircle2 },
   cancelled: { label: "Cancelado", color: "bg-red-100 text-red-600 border-red-200", icon: XCircle }
 };
 
@@ -87,23 +88,19 @@ const handlePrint = useReactToPrint({
   };
 
   const activeOrders = orders.filter(o => {
-    // 1. Esconde pedidos que já foram finalizados ou cancelados
-  if (['completed', 'cancelled'].includes(o.status)) return false;
+    // 1. Esconde pedidos concluídos ou cancelados
+    if (['completed', 'cancelled'].includes(o.status)) return false;
+      
+    // 2. Pickup orders: mostra até 'awaiting_pickup'
+    if (o.pickup_order && o.status === 'awaiting_pickup') return false;
     
-    // 2. A MÁGICA: Esconde da cozinha se for PIX/Cartão ONLINE e ainda não estiver pago
-    // Pagamentos na entrega (pix_entrega, cartao_entrega) devem aparecer imediatamente
+    // 3. Delivery pending online hide logic
     const isPagamentoNaEntrega = ['pix_entrega', 'cartao_entrega'].includes((o.payment_method || '').toLowerCase());
     const isDinheiro = ['dinheiro', 'cash'].includes(o.payment_method?.toLowerCase());
-  
-  // Se for PIX/Cartão ONLINE e ainda estiver 'pending', ESCONDE (cliente ainda não pagou)
-  // Mas pix_entrega e cartao_entrega devem aparecer (cliente paga na entrega)
-  // Pix Online só aparece após pagamento (webhook → accepted)
-  if (o.status === 'pending' && !isDinheiro && !isPagamentoNaEntrega) {
-    return false; 
-  }
-  
-  // Se chegou aqui e o status for 'paid', 'accepted', 'preparing', etc, MOSTRA!
-  return true;
+    
+    if (o.status === 'pending' && !isDinheiro && !isPagamentoNaEntrega) return false;
+    
+    return true;
   });
   
   return (

@@ -99,7 +99,7 @@ export function CartPayment({
             onClick={() => setPagamentoTipo("online")}
           >
             <Smartphone className="h-4 w-4" />
-            <span className="text-xs font-bold">Pagar Agora</span>
+            <span className="text-xs font-bold">Pagamento Online</span>
           </div>
           <div 
             className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${

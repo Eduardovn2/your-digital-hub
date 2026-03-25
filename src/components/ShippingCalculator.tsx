@@ -76,7 +76,6 @@ export function ShippingCalculator({
       console.log(`📏 Distância Exata: ${distKM.toFixed(2)} km`);
 
       // 4. Busca a regra (Com Bypass de Tipagem)
-      // Usamos 'as any' no .from() para ignorar o erro de tabela inexistente nos tipos
       const { data: rawData, error } = await supabase
         .from("delivery_rules" as any)
         .select("price, max_km")
@@ -91,22 +90,31 @@ export function ShippingCalculator({
         throw new Error("Erro ao consultar taxas.");
       }
 
-      // Convertemos o resultado 'any' para nossa interface
+      // FALLBACK: regras padrão se banco vazio
+      const FALLBACK_RULES: DeliveryRule[] = [
+        { price: 0, max_km: 50 }
+      ];
+      
       const data = rawData as DeliveryRule | null;
-
+      
+      let finalRule: DeliveryRule;
       if (data) {
-        setDeliveryFee(data.price);
-        if (onFeeChange) onFeeChange(data.price);
-        toast.success(`Frete: R$ ${data.price.toFixed(2)}`);
+        finalRule = data;
       } else {
-        const msg = `Sem entrega para ${distKM.toFixed(1)}km.`;
-        setErrorMsg(msg);
-        toast.warning(msg);
+        console.warn("⚠️ Sem delivery_rules no banco, usando fallback");
+        finalRule = FALLBACK_RULES[0];
+        toast.warning("Taxas padrão ativadas (configure no dashboard)");
       }
+
+      setDeliveryFee(finalRule.price);
+      if (onFeeChange) onFeeChange(finalRule.price);
+      toast.success(`Frete: R$ ${finalRule.price.toFixed(2)} (${distKM.toFixed(1)}km)`);
 
     } catch (error: any) {
       console.error("Erro:", error);
-      toast.error(error.message || "Erro ao calcular frete.");
+      const msg = error.message || "Erro ao calcular frete.";
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -135,27 +143,30 @@ export function ShippingCalculator({
       </div>
 
       {distance !== null && (
-        <div className={`mt-4 p-4 rounded-2xl border animate-in slide-in-from-top-2 ${errorMsg ? "bg-red-50 border-red-100 text-red-600" : "bg-emerald-50 border-emerald-100"}`}>
-          
-          <div className="flex justify-between items-center text-sm mb-1 opacity-80">
-            <span className="flex items-center gap-1"><MapPin className="h-3 w-3"/> Distância</span>
-            <strong>{distance.toFixed(1)} km</strong>
+        <div className={`mt-4 p-4 rounded-2xl border animate-in slide-in-from-top-2 duration-300 ${errorMsg ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200"}`}>
+          <div className="flex justify-between items-center text-sm mb-2 opacity-90">
+            <span className="flex items-center gap-1.5 font-medium"><MapPin className="h-3.5 w-3.5" /> Distância</span>
+            <strong className="text-lg font-black">{distance.toFixed(1)} km</strong>
           </div>
           
-          <div className="flex justify-between items-center pt-2 border-t border-black/5 mt-2">
-            <span className="text-xs font-bold uppercase opacity-60">Valor</span>
+          <div className="flex justify-between items-center pt-3 border-t border-slate-200/50">
+            <span className="text-xs font-bold uppercase tracking-wider opacity-70">Valor Frete</span>
             {errorMsg ? (
-              <span className="text-xs font-bold bg-white px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
-                <AlertCircle className="h-3 w-3"/> Indisponível
+              <span className="text-sm font-bold bg-white px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 border border-red-200">
+                <AlertCircle className="h-3.5 w-3.5" /> Indisponível
               </span>
             ) : (
-              <span className="text-xl font-black text-emerald-600 flex items-center gap-2">
-                 R$ {deliveryFee?.toFixed(2)}
+              <span className="text-2xl font-black text-emerald-600 flex items-baseline gap-1.5">
+                R$ {deliveryFee?.toFixed(2)}
               </span>
             )}
           </div>
           
-          {errorMsg && <p className="text-xs mt-2 text-center font-medium opacity-80">{errorMsg}</p>}
+          {errorMsg && (
+            <p className="text-xs mt-3 text-center font-semibold opacity-90 px-1 leading-relaxed">
+              {errorMsg}
+            </p>
+          )}
         </div>
       )}
     </div>

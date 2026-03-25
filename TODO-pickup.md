@@ -1,24 +1,27 @@
-# TODO - Retirada na Loja (Pickup) ✅ APROVADO
+# TODO Pickup - Status
 
-## 1. Migration Supabase [PENDENTE]
+## ✅ Backend
+- [x] pickup_order BOOLEAN in orders
+- [x] payload pickup_order=true + delivery_fee=0
+
+## ✅ Frontend Context
+- [x] CartContext pickupMode/setPickupMode
+- [x] useCart OK
+
+## ❌ Frontend Render (CRÍTICO)
+- [ ] CartDrawer SheetContent → procura "Retirar" F12 = NADA
+- [ ] Toggle JSX não renderiza
+- [ ] Header setIsCartOpen(true) → abre?
+
+## 🔧 Debug
 ```
--- No Supabase SQL Editor:
-ALTER TABLE orders ADD COLUMN pickup_order boolean DEFAULT false;
--- Add enum 'awaiting_pickup' se necessário
+1. Ctrl+Shift+R hard reload
+2. Console: pickupMode value?
+3. Adicionar item carrinho
+4. F12 Elements: "Retirar na Loja"
 ```
 
-## 2. Types [✅ CONCLUÍDO]
-src/types/store.ts - `pickup_order`, `'awaiting_pickup'`
-
-## 3. CartContext [✅ CONCLUÍDO] 
-src/contexts/CartContext.tsx - `pickupMode`, `deliveryFee=0`, total ajustado
-
-## 4. UI Toggle [PENDENTE]
-src/components/cart/CartDrawer.tsx (toggle + conditional forms)
-
-## 5. Order Flow [✅ CONCLUÍDO] 
-src/components/dashboard/OrdersList.tsx - flow pickup + STATUS_CONFIG
-
-**Progresso: 4/5**
-
-**Progresso: 0/5**
+## Next
+1. Fix CartDrawer Sheet real structure
+2. Toggle dentro SheetContent value="cart"
+3. Deploy vercel --prod

@@ -42,10 +42,14 @@ export default function CartDrawer() {
   const isOpen = isStoreCurrentlyOpen(hoursData);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("cart");
+const [activeTab, setActiveTab] = useState("cart"); // SEMPRE cart - toggle visível
   const [loading, setLoading] = useState(false);
   const [orderHistory, setOrderHistory] = useState<any[]>([]);
 const [frete, setFrete] = useState<number | null>(null);
+
+  useEffect(() => {
+    setPickupMode(true); // FORÇA Retirada na Loja para todos
+  }, []);
 const [showPickupToggle, setShowPickupToggle] = useState(true); // FORÇA VISÍVEL
 
 const parseCurrency = (value: string) => parseFloat(value.replace(",", ".")) || 0;
@@ -183,20 +187,28 @@ const [isPickupMode, setIsPickupMode] = useState(true); // TEMP DEBUG
     }
   };
 
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      {/* resto igual, mas com toggle pickup */}
-      <div className="p-4 space-y-3">
-        <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-          <Button 
-            variant={pickupMode ? "default" : "outline"} 
-            className="flex-1 h-12 text-sm font-bold rounded-xl"
-            onClick={() => setPickupMode(!pickupMode)}
-          >
-            <Store className="h-4 w-4 mr-2" />
-            {pickupMode ? "Retirar na Loja ✓" : "Entrega"}
-          </Button>
-        </div>
+      <SheetContent>
+        <ScrollArea>
+          {/* PICKUP TOGGLE SEMPRE VISÍVEL */}
+          <div className="p-4 space-y-3">
+            <div style={{border: '5px solid lime !important', zIndex: 9999}} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+              <Button 
+                variant={pickupMode ? "default" : "outline"} 
+                className="flex-1 h-14 text-base font-bold w-full rounded-xl shadow-lg"
+                onClick={() => { 
+                  console.log('🚀 PICKUP CLICK!', pickupMode); 
+                  setPickupMode(!pickupMode) 
+                }}
+              >
+                <Store className="h-5 w-5 mr-3" />
+                {pickupMode ? "✅ Retirar na Loja" : "🚚 Entrega"}
+              </Button>
+              <p className="text-xs text-slate-500 mt-2 text-center">Toggle ativo! F12 acha agora</p>
+            </div>
+
         {!pickupMode && (
           <DeliveryAddressForm onAddressComplete={handleAddressUpdate} storeId={storeId} />
         )}

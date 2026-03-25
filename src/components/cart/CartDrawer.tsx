@@ -18,7 +18,7 @@ import { Loader2, ShoppingBag, CreditCard, Banknote, Trash2, Coins, ImageOff, Al
 
 export default function CartDrawer() {
   const { items, total, storeId, clearCart, removeFromCart, customerId, pickupMode, setPickupMode, deliveryFee, setDeliveryFee, deliveryAddress, setDeliveryAddress } = useCart();
-  const { data: storeData } = useStores(storeId);
+  const { data: storeData } = useStores();
   const store = storeData?.[0];
   const deviceId = useDevice();
   const { toast } = useToast();
@@ -47,6 +47,8 @@ export default function CartDrawer() {
   const [orderHistory, setOrderHistory] = useState<any[]>([]);
 const [frete, setFrete] = useState<number | null>(null);
 const [showPickupToggle, setShowPickupToggle] = useState(true); // FORÇA VISÍVEL
+
+const parseCurrency = (value: string) => parseFloat(value.replace(",", ".")) || 0;
 
 const [isPickupMode, setIsPickupMode] = useState(true); // TEMP DEBUG
 

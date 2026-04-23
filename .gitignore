@@ -5,3 +5,8 @@ Cisco_Cópia/vpn/log/
 Cisco_Cópia/vpn/log/
 .vercel
 .env*.local
+.env 
+supabase/ 
+bun.lockb 
+PLANO_IMPLEMENTACAO_PAGAMENTO.md 
+TODO-pickup.md 

@@ -1,73 +1,88 @@
-# Welcome to your Lovable project
+---
 
-## Project info
+## ✒️ Autor
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Desenvolvido por **Eduardo Viana** – Desenvolvedor Fullstack & Especialista em Automação.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+### Dica para o seu GitHub:
+Como o layout **Glass** é um ponto forte, não esqueça de adicionar uma pasta `assets` ou `screenshots` no seu repositório e incluir imagens do dashboard aqui no README usando `![Dashboard](./screenshots/dashboard.png)`. Isso valoriza muito o projeto visualmente!
 
-**Use Lovable**
+Este é um excelente projeto para o seu portfólio, especialmente por unir tecnologias modernas de frontend com integrações complexas de pagamento e autenticação. Como você está usando o **Supabase** e o **Mercado Pago** no seu dashboard, é importante destacar a robustez do backend e a segurança.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Aqui está uma proposta de **README.md** profissional, focada em atrair a atenção de recrutadores e outros desenvolvedores:
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+# 🛒 VianaHub - E-commerce Intelligence
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+O **VianaHub** é uma solução completa de E-commerce para o setor alimentício, focada em oferecer uma experiência fluida de compra e uma gestão simplificada para o lojista. Com um design moderno baseado na estética **Glassmorphism**, o projeto une alta performance com uma interface visualmente impactante.
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 💎 Diferenciais do Projeto
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 🎨 Design & UX
+*   **Glassmorphism UI:** Interface moderna com transparências, desfoque de fundo e bordas sutis, seguindo as tendências de design de alto padrão.
+*   **Customização por Lojista:** Sistema que permite a cada lojista aplicar sua identidade visual (cores e temas) de forma dinâmica.
+*   **Hubs Dedicados:** Áreas exclusivas e intuitivas para o **Cliente** (pedidos, histórico, perfil) e para o **Lojista** (estoque, vendas, dashboard).
 
-# Step 3: Install the necessary dependencies.
-npm i
+### ⚙️ Funcionalidades Core
+*   **Autenticação Segura:** Login via Google OAuth e E-mail (Magic Links/Password) via Supabase.
+*   **Gestão de Pagamentos:** Integração nativa com a API do **Mercado Pago** para pagamentos online seguros.
+*   **Real-time Notifications:** Webhooks configurados para notificações de novos pedidos em tempo real.
+*   **Dashboard de Vendas:** Visão analítica para lojistas monitorarem faturamento e métricas de entrega.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+## 🚀 Tecnologias Utilizadas
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Este projeto foi construído com o que há de mais moderno no ecossistema web:
 
-**Use GitHub Codespaces**
+*   **Frontend:** React.js / Next.js
+*   **Estilização:** CSS-in-JS ou Tailwind CSS (focado em Glassmorphism)
+*   **Backend & DB:** Supabase (PostgreSQL, Auth e Real-time)
+*   **Pagamentos:** Mercado Pago SDK
+*   **Automação/Testes:** Selenium / Playwright
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🛠️ Como executar o projeto
 
-This project is built with:
+1.  **Clone o repositório:**
+    ```bash
+    git clone [https://github.com/seu-usuario/vianahub.git](https://github.com/seu-usuario/vianahub.git)
+    ```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+2.  **Instale as dependências:**
+    ```bash
+    npm install
+    ```
 
-## How can I deploy this project?
+3.  **Configure as variáveis de ambiente (`.env`):**
+    Crie um arquivo `.env` na raiz e adicione suas credenciais:
+    ```env
+    NEXT_PUBLIC_SUPABASE_URL=seu_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_key
+    MERCADO_PAGO_PUBLIC_KEY=sua_key
+    ```
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+4.  **Inicie o servidor de desenvolvimento:**
+    ```bash
+    npm run dev
+    ```
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🏗️ Estrutura do Projeto
+```text
+src/
+├── components/       # Componentes reutilizáveis (Glass UI)
+├── hooks/            # Lógica de estado e chamadas API
+├── pages/            # Rotas da aplicação (Client/Admin Hubs)
+├── services/         # Integrações (Supabase, Mercado Pago)
+└── styles/           # Temas globais e variáveis de cor
